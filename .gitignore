@@ -93,12 +93,36 @@ dkms.conf
 *.sln
 *.vcxproj
 *.filters
-Image_Synthetic/Image_Synthetic/segment/
+MFC_Synthetic/MFC_Synthetic/segment/
 *.MP4
 *.tlog
-Image_Synthetic/Image_Synthetic/frameInfo.txt
+MFC_Synthetic/MFC_Synthetic/frameInfo.txt
 *.avi
 *.raw
-Image_Synthetic/Image_Synthetic.opensdf
 
-Image_Synthetic/Image_Synthetic/Image_Synthetic.opensdf
+*.opensdf
+*.ipch
+*.suo
+*.exp
+*.ilk
+*.pdb
+*.iobj
+*.ipdb
+*.aps
+*.user
+*.obj
+*.log
+*.res
+*.idb
+*.pch
+*.lastbuildstate
+
+# Directories
+ipch
+Debug
+Release
+
+# Executables
+*.exe
+*.dll
+*.lib
