@@ -12,7 +12,14 @@
 #endif
 
 #define VIDEO_TIMER 1
+#define SYN_RESULT_TIMER 2
 #define MAX_STR_BUFFER_SIZE  128 // 문자열 출력에 쓸 버퍼 길이
+
+int fps;
+Mat m_resultBackground;
+segment *m_segmentArray;
+int segmentCount;
+Queue queue;
 
 // CAboutDlg dialog used for App About
 
@@ -146,18 +153,25 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	m_pEditBoxStartMinute->SetWindowTextA("0");
 	//***************************************************************************************************************
 	
-	
-	//동영상 읽기
-	capture = new VideoCapture("test.mp4");
-
-	if (!capture->isOpened())
-	{
-		MessageBox(_T("비디오를 열수 없습니다. \n"));
-	}
-
 	cimage_mfc = NULL;
 
 	isPlayBtnClicked = false;
+
+
+	//실행시 비디오 읽어옴
+	//파일 다이얼로그 호출해서 segmentation 할 영상 선택	
+	//TODO : 동영상 확장자로 제한하기
+	char szFilter[] = "All Files(*.*)|*.*||";	//검색 옵션
+	CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, szFilter, AfxGetMainWnd());	//파일 다이얼로그 생성
+	dlg.DoModal();	//다이얼로그 띄움
+
+	CString cstrImgPath = dlg.GetPathName();
+
+	capture.open((string)cstrImgPath);
+	if (!capture.isOpened()) { //예외처리. 해당이름의 파일이 없는 경우
+		perror("No Such File!\n");
+		return FALSE;
+	}
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -212,7 +226,6 @@ HCURSOR CMFC_SyntheticDlg::OnQueryDragIcon()
 }
 
 
-
 void CMFC_SyntheticDlg::OnBnClickedOk()
 {
 	// TODO: Add your control notification handler code here
@@ -220,7 +233,115 @@ void CMFC_SyntheticDlg::OnBnClickedOk()
 
 	
 	isPlayBtnClicked = true; 
-	SetTimer(VIDEO_TIMER, 25, NULL); //params = timerID, ms, callback함수 명(NULL이면 OnTimer)
+
+//*******************************************텍스트파일을 읽어서 정렬****************************************************************
+	m_segmentArray = new segment[BUFFER];  //(segment*)calloc(BUFFER, sizeof(segment));	//텍스트 파일에서 읽은 segment 정보를 저장할 배열 초기화
+	
+	segmentCount = 0;
+	char txtBuffer[100] = { 0, };	//텍스트파일 읽을 때 사용할 buffer
+	// frameInfo.txt 파일에서 데이터를 추출 하여 segment array 초기화
+	FILE *fp = NULL;
+	fp = fopen("frameInfo.txt", "r");
+	if (fp == NULL) {	//예외처리. 텍스트 파일을 찾을 수 없음
+		perror("No File!");
+		exit(1);
+	}
+	while (!feof(fp)) {
+		fgets(txtBuffer, 99, fp);
+
+		// txt파일에 있는 프레임 데이터들 segmentArray 버퍼로 복사
+		sscanf(txtBuffer, "%d_%d_%d_%d %d %d %d %d %d %d",
+			&m_segmentArray[segmentCount].timeTag, &m_segmentArray[segmentCount].msec,
+			&m_segmentArray[segmentCount].frameCount, &m_segmentArray[segmentCount].index,
+			&m_segmentArray[segmentCount].left, &m_segmentArray[segmentCount].top,
+			&m_segmentArray[segmentCount].right, &m_segmentArray[segmentCount].bottom,
+			&m_segmentArray[segmentCount].width, &m_segmentArray[segmentCount].height);
+
+		// filename 저장
+		m_segmentArray[segmentCount].fileName
+			.append(to_string(m_segmentArray[segmentCount].timeTag)).append("_")
+			.append(to_string(m_segmentArray[segmentCount].msec)).append("_")
+			.append(to_string(m_segmentArray[segmentCount].frameCount)).append("_")
+			.append(to_string(m_segmentArray[segmentCount].index)).append(".jpg");
+
+		// m_segmentArray의 인덱스 증가
+		segmentCount++;
+	}
+
+	// 버블 정렬 사용하여 m_segmentArray를 TimeTag순으로 정렬
+	segment tmp_segment;
+	for (int i = 0; i < segmentCount; i++) {
+		for (int j = 0; j < segmentCount - 1; j++) {
+			if (m_segmentArray[j].timeTag > m_segmentArray[j + 1].timeTag) {
+				// m_segmentArray[segmentCount]와 m_segmentArray[segmentCount + 1]의 교체
+				tmp_segment = m_segmentArray[j + 1];
+				m_segmentArray[j + 1] = m_segmentArray[j];
+				m_segmentArray[j] = tmp_segment;
+			}
+		}
+	}
+
+	//정렬 확인 코드
+	//{
+	//for (int i = 0; i < segmentCount; i++)
+	//cout << m_segmentArray[i].fileName << endl;
+	//}
+
+	fclose(fp);	// 텍스트 파일 닫기
+	//****************************************************************************************************************
+	
+	fps = capture.get(CV_CAP_PROP_FPS);
+
+	//큐 초기화
+	InitQueue(&queue);
+
+	// 고정 배경 프레임 불러오기
+	m_resultBackground = imread("background.jpg");
+
+
+
+	/************************************/
+	//TODO timetag 입력받기
+	unsigned int obj1_TimeTag = 2200;	//검색할 TimeTag1
+	unsigned int obj2_TimeTag = 107360;	//검색할 TimeTag2
+
+
+	bool find1 = false;
+	bool find2 = false;
+
+	int prevTimetag = 0;
+	//출력할 객체를 큐에 삽입하는 부분
+	for (int i = 0; i < segmentCount; i++) {
+		if (find1 == false && m_segmentArray[i].timeTag == obj1_TimeTag) {	//아직 찾지 못했고 일치하는 타임태그를 찾았을 경우
+			Enqueue(&queue, obj1_TimeTag, i);	//출력해야할 객체의 첫 프레임의 타임태그와 위치를 큐에 삽입
+			prevTimetag = obj1_TimeTag;
+			find1 = true;
+		}
+		else if (find2 == false && m_segmentArray[i].timeTag == obj2_TimeTag) {	//아직 찾지 못했고 일치하는 타임태그를 찾았을 경우
+			Enqueue(&queue, obj2_TimeTag, i);	//출력해야할 객체의 첫 프레임의 타임태그와 위치를 큐에 삽입
+			find2 = true;
+		}
+		else if (find1 == true && find2 == false && prevTimetag != m_segmentArray[i].timeTag){
+			Enqueue(&queue, m_segmentArray[i].timeTag, i);	//출력해야할 객체의 첫 프레임의 타임태그와 위치를 큐에 삽입
+			prevTimetag = m_segmentArray[i].timeTag;
+		}
+
+
+		if (find1 == true && find2 == true)	//모두 찾았으면 더 찾을 필요가 없으므로 나옴
+			break;
+	}
+
+	//예외처리, 하나라도 없을 경우
+	if (find1 == false || find2 == false) {
+		printf("pls check again\n");
+		return;
+	}
+
+
+	/***********/
+
+	
+	SetTimer(SYN_RESULT_TIMER, 1000 / fps, NULL); //params = timerID, ms, callback함수 명(NULL이면 OnTimer)
 
 
 	//char szFilter[] = "Image (*.BMP, *.GIF, *.JPG, *.PNG) | *.BMP;*.GIF;*.JPG;*.PNG;*.bmp;*.gif;*.jpg;*.png | All Files(*.*)|*.*||";
@@ -239,11 +360,11 @@ void CMFC_SyntheticDlg::OnBnClickedOk()
 
 
 // 디스플레이 함수
-void CMFC_SyntheticDlg::DisplayImage(int IDC_PICTURE_TARGET, Mat targetMat){
+void CMFC_SyntheticDlg::DisplayImage(int IDC_PICTURE_TARGET, Mat targetMat, int TIMER_ID){
 
 	if (targetMat.empty()) {	//예외처리. 프레임이 없음
 		perror("Empty Frame");
-		KillTimer(VIDEO_TIMER);
+		KillTimer(TIMER_ID);
 		return ;
 	}
 	BITMAPINFO bitmapInfo;
@@ -304,7 +425,7 @@ void CMFC_SyntheticDlg::DisplayImage(int IDC_PICTURE_TARGET, Mat targetMat){
 	cvReleaseImage(&tempImage);
 }
 
-
+//타이머
 void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 {
 	// TODO: Add your message handler code here and/or call default
@@ -313,16 +434,28 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 	CDialogEx::OnTimer(nIDEvent);
 
 	switch (nIDEvent){
-	case VIDEO_TIMER :
+	case VIDEO_TIMER:
 		printf(".");
 		if (isPlayBtnClicked == true){
-			capture->read(mat_frame);
-			DisplayImage(IDC_RESULT_IMAGE, mat_frame);
+			//capture->read(mat_frame);
+			//DisplayImage(IDC_RESULT_IMAGE, mat_frame);
 		}
 		break;
 
+	case SYN_RESULT_TIMER:
+		printf("+");
+		if (isPlayBtnClicked == true){
+			//TODO mat에 합성된 결과를 넣어준다.
+			Mat syntheticResult;
+			syntheticResult = getSyntheticFrame(syntheticResult);
+			//capture->read(mat_frame);
+			DisplayImage(IDC_RESULT_IMAGE, syntheticResult, SYN_RESULT_TIMER);
+			printf("ASD");
+			syntheticResult.release();
+		}
+		break;
 	}
-	
+
 }
 
 void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
@@ -334,32 +467,16 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 	CString startMinute;
 	m_pEditBoxStartMinute->GetWindowTextA(startMinute);
 
-
-	//파일 다이얼로그 호출해서 segmentation 할 영상 선택	
-	//TODO : 동영상 확장자로 제한하기
-	char szFilter[] = "All Files(*.*)|*.*||";	//검색 옵션
-	CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, szFilter, AfxGetMainWnd());	//파일 다이얼로그 생성
-	dlg.DoModal();	//다이얼로그 띄움
-	
-	CString cstrImgPath = dlg.GetPathName();
-
-	VideoCapture vcSource((string)cstrImgPath);
-	if (!vcSource.isOpened()) { //예외처리. 해당이름의 파일이 없는 경우
-		perror("No Such File!\n");
-		return ;
+	humonDetector(&capture, atoi(startHour), atoi(startMinute));	//Object Segmentation
 	}
-	else{
-		humonDetector(vcSource, atoi(startHour), atoi(startMinute));	//Object Segmentation
-	}
-}
 
 
-void humonDetector(VideoCapture vc_Source, int videoStartHour, int videoStartMin)
+void humonDetector(VideoCapture* vc_Source, int videoStartHour, int videoStartMin)
 {
 	int videoStartMsec = (videoStartHour * 60 + videoStartMin) * 60 * 1000;
 
-	unsigned int COLS = (int)vc_Source.get(CV_CAP_PROP_FRAME_WIDTH);	//가로 길이
-	unsigned int ROWS = (int)vc_Source.get(CV_CAP_PROP_FRAME_HEIGHT);	//세로 길이
+	unsigned int COLS = (int)vc_Source->get(CV_CAP_PROP_FRAME_WIDTH);	//가로 길이
+	unsigned int ROWS = (int)vc_Source->get(CV_CAP_PROP_FRAME_HEIGHT);	//세로 길이
 
 	unsigned char* result = (unsigned char*)malloc(sizeof(unsigned char)* ROWS * COLS);
 
@@ -372,6 +489,8 @@ void humonDetector(VideoCapture vc_Source, int videoStartHour, int videoStartMin
 	vector<component> humanDetectedVector;
 	vector<component> prevHumanDetectedVector;
 	unsigned int currentMsec;
+
+
 
 	/* Mat */
 	Mat frame(ROWS, COLS, CV_8UC3); // Mat(height, width, channel)
@@ -393,7 +512,7 @@ void humonDetector(VideoCapture vc_Source, int videoStartHour, int videoStartMin
 	//MessageBox(0, "Just on second!\nSegmentation in progress...", "Dude, Wait", NULL);
 
 	while (1) {
-		vc_Source >> frame; //get single frame
+		vc_Source->read(frame); //get single frame
 		if (frame.empty()) {	//예외처리. 프레임이 없음
 			perror("Empty Frame");
 			break;
@@ -420,7 +539,7 @@ void humonDetector(VideoCapture vc_Source, int videoStartHour, int videoStartMin
 		humanDetectedVector = connectedComponentsLabelling(frame_g, ROWS, COLS);
 
 		// 영상의 포착 가져오기
-		currentMsec = vc_Source.get(CV_CAP_PROP_POS_MSEC);
+		currentMsec = vc_Source->get(CV_CAP_PROP_POS_MSEC);
 
 		// 영상을 처리하여 파일로 저장하기
 		humanDetectedVector = humanDetectedProcess(humanDetectedVector, prevHumanDetectedVector,
@@ -431,22 +550,27 @@ void humonDetector(VideoCapture vc_Source, int videoStartHour, int videoStartMin
 
 		frameCount++;	//increase frame count
 	}
+
+	//메모리 해제
+	free(result); 	frame.release(); frame_g.release(); background.release();
+	vector<component>().swap(humanDetectedVector);
+	vector<component>().swap(prevHumanDetectedVector);
 	fclose(fp);	// 텍스트 파일 닫기
+
 	//HWND hWnd = ::FindWindow(NULL, "Dude, Wait");
 	//if (hWnd){ ::PostMessage(hWnd, WM_CLOSE, 0, 0); }
 	MessageBox(0, "Done!!", "ding-dong", MB_OK);
 }
 
 Mat morphologicalOperation(Mat img_binary) {
-	Mat img_result;
 	//morphological opening 작은 점들을 제거
 	erode(img_binary, img_binary, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
 	dilate(img_binary, img_binary, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
 
 	//morphological closing 영역의 구멍 메우기
 	dilate(img_binary, img_binary, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-	erode(img_binary, img_result, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-	return img_result;
+	erode(img_binary, img_binary, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+	return img_binary;
 }
 
 string allocatingComponentFilename(vector<component> humanDetectedVector, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector) {
@@ -505,4 +629,44 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 		}
 	}
 	return humanDetectedVector;
+}
+
+
+
+Mat getSyntheticFrame(Mat tempBackGround) {
+	//출력
+		int *labelMap = (int*)calloc(m_resultBackground.cols * m_resultBackground.rows, sizeof(int));	//겹침을 판단하는 용도
+		node tempnode;	//DeQueue한 결과를 받을 node
+		int countOfObj = queue.count;	//큐 인스턴스의 노드 갯수
+
+		printf("\nASd@@\n");
+		//큐가 비었는지 확인한다
+		if (IsEmpty(&queue))
+			return tempBackGround;
+
+		m_resultBackground.copyTo(tempBackGround);	//임시로 쓸 배경 복사
+
+
+
+		//DeQueue를 큐에 들어있는 객체 갯수 만큼 한다. 
+		for (int i = 0; i < countOfObj; i++) {
+			//dequeue한 객체를 출력한다.
+			tempnode = Dequeue(&queue);
+
+			//if (tempnode.timeTag == 66920)
+			//printf("\n@ %d / %s", tempnode.indexOfSegmentArray, m_segmentArray[tempnode.indexOfSegmentArray].fileName);
+			//배경에 객체를 올리는 함수
+			tempBackGround = printObjOnBG(tempBackGround, m_segmentArray[tempnode.indexOfSegmentArray], labelMap);
+
+			//다음목록에 같은 타임태그를 가진 객체가 있는지 확인한다. 있으면 EnQueue
+			if (m_segmentArray[tempnode.indexOfSegmentArray + 1].timeTag == m_segmentArray[tempnode.indexOfSegmentArray].timeTag) {
+				Enqueue(&queue, tempnode.timeTag, tempnode.indexOfSegmentArray + 1);
+				//printf("@ %d", tempnode.indexOfSegmentArray + 1);
+			}
+
+		}
+
+	
+		free(labelMap);
+	return tempBackGround;
 }
