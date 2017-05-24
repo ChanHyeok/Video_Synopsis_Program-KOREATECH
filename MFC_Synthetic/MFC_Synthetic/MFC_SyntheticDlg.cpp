@@ -311,6 +311,8 @@ void CMFC_SyntheticDlg::DisplayImage(int IDC_PICTURE_TARGET, Mat targetMat, int 
 	bitmapInfo.bmiHeader.biHeight = -targetMat.rows;
 
 	IplImage *tempImage;
+	IplImage tempImageAddress;
+	tempImage = &tempImageAddress;
 
 	if (targetMat.channels() == 1)
 	{
