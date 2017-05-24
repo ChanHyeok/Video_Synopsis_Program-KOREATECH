@@ -5,6 +5,7 @@
 #pragma once
 
 #include <opencv2/opencv.hpp>
+#include "afxcmn.h"
 using namespace std;
 using namespace cv;
 
@@ -153,5 +154,10 @@ public:
 	afx_msg void OnBnClickedBtnSegmentation();
 	afx_msg void OnBnClickedGroup1Seg();
 	afx_msg void OnEnChangeEdit1();
+	CSliderCtrl m_sliderSearchStartTime;
+	CSliderCtrl m_sliderSearchEndTime;
+	afx_msg void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
+	afx_msg void OnClickedBtnSynPlay();
+	CSliderCtrl m_sliderFps;
 };
 
