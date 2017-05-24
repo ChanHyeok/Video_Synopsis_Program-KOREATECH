@@ -11,6 +11,7 @@ using namespace cv;
 
 
 #define BUFFER 8096 // 객체 프레임 데이터를 저장할 버퍼의 크기 
+
 // segmentation structure
 typedef struct _segment {
 	string fileName;
@@ -103,6 +104,7 @@ Mat getSyntheticFrame(Mat);
 // file_io.cpp
 void saveSegmentation_JPG(component, Mat, int, int, int, unsigned int);	//캡쳐한 Components를 jpg파일로 저장하는 함수
 void saveSegmentation_TXT(component, int, int, FILE *, int);	//components의 Data를 txt로 저장하는 함수
+stringstream timeConvertor(int t);
 
 
 // tool_synthetic.cpp

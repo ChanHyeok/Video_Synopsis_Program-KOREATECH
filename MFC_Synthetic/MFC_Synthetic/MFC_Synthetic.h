@@ -9,7 +9,11 @@
 #endif
 
 #include "resource.h"		// main symbols
+#include "io.h"		// access ÇÔ¼ö
 
+
+#define RESULT_TEXT_FILENAME  "frameInfo.txt"
+#define RESULT_FOLDER_NAME "segment"
 
 // CMFC_SyntheticApp:
 // See MFC_Synthetic.cpp for the implementation of this class

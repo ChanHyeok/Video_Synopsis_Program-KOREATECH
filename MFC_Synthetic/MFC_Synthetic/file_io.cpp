@@ -14,7 +14,7 @@ Mat objectCutting(component object, Mat img, unsigned int ROWS, unsigned int COL
 void saveSegmentation_JPG(component object, Mat frame, int frameCount, int msec, int index, unsigned int videoStartMsec) {
 	Mat img = objectCutting(object, frame, frame.rows, frame.cols);
 
-	string folderName = "segment";
+	string folderName = RESULT_FOLDER_NAME;
 	string fileName = object.fileName;
 	string fullPath;
 	stringstream ss;
