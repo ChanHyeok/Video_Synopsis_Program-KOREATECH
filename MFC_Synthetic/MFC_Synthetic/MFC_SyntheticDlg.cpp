@@ -324,7 +324,6 @@ void CMFC_SyntheticDlg::DisplayImage(int IDC_PICTURE_TARGET, Mat targetMat, int 
 
 	bitmapInfo.bmiHeader.biBitCount = tempImage->depth * tempImage->nChannels;
 
-
 	CDC* pDC;
 	pDC = GetDlgItem(IDC_RESULT_IMAGE)->GetDC();
 	CRect rect;
