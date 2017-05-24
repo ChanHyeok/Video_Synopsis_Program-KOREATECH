@@ -43,7 +43,9 @@ void Enqueue(Queue *queue, int data, int index)
 node Dequeue(Queue *queue)
 {
 	int data = 0;
+	node nowAddress;
 	node *now;
+	now = &nowAddress;
 	if (IsEmpty(queue))//큐가 비었을 때
 	{
 		return *now;

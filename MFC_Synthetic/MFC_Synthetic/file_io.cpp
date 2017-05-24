@@ -25,7 +25,8 @@ void saveSegmentation_JPG(component object, Mat frame, int frameCount, int msec,
 		Point(object.right - object.left - 1, object.bottom - object.top - 1),
 		Scalar(0, 0, 255), 2);
 
-	if (access("segment", 0) != 0) {	//폴더가 없을 경우
+	
+	if (_access("segment", 0) != 0) {	//폴더가 없을 경우
 		string folderCreateCommand = "mkdir " + folderName;
 		system(folderCreateCommand.c_str());
 	}
