@@ -20,6 +20,7 @@ Mat m_resultBackground;
 segment *m_segmentArray;
 int segmentCount;
 Queue queue;
+int videoStartMsec;
 
 // CAboutDlg dialog used for App About
 
@@ -198,8 +199,7 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 
 	//실행시 비디오 읽어옴
 	//파일 다이얼로그 호출해서 segmentation 할 영상 선택	
-	//TODO : 동영상 확장자로 제한하기
-	char szFilter[] = "All Files(*.*)|*.*||";	//검색 옵션
+	char szFilter[] = "Video (*.avi, *.MP4) | *.avi;*.mp4; | All Files(*.*)|*.*||";	//검색 옵션
 	CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, szFilter, AfxGetMainWnd());	//파일 다이얼로그 생성
 	dlg.DoModal();	//다이얼로그 띄움
 
@@ -216,8 +216,8 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	m_pEditBoxStartHour->SetWindowTextA("0");
 	m_pEditBoxStartMinute->SetWindowTextA("0");
 	//slider default
-	SetDlgItemText(IDC_STRING_SEARCH_START_TIME_SLIDER, _T("00:00:00"));
-	SetDlgItemText(IDC_STRING_SEARCH_END_TIME_SLIDER, _T("00:00:00"));
+	SetDlgItemText(IDC_STRING_SEARCH_START_TIME_SLIDER, _T("00 : 00 : 00"));
+	SetDlgItemText(IDC_STRING_SEARCH_END_TIME_SLIDER, _T("00 : 00 : 00"));
 	SetDlgItemText(IDC_STRING_FPS_SLIDER, to_string(fps).c_str());
 	m_sliderFps.SetPos(fps);
 
@@ -370,7 +370,6 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 
 	switch (nIDEvent){
 	case VIDEO_TIMER:
-		printf(".");
 		if (isPlayBtnClicked == true){
 			//capture->read(mat_frame);
 			//DisplayImage(IDC_RESULT_IMAGE, mat_frame);
@@ -378,14 +377,12 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 		break;
 
 	case SYN_RESULT_TIMER:
-		printf("+");
 		if (isPlayBtnClicked == true){
 			//TODO mat에 합성된 결과를 넣어준다.
 			Mat syntheticResult;
 			syntheticResult = getSyntheticFrame(syntheticResult);
 			//capture->read(mat_frame);
 			DisplayImage(IDC_RESULT_IMAGE, syntheticResult, SYN_RESULT_TIMER);
-			printf("ASD");
 			syntheticResult.release();
 		}
 		break;
@@ -408,7 +405,7 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 
 void humonDetector(VideoCapture* vc_Source, int videoStartHour, int videoStartMin)
 {
-	int videoStartMsec = (videoStartHour * 60 + videoStartMin) * 60 * 1000;
+	videoStartMsec = (videoStartHour * 60 + videoStartMin) * 60 * 1000;
 
 	unsigned int COLS = (int)vc_Source->get(CV_CAP_PROP_FRAME_WIDTH);	//가로 길이
 	unsigned int ROWS = (int)vc_Source->get(CV_CAP_PROP_FRAME_HEIGHT);	//세로 길이
@@ -438,6 +435,8 @@ void humonDetector(VideoCapture* vc_Source, int videoStartHour, int videoStartMi
 	// 얻어낸 객체 프레임의 정보를 써 낼 텍스트 파일 정의
 	FILE *fp; // frameInfo를 작성할 File Pointer
 	fp = fopen(RESULT_TEXT_FILENAME, "w");	// 쓰기모드
+	fprintf(fp, to_string(videoStartMsec).append("\n").c_str());	//첫줄에 영상시작시간 적어줌
+	
 
 	// 고정 background 사용
 	//TODO 배경 자동 생성하기
@@ -569,11 +568,10 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 
 
 Mat getSyntheticFrame(Mat tempBackGround) {
-	//출력
 		int *labelMap = (int*)calloc(m_resultBackground.cols * m_resultBackground.rows, sizeof(int));	//겹침을 판단하는 용도
 		node tempnode;	//DeQueue한 결과를 받을 node
 		int countOfObj = queue.count;	//큐 인스턴스의 노드 갯수
-
+		stringstream ss;
 		//큐가 비었는지 확인한다
 		if (IsEmpty(&queue))
 			return tempBackGround;
@@ -591,6 +589,16 @@ Mat getSyntheticFrame(Mat tempBackGround) {
 			//printf("\n@ %d / %s", tempnode.indexOfSegmentArray, m_segmentArray[tempnode.indexOfSegmentArray].fileName);
 			//배경에 객체를 올리는 함수
 			tempBackGround = printObjOnBG(tempBackGround, m_segmentArray[tempnode.indexOfSegmentArray], labelMap);
+			
+			//타임태그를 string으로 변환
+			string timetag = "";
+			int timetagInSec = (m_segmentArray[tempnode.indexOfSegmentArray].timeTag + videoStartMsec) / 1000;	//영상의 시작시간을 더해준다.
+			ss = timeConvertor(timetagInSec);
+			timetag = ss.str();
+	
+			//커팅된 이미지에 타임태그를 달아준다
+			//params : (Mat, String to show, 출력할 위치, 폰트 타입, 폰트 크기, 색상, 굵기) 
+			putText(tempBackGround, timetag, Point(m_segmentArray[tempnode.indexOfSegmentArray].left + 5, m_segmentArray[tempnode.indexOfSegmentArray].top - 10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 150, 150), 2);
 
 			//다음목록에 같은 타임태그를 가진 객체가 있는지 확인한다. 있으면 EnQueue
 			if (m_segmentArray[tempnode.indexOfSegmentArray + 1].timeTag == m_segmentArray[tempnode.indexOfSegmentArray].timeTag) {
@@ -600,7 +608,6 @@ Mat getSyntheticFrame(Mat tempBackGround) {
 
 		}
 
-	
 		free(labelMap);
 	return tempBackGround;
 }
@@ -625,33 +632,29 @@ void CMFC_SyntheticDlg::OnClickedBtnSynPlay()
 {
 	// TODO: Add your control notification handler code here
 	isPlayBtnClicked = true;
-
-
+	char txtBuffer[100] = { 0, };	//텍스트파일 읽을 때 사용할 buffer
 	//frameInfo.txt 파일이 있고, 내용이 비어있지 않으면 실행가능하다고 표시
-	FILE *f;
+	FILE *fp;
 	string path = "./";
 	path.append(RESULT_TEXT_FILENAME);
-	f = fopen(path.c_str(), "r");
+	fp = fopen(path.c_str(), "r");
 	boolean isPlayable = false;
-	if (f){
-		fseek(f, 0, SEEK_END);
-		if (ftell(f) != 0)
+	if (fp){	//파일을 제대로 불러왔을 경우
+		//포인터 끝으로 이동하여 파일 크기 측정
+		fseek(fp, 0, SEEK_END);
+		if (ftell(fp) != 0)	//파일 크기가 0 이 아닐 경우 실행
 			isPlayable = true;
 	}
 
-	if (isPlayable){	//segment 폴더가 있을 경우에만 실행
+	if (isPlayable){
 		//*******************************************텍스트파일을 읽어서 정렬****************************************************************
 		m_segmentArray = new segment[BUFFER];  //(segment*)calloc(BUFFER, sizeof(segment));	//텍스트 파일에서 읽은 segment 정보를 저장할 배열 초기화
-
 		segmentCount = 0;
-		char txtBuffer[100] = { 0, };	//텍스트파일 읽을 때 사용할 buffer
+		fseek(fp, 0, SEEK_SET);	//포인터 처음으로 이동
+		fgets(txtBuffer, 99, fp);
+		sscanf(txtBuffer, "%d", &videoStartMsec);
+		
 		// frameInfo.txt 파일에서 데이터를 추출 하여 segment array 초기화
-		FILE *fp = NULL;
-		fp = fopen(RESULT_TEXT_FILENAME, "r");
-		if (fp == NULL) {	//예외처리. 텍스트 파일을 찾을 수 없음
-			perror("No File!");
-			exit(1);
-		}
 		while (!feof(fp)) {
 			fgets(txtBuffer, 99, fp);
 
@@ -705,7 +708,7 @@ void CMFC_SyntheticDlg::OnClickedBtnSynPlay()
 
 
 		/************************************/
-		//TODO timetag 입력받기
+		//TimeTag를 Edit box로부터 입력받음
 		unsigned int obj1_TimeTag = m_sliderSearchStartTime.GetPos() * 1000;	//검색할 TimeTag1
 		unsigned int obj2_TimeTag = m_sliderSearchEndTime.GetPos() * 1000;	//검색할 TimeTag2
 
@@ -732,7 +735,7 @@ void CMFC_SyntheticDlg::OnClickedBtnSynPlay()
 		//타이머 시작	params = timerID, ms, callback함수 명(NULL이면 OnTimer)
 		SetTimer(SYN_RESULT_TIMER, 1000 / m_sliderFps.GetPos(), NULL);
 	}
-	else{ //segment 폴더가 없을 경우 segmentation을 진행하라고 출력
+	else{ //실행 못하는 경우 segmentation을 진행하라고 출력
 		AfxMessageBox("You can't play without segmentation results");
 	}
 

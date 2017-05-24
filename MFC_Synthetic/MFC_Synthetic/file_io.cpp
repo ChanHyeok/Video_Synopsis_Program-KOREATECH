@@ -19,16 +19,6 @@ void saveSegmentation_JPG(component object, Mat frame, int frameCount, int msec,
 	string fullPath;
 	stringstream ss;
 
-	//타임태그를 string으로 변환
-	string timetag = "";
-	int timetagInSec = (object.timeTag + videoStartMsec) / 1000;	//영상의 시작시간을 더해준다.
-	ss = timeConvertor(timetagInSec);
-	timetag = ss.str();
-	ss.str("");
-
-	//커팅된 이미지에 타임태그를 달아준다
-	//params : (Mat, String to show, 출력할 위치, 폰트 타입, 폰트 크기, 색상, 굵기) 
-	putText(img, timetag, Point(5, object.bottom - object.top - 20), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 150, 150), 2);
 
 	//빨간 사각형을 그리는 함수
 	rectangle(img, Point(0, 0),
