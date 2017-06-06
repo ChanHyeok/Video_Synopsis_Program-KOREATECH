@@ -65,8 +65,6 @@ stringstream timeConvertor(int t) {
 	else
 		s << sec;
 
-	//printf("%02d:%02d:%02d \n", hour, min, sec);
-
 	return s;
 }
 
