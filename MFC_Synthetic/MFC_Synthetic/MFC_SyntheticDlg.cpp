@@ -220,6 +220,8 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	SetDlgItemText(IDC_STRING_FPS_SLIDER, to_string(fps).c_str());
 	m_sliderFps.SetPos(fps);
 
+	SetTimer(VIDEO_TIMER, fps, NULL);
+
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
@@ -275,21 +277,7 @@ HCURSOR CMFC_SyntheticDlg::OnQueryDragIcon()
 
 void CMFC_SyntheticDlg::OnBnClickedOk()
 {
-	// TODO: Add your control notification handler code here
 	AfxMessageBox("OK 버튼 눌림");
-
-	//char szFilter[] = "Image (*.BMP, *.GIF, *.JPG, *.PNG) | *.BMP;*.GIF;*.JPG;*.PNG;*.bmp;*.gif;*.jpg;*.png | All Files(*.*)|*.*||";
-	//CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, szFilter, AfxGetMainWnd());
-	//if (dlg.DoModal() == IDOK)
-	//{
-	//	CString cstrImgPath = dlg.GetPathName();
-
-	//AfxMessageBox(cstrImgPath); 
-	////
-	//Mat src = imread(string(cstrImgPath));
-	//DisplayImage(IDC_RESULT_IMAGE, src);
-	//}
-
 }
 
 
@@ -364,21 +352,23 @@ void CMFC_SyntheticDlg::DisplayImage(int IDC_PICTURE_TARGET, Mat targetMat, int 
 void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 {
 	CDialogEx::OnTimer(nIDEvent);
-
 	switch (nIDEvent){
 	case VIDEO_TIMER:
-		if (isPlayBtnClicked == true){
-			//capture->read(mat_frame);
-			//DisplayImage(IDC_RESULT_IMAGE, mat_frame);
+		if (true){
+			printf("$");
+			Mat temp_frame;
+			capture.read(temp_frame);
+			DisplayImage(IDC_RESULT_IMAGE, temp_frame, VIDEO_TIMER);
+			temp_frame.release();
 		}
 		break;
 
 	case SYN_RESULT_TIMER:
 		if (isPlayBtnClicked == true){
+			printf("#");
 			//TODO mat에 합성된 결과를 넣어준다.
 			Mat syntheticResult;
 			syntheticResult = getSyntheticFrame(syntheticResult);
-			//capture->read(mat_frame);
 			DisplayImage(IDC_RESULT_IMAGE, syntheticResult, SYN_RESULT_TIMER);
 			syntheticResult.release();
 		}
@@ -598,7 +588,7 @@ Mat getSyntheticFrame(Mat tempBackGround) {
 			BOOL isCross= false;
 			int curIndex = tempnode.indexOfSegmentArray;
 			
-			printf("\n%d : %s", i + 1, m_segmentArray[curIndex].fileName);
+			//printf("\n%d : %s", i + 1, m_segmentArray[curIndex].fileName);
 			//객체가 이전 객체와 겹치는지 비교
 			if (i != 0 && m_segmentArray[curIndex].timeTag == m_segmentArray[curIndex].msec){	//처음이 아니고 현재 출력할 객체가 timetag의 첫 프레임 일 때
 				for (int j = 0; j< i; j++){	//이전에 그린 객체 모두와 겹치는지 판별
@@ -765,6 +755,8 @@ void CMFC_SyntheticDlg::OnClickedBtnSynPlay()
 		/***********/
 
 
+		//실행중인 타이머 종료
+		KillTimer(VIDEO_TIMER);
 		//타이머 시작	params = timerID, ms, callback함수 명(NULL이면 OnTimer)
 		SetTimer(SYN_RESULT_TIMER, 1000 / m_sliderFps.GetPos(), NULL);
 	}
