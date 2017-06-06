@@ -95,12 +95,25 @@ int IsEmpty(Queue *);
 void Enqueue(Queue *, int, int);
 node Dequeue(Queue *);
 
-Mat ExtractFg(Mat, Mat, int, int);
-Mat morphologicalOperation(Mat );
-vector<component> connectedComponentsLabelling(Mat frame, int rows, int cols);
+// MAIN ****
 vector<component> humanDetectedProcess(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector, Mat, int, int, unsigned int, FILE *fp);
-void humonDetector(VideoCapture* vc_Source, int, int);
+void segmentationOperator(VideoCapture* vc_Source, int, int);
 Mat getSyntheticFrame(Mat);
+
+// addition function of MAIN
+bool segmentationTimeInputException(CString str_h, CString str_m);
+bool comparePrevDetection(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index);
+Mat morphologicalOperation(Mat);
+
+bool objectOverlapingDetector(segment *m_segment, vector<int> preNodeIndex_data, int curIndex, int countOfObj_j);
+
+// connectecComponentLabelling.cpp
+vector<component> connectedComponentsLabelling(Mat frame, int rows, int cols);
+
+// tool_foreground.cpp
+Mat ExtractFg(Mat, Mat, int, int);
+
+
 // file_io.cpp
 void saveSegmentation_JPG(component, Mat, int, int, int, unsigned int);	//캡쳐한 Components를 jpg파일로 저장하는 함수
 void saveSegmentation_TXT(component, int, int, FILE *, int);	//components의 Data를 txt로 저장하는 함수

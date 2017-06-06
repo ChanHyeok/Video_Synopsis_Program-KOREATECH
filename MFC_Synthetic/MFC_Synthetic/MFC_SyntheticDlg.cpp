@@ -18,7 +18,7 @@ int fps;
 Mat m_resultBackground;
 segment *m_segmentArray;
 int segmentCount;
-Queue queue;
+Queue segment_queue; // C++ STL의 queue 키워드와 겹치기 때문에 변수를 조정함
 int videoStartMsec;
 
 // CAboutDlg dialog used for App About
@@ -93,7 +93,7 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	// Add "About..." menu item to system menu.
 
 	// IDM_ABOUTBOX must be in the system command range.
-	ASSERT((IDM_ABOUTBOX & 0xFFF0) == IDM_ABOUTBOX);
+	 ASSERT((IDM_ABOUTBOX & 0xFFF0) == IDM_ABOUTBOX);
 	ASSERT(IDM_ABOUTBOX < 0xF000);
 
 	CMenu* pSysMenu = GetSystemMenu(FALSE);
@@ -308,7 +308,10 @@ void CMFC_SyntheticDlg::DisplayImage(int IDC_PICTURE_TARGET, Mat targetMat, int 
 	bitmapInfo.bmiHeader.biWidth = targetMat.cols;
 	bitmapInfo.bmiHeader.biHeight = -targetMat.rows;
 
+	// IplImage 주소설정
 	IplImage *tempImage;
+	IplImage tempImageAddress;
+	tempImage = &tempImageAddress;
 
 	if (targetMat.channels() == 1)
 	{
@@ -360,9 +363,6 @@ void CMFC_SyntheticDlg::DisplayImage(int IDC_PICTURE_TARGET, Mat targetMat, int 
 //타이머
 void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 {
-	// TODO: Add your message handler code here and/or call default
-
-	// TODO: 여기에 메시지 처리기 코드를 추가 및/또는 기본값을 호출합니다.
 	CDialogEx::OnTimer(nIDEvent);
 
 	switch (nIDEvent){
@@ -387,20 +387,26 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 
 }
 
+// segmentation Button을 눌렀을 때의 연산
+// 시와 분을 입력받아 segmentation을 진행함
 void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 {
-	//TODO : Edit box에 문자 입력시 예외처리 (atoi()로는 문자와 null과 숫자 0 이 둘다 0 으로 출력됨)
+	CString str_startHour, str_startMinute;
 	//Edit Box로부터 시작 시간과 분을 읽어옴
-	CString startHour;
-	m_pEditBoxStartHour->GetWindowTextA(startHour);
-	CString startMinute;
-	m_pEditBoxStartMinute->GetWindowTextA(startMinute);
+	m_pEditBoxStartHour->GetWindowTextA(str_startHour);
+	m_pEditBoxStartMinute->GetWindowTextA(str_startMinute);
 
-	humonDetector(&capture, atoi(startHour), atoi(startMinute));	//Object Segmentation
+	// Edit box에 문자 입력, 또는 범위외 입력 시 예외처리
+	if (segmentationTimeInputException(str_startHour, str_startMinute) ) 
+		segmentationOperator(&capture, atoi(str_startHour), atoi(str_startMinute));	//Object Segmentation
+	
+	// 범위 외 입력시 예외처리
+	else {
 	}
+}
 
-
-void humonDetector(VideoCapture* vc_Source, int videoStartHour, int videoStartMin)
+// segmentation 기능 수행, 물체 추적 및 파일로 저장
+void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int videoStartMin)
 {
 	videoStartMsec = (videoStartHour * 60 + videoStartMin) * 60 * 1000;
 
@@ -415,19 +421,17 @@ void humonDetector(VideoCapture* vc_Source, int videoStartHour, int videoStartMi
 	Scalar color(0, 0, 255); // B/G/R
 	int thickness = 3;	// line thickness
 
-	vector<component> humanDetectedVector;
-	vector<component> prevHumanDetectedVector;
-	unsigned int currentMsec;
-
-
+	// humanDetector Vector
+	vector<component> humanDetectedVector, prevHumanDetectedVector;
 
 	/* Mat */
 	Mat frame(ROWS, COLS, CV_8UC3); // Mat(height, width, channel)
 	Mat frame_g(ROWS, COLS, CV_8UC1);
 	Mat background(ROWS, COLS, CV_8UC1); // 배경 프레임과 원본 프레임
 
-	//frame 카운터
+	//frame 카운터와 현재 millisecond
 	int frameCount = 0;
+	unsigned int currentMsec;
 
 	// 얻어낸 객체 프레임의 정보를 써 낼 텍스트 파일 정의
 	FILE *fp; // frameInfo를 작성할 File Pointer
@@ -451,9 +455,6 @@ void humonDetector(VideoCapture* vc_Source, int videoStartHour, int videoStartMi
 		//그레이스케일 변환
 		cvtColor(frame, frame_g, CV_RGB2GRAY);
 
-		// 배경 생성
-		// background = TemporalMedianBg(frame_g, background, ROWS, COLS);
-
 		// 전경 추출
 		frame_g = ExtractFg(frame_g, background, ROWS, COLS);
 
@@ -466,7 +467,6 @@ void humonDetector(VideoCapture* vc_Source, int videoStartHour, int videoStartMi
 
 		// MAT형으로 라벨링
 		humanDetectedVector.clear();
-		// humanDetectedVector = connectedComponentLabelling_sequencial(frame_g, ROWS, COLS);
 		humanDetectedVector = connectedComponentsLabelling(frame_g, ROWS, COLS);
 
 		// 영상의 포착 가져오기
@@ -503,20 +503,31 @@ Mat morphologicalOperation(Mat img_binary) {
 	erode(img_binary, img_binary, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
 	return img_binary;
 }
-
+// 파일의 이름부분을 저장
 string allocatingComponentFilename(vector<component> humanDetectedVector, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector) {
 	string name;
-	name.append(to_string(timeTag)).append("_")
+	return name.append(to_string(timeTag)).append("_")
 		.append(to_string(currentMsec)).append("_")
 		.append(to_string(frameCount)).append("_")
 		.append(to_string(indexOfhumanDetectedVector));
-	return name;
 }
 
+// 현재와 이전에 검출한 결과를 비교, (현재는 두 ROI가 겹쳤는지를 판별, 겹치면 true인듯??)
+bool comparePrevDetection(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index) {
+	return curr_detected[curr_index].left < prev_detected[prev_index].right
+		&& curr_detected[curr_index].right < prev_detected[prev_index].left
+		&& curr_detected[curr_index].top < prev_detected[prev_index].bottom
+		&& curr_detected[curr_index].bottom < prev_detected[prev_index].top;
+}
+
+// humanDetectedVector의 파일이름과 timetag를 부여
+// 그리고 TXT, JPG파일에 저장하는 모듈
+void componentVectorHandling() {
+	// TO DO :: 코드의 중복을 줄이기 위해 모듈을 어떻게 만들 것인지 생각하기(매개변수 설정도)
+}
 
 vector<component> humanDetectedProcess(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector
-	, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp)
-{
+	, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp) {
 	int prevTimeTag;
 	for (int i = 0; i < humanDetectedVector.size(); i++) {
 		// TODO : 현재 프레임에서 이전프레임과 겹치는 obj가 있는지 판단한다. 
@@ -524,16 +535,12 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 		if (prevHumanDetectedVector.empty() == 0) {	//이전 프레임의 검출된 객체가 있을 경우
 			bool findFlag = false;
 			for (int j = 0; j < prevHumanDetectedVector.size(); j++) {
-				if (humanDetectedVector[i].left < prevHumanDetectedVector[j].right
-					&& humanDetectedVector[i].right > prevHumanDetectedVector[j].left
-					&& humanDetectedVector[i].top < prevHumanDetectedVector[j].bottom
-					&& humanDetectedVector[i].bottom > prevHumanDetectedVector[j].top) {	// 두 ROI가 겹칠 경우
-
+				if (comparePrevDetection(humanDetectedVector ,prevHumanDetectedVector, i, j)) {	// 두 ROI가 겹칠 경우
+					// 이전 TimeTag를 할당
 					prevTimeTag = prevHumanDetectedVector[j].timeTag;
+					
 					humanDetectedVector[i].fileName = allocatingComponentFilename(humanDetectedVector, prevTimeTag, currentMsec, frameCount, i);
-
 					humanDetectedVector[i].timeTag = prevTimeTag;
-					//printf("\n@@@@@@@@@@@@@@@@@@@@@\n %s와 현재 %s 가 겹침%d, %d\n@@@@@@@@@@@@@@@@\n", prevHumanDetectedVector[j].fileName.c_str(), humanDetectedVector[i].fileName.c_str());
 					saveSegmentation_JPG(humanDetectedVector[i], frame, frameCount, currentMsec, i, videoStartMsec);
 					saveSegmentation_TXT(humanDetectedVector[i], frameCount, currentMsec, fp, i);
 					findFlag = true;
@@ -541,11 +548,9 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 				}
 			}
 
-			if (findFlag == false) {
+			if (findFlag == false) { // 새 객체의 출현
 				humanDetectedVector[i].timeTag = currentMsec;
 				humanDetectedVector[i].fileName = allocatingComponentFilename(humanDetectedVector, currentMsec, currentMsec, frameCount, i);
-				//printf("\n*********************************\n 새객채 %s 출현\n*********************************\n", humanDetectedVector[i].fileName.c_str());
-
 				saveSegmentation_JPG(humanDetectedVector[i], frame, frameCount, currentMsec, i, videoStartMsec);
 				saveSegmentation_TXT(humanDetectedVector[i], frameCount, currentMsec, fp, i);
 			}
@@ -554,60 +559,55 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 			// 새로운 이름 할당
 			humanDetectedVector[i].timeTag = currentMsec;
 			humanDetectedVector[i].fileName = allocatingComponentFilename(humanDetectedVector, currentMsec, currentMsec, frameCount, i);
-			//printf("\n*********************************\n 새객채 %s 출현\n*********************************\n", humanDetectedVector[i].fileName.c_str());
 			saveSegmentation_JPG(humanDetectedVector[i], frame, frameCount, currentMsec, i, videoStartMsec);
 			saveSegmentation_TXT(humanDetectedVector[i], frameCount, currentMsec, fp, i);
+			// 위 네줄에 대한 코드중복이 좀 있음, 정보 추가 시 변형 가능성도 존재(검색 기능 구현할 때)
 		}
 	}
 	return humanDetectedVector;
 }
 
-
-
+// 합성된 프레임을 가져오는 연산
 Mat getSyntheticFrame(Mat tempBackGround) {
 		int *labelMap = (int*)calloc(m_resultBackground.cols * m_resultBackground.rows, sizeof(int));	//겹침을 판단하는 용도
 		node tempnode;	//DeQueue한 결과를 받을 node
-		int countOfObj = queue.count;	//큐 인스턴스의 노드 갯수
+		int countOfObj = segment_queue.count;	//큐 인스턴스의 노드 갯수
 		stringstream ss;
 
 		//큐가 비었는지 확인한다
-		if (IsEmpty(&queue)){
+		if (IsEmpty(&segment_queue)){
 			free(labelMap);
 			return tempBackGround;
 		}
 
-		vector<int> vectorPreNodeIndex;
+		vector<int> vectorPreNodeIndex; // 객체들 인덱스 정보를 저장하기 위한 벡터
 
 		for (int k = 0; k < countOfObj; k++){
-			tempnode = Dequeue(&queue);
+			tempnode = Dequeue(&segment_queue);
 			//if (m_segmentArray[tempnode.indexOfSegmentArray].timeTag == m_segmentArray[tempnode.indexOfSegmentArray].msec)
 			vectorPreNodeIndex.push_back(tempnode.indexOfSegmentArray);	//큐에 있는 객체들의 인덱스 정보 저장
-			Enqueue(&queue, tempnode.timeTag, tempnode.indexOfSegmentArray);
+			Enqueue(&segment_queue, tempnode.timeTag, tempnode.indexOfSegmentArray);
 		}
+
 		m_resultBackground.copyTo(tempBackGround);	//임시로 쓸 배경 복사
 		
-		printf("\n\n#####");
-		//DeQueue를 큐에 들어있는 객체 갯수 만큼 한다. 
+		// 큐에 들어있는 객체 갯수 만큼 DeQueue. 
 		for (int i = 0; i < countOfObj; i++) {
 			//dequeue한 객체를 출력한다.
-			tempnode = Dequeue(&queue);
+			tempnode = Dequeue(&segment_queue);
 			BOOL isCross= false;
 			int curIndex = tempnode.indexOfSegmentArray;
 			
 			printf("\n%d : %s", i + 1, m_segmentArray[curIndex].fileName);
 			//객체가 이전 객체와 겹치는지 비교
 			if (i != 0 && m_segmentArray[curIndex].timeTag == m_segmentArray[curIndex].msec){	//처음이 아니고 현재 출력할 객체가 timetag의 첫 프레임 일 때
-				//printf("\n%d %d", m_segmentArray[curIndex].timeTag , m_segmentArray[curIndex].msec);
-				printf("\n@@ %d", vectorPreNodeIndex.size());
 				for (int j = 0; j< i; j++){	//이전에 그린 객체 모두와 겹치는지 판별
-					//하나라도 성립하면 겹치지 않음
-					if (m_segmentArray[curIndex].left > m_segmentArray[vectorPreNodeIndex.at(j)].right || m_segmentArray[curIndex].right < m_segmentArray[vectorPreNodeIndex.at(j)].left
-						|| m_segmentArray[curIndex].top > m_segmentArray[vectorPreNodeIndex.at(j)].bottom || m_segmentArray[curIndex].bottom < m_segmentArray[vectorPreNodeIndex.at(j)].top){
-						isCross = false;
+					if (objectOverlapingDetector(m_segmentArray, vectorPreNodeIndex, curIndex, j) ){
+						isCross = false; // 겹치지 않음
 					}
-					else{//겹침
+					else{ //겹침
 						isCross = true;
-						Enqueue(&queue, tempnode.timeTag, tempnode.indexOfSegmentArray);	//출력하지 않고 다시 큐에 삽입
+						Enqueue(&segment_queue, tempnode.timeTag, tempnode.indexOfSegmentArray);	//출력하지 않고 다시 큐에 삽입
 						break;
 					}
 				}
@@ -629,10 +629,8 @@ Mat getSyntheticFrame(Mat tempBackGround) {
 
 				//다음목록에 같은 타임태그를 가진 객체가 있는지 확인한다. 있으면 EnQueue
 				if (m_segmentArray[tempnode.indexOfSegmentArray + 1].timeTag == m_segmentArray[tempnode.indexOfSegmentArray].timeTag) {
-					Enqueue(&queue, tempnode.timeTag, tempnode.indexOfSegmentArray + 1);
-					//printf("@ %d", tempnode.indexOfSegmentArray + 1);
+					Enqueue(&segment_queue, tempnode.timeTag, tempnode.indexOfSegmentArray + 1);
 				}
-				printf("\n\t출력됨");
 			}
 
 		}
@@ -641,11 +639,17 @@ Mat getSyntheticFrame(Mat tempBackGround) {
 		vector<int>().swap(vectorPreNodeIndex);
 	return tempBackGround;
 }
+// 객체들 끼리 겹침을 판별하는 함수, 하나라도 성립하면 겹치지 않음
+bool objectOverlapingDetector(segment *m_segment, vector<int> preNodeIndex_data, int curIndex, int countOfObj_j) {
+	return m_segment[curIndex].left > m_segmentArray[preNodeIndex_data.at(countOfObj_j)].right
+		|| m_segment[curIndex].right < m_segmentArray[preNodeIndex_data.at(countOfObj_j)].left
+		|| m_segment[curIndex].top > m_segmentArray[preNodeIndex_data.at(countOfObj_j)].bottom
+		|| m_segment[curIndex].bottom < m_segmentArray[preNodeIndex_data.at(countOfObj_j)].top;
+}
 
 //slider control이 움직이면 발생하는 콜백
 void CMFC_SyntheticDlg::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 {
-	// TODO: Add your message handler code here and/or call default
 	if (pScrollBar == (CScrollBar*)&m_sliderSearchStartTime)
 		SetDlgItemText(IDC_STRING_SEARCH_START_TIME_SLIDER, timeConvertor(m_sliderSearchStartTime.GetPos()).str().c_str());
 	else if (pScrollBar == (CScrollBar*)&m_sliderSearchEndTime)
@@ -657,10 +661,9 @@ void CMFC_SyntheticDlg::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBa
 	CDialogEx::OnHScroll(nSBCode, nPos, pScrollBar);
 }
 
-
+// Synthesis Button을 눌렀을 경우에 실행되는 핸들러
 void CMFC_SyntheticDlg::OnClickedBtnSynPlay()
 {
-	// TODO: Add your control notification handler code here
 	isPlayBtnClicked = true;
 	char txtBuffer[100] = { 0, };	//텍스트파일 읽을 때 사용할 buffer
 	//frameInfo.txt 파일이 있고, 내용이 비어있지 않으면 실행가능하다고 표시
@@ -730,7 +733,7 @@ void CMFC_SyntheticDlg::OnClickedBtnSynPlay()
 		//****************************************************************************************************************
 
 		//큐 초기화
-		InitQueue(&queue);
+		InitQueue(&segment_queue);
 
 		// 고정 배경 프레임 불러오기
 		m_resultBackground = imread("background.jpg");
@@ -755,7 +758,7 @@ void CMFC_SyntheticDlg::OnClickedBtnSynPlay()
 		for (int i = 0; i < segmentCount; i++) {
 			//start timetag와 end timetag 사이면 enqueue
 			if (m_segmentArray[i].timeTag >= obj1_TimeTag && m_segmentArray[i].timeTag <= obj2_TimeTag && prevTimetag != m_segmentArray[i].timeTag) {	//아직 찾지 못했고 일치하는 타임태그를 찾았을 경우
-				Enqueue(&queue, m_segmentArray[i].timeTag, i);	//출력해야할 객체의 첫 프레임의 타임태그와 위치를 큐에 삽입
+				Enqueue(&segment_queue, m_segmentArray[i].timeTag, i);	//출력해야할 객체의 첫 프레임의 타임태그와 위치를 큐에 삽입
 				prevTimetag = m_segmentArray[i].timeTag;
 			}
 		}
@@ -770,4 +773,20 @@ void CMFC_SyntheticDlg::OnClickedBtnSynPlay()
 	}
 
 
+}
+
+
+bool segmentationTimeInputException(CString str_h, CString str_m) {
+	// 시 :: 1~24, 분 :: 1~60
+	if ((atoi(str_h) > 0 && atoi(str_h) <= 24)
+		&& atoi(str_m) > 0 && atoi(str_m) <= 60) {
+		return true;
+	}
+	// 시 또는 분을 0을 입력받았을 때
+	else if ((str_h == "0" && atoi(str_h) == 0)
+		|| (str_m == "0" && atoi(str_m) == 0))
+		return true;
+
+	else
+		return false;
 }
