@@ -3,7 +3,7 @@
 //
 
 #pragma once
-
+#include <string>
 #include <opencv2/opencv.hpp>
 #include "afxcmn.h"
 using namespace std;
@@ -104,6 +104,8 @@ Mat getSyntheticFrame(Mat);
 bool segmentationTimeInputException(CString str_h, CString str_m);
 bool comparePrevDetection(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index);
 Mat morphologicalOperation(Mat);
+String getFileName(CString f_path, char find_char);
+int BackgroundMaker(Mat frameimg, Mat bgimg, int rows, int cols);
 
 bool objectOverlapingDetector(segment *m_segment, vector<int> preNodeIndex_data, int curIndex, int countOfObj_j);
 

@@ -1,5 +1,4 @@
 // MFC_SyntheticDlg.cpp : implementation file
-//
 
 #include "stdafx.h"
 #include "MFC_Synthetic.h"
@@ -14,12 +13,16 @@
 #define SYN_RESULT_TIMER 2
 #define MAX_STR_BUFFER_SIZE  128 // 문자열 출력에 쓸 버퍼 길이
 
-int fps;
+const int FRAMECOUNT_FOR_MAKE_BACKGROUND = 100; // 배경을 만들기 까지 필요한 프레임카운트
+/***  전역변수  ***/
 Mat m_resultBackground;
 segment *m_segmentArray;
-int segmentCount;
 Queue segment_queue; // C++ STL의 queue 키워드와 겹치기 때문에 변수를 조정함
-int videoStartMsec;
+int videoStartMsec, segmentCount, fps;
+// 시작 millisecond, 세그먼트 카운팅변수, 초당 프레임수
+
+std::string video_filename(""); // 입력받은 비디오파일 이름
+
 
 // CAboutDlg dialog used for App About
 
@@ -90,9 +93,6 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	ShowWindow(SW_SHOWMAXIMIZED);	//전체화면
 	this->GetWindowRect(m_rectCurHist);	//다이얼로그 크기를 얻어옴
 
-	// Add "About..." menu item to system menu.
-
-	// IDM_ABOUTBOX must be in the system command range.
 	 ASSERT((IDM_ABOUTBOX & 0xFFF0) == IDM_ABOUTBOX);
 	ASSERT(IDM_ABOUTBOX < 0xF000);
 
@@ -202,7 +202,11 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, szFilter, AfxGetMainWnd());	//파일 다이얼로그 생성
 	dlg.DoModal();	//다이얼로그 띄움
 
+	// Path를 받아와서 filename만을 떼어서 저장함(배경파일 이름을 결정할 때 사용)
 	CString cstrImgPath = dlg.GetPathName();
+	video_filename = getFileName(cstrImgPath, '\\');
+	printf("%s", video_filename);
+
 	capture.open((string)cstrImgPath);
 	if (!capture.isOpened()) { //예외처리. 해당이름의 파일이 없는 경우
 		perror("No Such File!\n");
@@ -428,14 +432,6 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 	fp = fopen(RESULT_TEXT_FILENAME, "w");	// 쓰기모드
 	fprintf(fp, to_string(videoStartMsec).append("\n").c_str());	//첫줄에 영상시작시간 적어줌
 	
-
-	// 고정 background 사용
-	//TODO 배경 자동 생성하기
-	background = imread("background.jpg");
-	cvtColor(background, background, CV_RGB2GRAY);
-
-	//MessageBox(0, "Just on second!\nSegmentation in progress...", "Dude, Wait", NULL);
-
 	while (1) {
 		vc_Source->read(frame); //get single frame
 		if (frame.empty()) {	//예외처리. 프레임이 없음
@@ -444,6 +440,18 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 		}
 		//그레이스케일 변환
 		cvtColor(frame, frame_g, CV_RGB2GRAY);
+
+		// 배경생성부분
+		if (frameCount <= FRAMECOUNT_FOR_MAKE_BACKGROUND) {
+			// cvtColor(background, background, CV_RGB2GRAY);
+			BackgroundMaker(frame_g, background, ROWS, COLS);
+			if (frameCount == (FRAMECOUNT_FOR_MAKE_BACKGROUND - 1)) {
+				string background_filename = "background_";
+				background_filename.append(video_filename).append(".jpg");
+				int background_write_check = imwrite(background_filename, background);
+				printf("background Making Complete!!\n");
+			}
+		}
 
 		// 전경 추출
 		frame_g = ExtractFg(frame_g, background, ROWS, COLS);
@@ -767,18 +775,68 @@ void CMFC_SyntheticDlg::OnClickedBtnSynPlay()
 
 }
 
-
+// segmentation을 할 떄에 입력받는 수의 범위를 한정해주는 함수
 bool segmentationTimeInputException(CString str_h, CString str_m) {
 	// 시 :: 1~24, 분 :: 1~60
 	if ((atoi(str_h) > 0 && atoi(str_h) <= 24)
-		&& atoi(str_m) > 0 && atoi(str_m) <= 60) {
+		&& (atoi(str_m) > 0 && atoi(str_m) <= 60) ){
 		return true;
 	}
-	// 시 또는 분을 0을 입력받았을 때
-	else if ((str_h == "0" && atoi(str_h) == 0)
-		|| (str_m == "0" && atoi(str_m) == 0))
+
+	else if ( (str_h == "0" && atoi(str_h) == 0)
+		|| (str_m == "0" && atoi(str_m) == 0) )
 		return true;
+
+	else if ((str_h != "0" && atoi(str_h) == 0)
+		|| (str_m != "0" && atoi(str_m) == 0))
+		return false;
 
 	else
 		return false;
+}
+
+// Video Path에서 file이름만 빼서 반환하는 함수 
+String getFileName(CString f_path, char find_char) {
+	// 마지막 \ 뒤의 문자열
+	// 검색대상 :: "Video (*.avi, *.MP4) | *.avi;*.mp4; | All Files(*.*)|*.*||", 
+	char final_index;
+	for (int i = 0; i < f_path.GetLength(); i++) {
+		if (f_path[i] == find_char)
+			final_index = i;
+	} // '\'를 찾고
+
+	for (int i = final_index + 1; i < f_path.GetLength(); i++) {
+		if (f_path[final_index + 1] == NULL) break; // 예외처리
+		char c = f_path[i];
+		video_filename += c;
+	}// 마지막에 나오는 '\' 이후의 문자열을 추출함
+
+	return video_filename;
+}
+
+//TemporalMedian 방식으로 배경을 만들어 사용하기
+int BackgroundMaker(Mat frameimg, Mat bgimg, int rows, int cols) {
+	int cnt = 0; // 현재픽셀값과 이전 픽셀값과 비교하여 바뀌지 않으면(같으면) 카운팅함(딱히쓸일없음)
+	for (int i = 0; i < rows; i++) {
+		for (int j = 0; j < cols; j++) {
+			if (frameimg.data[i * frameimg.cols + j] > bgimg.data[i * bgimg.cols + j]) {//현재 픽셀이 배경 픽셀보다 클 때
+				if (bgimg.data[i * bgimg.cols + j] == 255) // 연산할 이미지 배열의 값이 255가 넘을 경우( 최대값 )
+					bgimg.data[i * bgimg.cols + j] = 255;
+				else
+					bgimg.data[i * bgimg.cols + j] += 1;//1씩 증가
+
+			} // 배경 프레임과 비교하여 현재 프레임의 화소 값이 높은 경우, 다음 배경 프레임의 화소를 증가 
+			else if (frameimg.data[i * frameimg.cols + j] < bgimg.data[i * bgimg.cols + j]) {//현재 픽셀이 배경 픽셀보다 작을 때
+				if (bgimg.data[i * bgimg.cols + j] == 0) // 연산할 이미지 배열의 값이 0보다 작을 경우( 최소값 )
+					bgimg.data[i *bgimg.cols + j] = 0;
+				else
+					bgimg.data[i * bgimg.cols + j] -= 1;//1씩 감소
+			} // 배경 프레임과 비교하여 현재 프레임의 화소 값이 낮은 경우, 다음 배경 프레임의 화소를 감소
+			else if (frameimg.data[i * frameimg.cols + j] == bgimg.data[i * bgimg.cols + j]) {
+				cnt++;
+			}
+		}
+	}
+
+	return cnt;
 }
