@@ -12,7 +12,7 @@
 #include "io.h"		// access ÇÔ¼ö
 
 
-#define RESULT_TEXT_FILENAME  "frameInfo.txt"
+#define RESULT_TEXT_FILENAME  "frameInfo_"
 #define RESULT_FOLDER_NAME "segment"
 
 // CMFC_SyntheticApp:

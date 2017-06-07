@@ -7,10 +7,10 @@
 #include <opencv\cv.h>
 
 // People Area Detection Parameter
-const int MINWIDTH = 40;
-const int MINHEIGHT = 50;
-const int MAXWIDTH = 336;
-const int MAXHEIGHT = 325;
+const int MINWIDTH = 45;
+const int MINHEIGHT = 63;
+const int MAXWIDTH = 245;
+const int MAXHEIGHT = 267;
 
 
 component dataAllocateAtComponent(Mat stats, component c, int indexOflables) {
@@ -40,12 +40,9 @@ Rect savingRectangle(Mat frame, component c) {
 }
 
 // 레이블 크기를 사람정도 들어갈만하게 거르는 함수
-int labelSizeFiltering(Mat frame, int width, int height) {
-	if (width > MINWIDTH && height > MINHEIGHT
-		&& width < MAXWIDTH && height < MAXHEIGHT)
-		return 1; // true
-	else
-		return 0; // false
+bool labelSizeFiltering(int width, int height) {
+	return (width > MINWIDTH && height > MINHEIGHT
+		&& width < MAXWIDTH && height < MAXHEIGHT);
 }
 
 // Component Labelling(opencv내 함수 connectedComponentsWithStats를 이용하여)
@@ -66,7 +63,7 @@ vector<component> connectedComponentsLabelling(Mat frame, int rows, int cols) {
 		int width = stats.at<int>(i, CC_STAT_WIDTH);
 		//printf("%d %d %d\n", i, width, height);
 		// 영역박스 그리기, 레이블 크기를 필터링 하여(사람크기에 해당될 만큼)
-		if (labelSizeFiltering(frame, width, height)) {
+		if (labelSizeFiltering(width, height)) {
 			// 유효한 레이블 인덱스를 저장
 			componentArray[index].label = index;
 

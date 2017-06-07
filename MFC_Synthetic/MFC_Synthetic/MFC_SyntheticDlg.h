@@ -12,6 +12,7 @@ using namespace cv;
 
 #define BUFFER 8096 // 객체 프레임 데이터를 저장할 버퍼의 크기 
 
+
 // segmentation structure
 typedef struct _segment {
 	string fileName;
@@ -102,22 +103,23 @@ Mat getSyntheticFrame(Mat);
 
 // addition function of MAIN
 bool segmentationTimeInputException(CString str_h, CString str_m);
-bool comparePrevDetection(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index);
+bool IsComparePrevDetection(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index);
 Mat morphologicalOperation(Mat);
 String getFileName(CString f_path, char find_char);
 int BackgroundMaker(Mat frameimg, Mat bgimg, int rows, int cols);
 
-bool objectOverlapingDetector(segment *m_segment, vector<int> preNodeIndex_data, int curIndex, int countOfObj_j);
+bool IsObjectOverlapingDetector(segment *m_segment, vector<int> preNodeIndex_data, int curIndex, int countOfObj_j);
 
 // connectecComponentLabelling.cpp
 vector<component> connectedComponentsLabelling(Mat frame, int rows, int cols);
 
 // tool_foreground.cpp
+Mat ExtractForegroundToMOG2(Mat frameimg);
 Mat ExtractFg(Mat, Mat, int, int);
 
 
 // file_io.cpp
-void saveSegmentation_JPG(component, Mat, int, int, int, unsigned int);	//캡쳐한 Components를 jpg파일로 저장하는 함수
+void saveSegmentation_JPG(component, Mat, int, int, int, unsigned int, string video_fname);	//캡쳐한 Components를 jpg파일로 저장하는 함수
 void saveSegmentation_TXT(component, int, int, FILE *, int);	//components의 Data를 txt로 저장하는 함수
 stringstream timeConvertor(int t);
 

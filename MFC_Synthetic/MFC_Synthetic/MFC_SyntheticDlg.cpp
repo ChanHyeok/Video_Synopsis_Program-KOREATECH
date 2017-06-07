@@ -1,5 +1,10 @@
 // MFC_SyntheticDlg.cpp : implementation file
 
+// To Do :: 이미 segmentation을 진행하고 다시 실행하였을 때 
+// txt, jpg파일(세그먼트들)이 있는데도 play를 누를 시 팅기는 버그 
+
+// To Do :: 또한 segmentation 누르고 Play 진행하고 또 segmentation 누르면 Done이라고 뜨는데
+// 이후 Play하면 segment 파일이 없다고 뜨는 점
 #include "stdafx.h"
 #include "MFC_Synthetic.h"
 #include "MFC_SyntheticDlg.h"
@@ -9,20 +14,27 @@
 #define new DEBUG_NEW
 #endif
 
+/*** 각종 상수들 ***/
 #define VIDEO_TIMER 1
 #define SYN_RESULT_TIMER 2
 #define MAX_STR_BUFFER_SIZE  128 // 문자열 출력에 쓸 버퍼 길이
-
 const int FRAMECOUNT_FOR_MAKE_BACKGROUND = 100; // 배경을 만들기 까지 필요한 프레임카운트
+
 /***  전역변수  ***/
+char txtBuffer[100] = { 0, };	//텍스트파일 읽을 때 사용할 buffer
 Mat m_resultBackground;
 segment *m_segmentArray;
 Queue segment_queue; // C++ STL의 queue 키워드와 겹치기 때문에 변수를 조정함
 int videoStartMsec, segmentCount, fps;
 // 시작 millisecond, 세그먼트 카운팅변수, 초당 프레임수
 
-std::string video_filename(""); // 입력받은 비디오파일 이름
+// File 관련
+FILE *fp; // frameInfo를 작성할 File Pointer
 
+std::string video_filename(""); // 입력받은 비디오파일 이름
+std::string background_filename = "background_"; // 배경 파일 이름
+std::string txt_filename = RESULT_TEXT_FILENAME; // txt 파일 이름
+/////			/////
 
 // CAboutDlg dialog used for App About
 
@@ -205,7 +217,8 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	// Path를 받아와서 filename만을 떼어서 저장함(배경파일 이름을 결정할 때 사용)
 	CString cstrImgPath = dlg.GetPathName();
 	video_filename = getFileName(cstrImgPath, '\\');
-	printf("%s", video_filename);
+	txt_filename.append(video_filename).append(".txt"); // frameinfo txt파일 재설정
+	printf("%s\n", video_filename);
 
 	capture.open((string)cstrImgPath);
 	if (!capture.isOpened()) { //예외처리. 해당이름의 파일이 없는 경우
@@ -421,15 +434,15 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 	/* Mat */
 	Mat frame(ROWS, COLS, CV_8UC3); // Mat(height, width, channel)
 	Mat frame_g(ROWS, COLS, CV_8UC1);
-	Mat background(ROWS, COLS, CV_8UC1); // 배경 프레임과 원본 프레임
+	Mat background(ROWS, COLS, CV_8UC3); // 배경 프레임과 원본 프레임
+	Mat background_gray(ROWS, COLS, CV_8UC1);
 
 	//frame 카운터와 현재 millisecond
 	int frameCount = 0;
 	unsigned int currentMsec;
 
 	// 얻어낸 객체 프레임의 정보를 써 낼 텍스트 파일 정의
-	FILE *fp; // frameInfo를 작성할 File Pointer
-	fp = fopen(RESULT_TEXT_FILENAME, "w");	// 쓰기모드
+	fp = fopen(txt_filename.c_str(), "w");	// 쓰기모드
 	fprintf(fp, to_string(videoStartMsec).append("\n").c_str());	//첫줄에 영상시작시간 적어줌
 	
 	while (1) {
@@ -438,23 +451,27 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 			perror("Empty Frame");
 			break;
 		}
-		//그레이스케일 변환
-		cvtColor(frame, frame_g, CV_RGB2GRAY);
 
 		// 배경생성부분
 		if (frameCount <= FRAMECOUNT_FOR_MAKE_BACKGROUND) {
 			// cvtColor(background, background, CV_RGB2GRAY);
-			BackgroundMaker(frame_g, background, ROWS, COLS);
+			BackgroundMaker(frame, background, ROWS*3, COLS); 
+			// color background를 얻기위해 세로길이에 3배를 해주어야 함
 			if (frameCount == (FRAMECOUNT_FOR_MAKE_BACKGROUND - 1)) {
-				string background_filename = "background_";
 				background_filename.append(video_filename).append(".jpg");
+				// cvtColor(background, background, CV_GRAY2RGB);
 				int background_write_check = imwrite(background_filename, background);
 				printf("background Making Complete!!\n");
 			}
 		}
 
+		//그레이스케일 변환
+		cvtColor(frame, frame_g, CV_RGB2GRAY);
+		cvtColor(background, background_gray, CV_RGB2GRAY);
+
 		// 전경 추출
-		frame_g = ExtractFg(frame_g, background, ROWS, COLS);
+		frame_g = ExtractFg(frame_g, background_gray, ROWS, COLS);
+		// frame_g = ExtractForegroundToMOG2(frame_g);
 
 		// 이진화
 		threshold(frame_g, frame_g, 5, 255, CV_THRESH_BINARY);
@@ -511,7 +528,7 @@ string allocatingComponentFilename(vector<component> humanDetectedVector, int ti
 }
 
 // 현재와 이전에 검출한 결과를 비교, (현재는 두 ROI가 겹쳤는지를 판별, 겹치면 true인듯??)
-bool comparePrevDetection(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index) {
+bool IsComparePrevDetection(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index) {
 	return curr_detected[curr_index].left < prev_detected[prev_index].right
 		&& curr_detected[curr_index].right < prev_detected[prev_index].left
 		&& curr_detected[curr_index].top < prev_detected[prev_index].bottom
@@ -533,13 +550,13 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 		if (prevHumanDetectedVector.empty() == 0) {	//이전 프레임의 검출된 객체가 있을 경우
 			bool findFlag = false;
 			for (int j = 0; j < prevHumanDetectedVector.size(); j++) {
-				if (comparePrevDetection(humanDetectedVector ,prevHumanDetectedVector, i, j)) {	// 두 ROI가 겹칠 경우
+				if (IsComparePrevDetection(humanDetectedVector ,prevHumanDetectedVector, i, j)) {	// 두 ROI가 겹칠 경우
 					// 이전 TimeTag를 할당
 					prevTimeTag = prevHumanDetectedVector[j].timeTag;
 					
 					humanDetectedVector[i].fileName = allocatingComponentFilename(humanDetectedVector, prevTimeTag, currentMsec, frameCount, i);
 					humanDetectedVector[i].timeTag = prevTimeTag;
-					saveSegmentation_JPG(humanDetectedVector[i], frame, frameCount, currentMsec, i, videoStartMsec);
+					saveSegmentation_JPG(humanDetectedVector[i], frame, frameCount, currentMsec, i, videoStartMsec, video_filename);
 					saveSegmentation_TXT(humanDetectedVector[i], frameCount, currentMsec, fp, i);
 					findFlag = true;
 					//break;
@@ -549,7 +566,7 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 			if (findFlag == false) { // 새 객체의 출현
 				humanDetectedVector[i].timeTag = currentMsec;
 				humanDetectedVector[i].fileName = allocatingComponentFilename(humanDetectedVector, currentMsec, currentMsec, frameCount, i);
-				saveSegmentation_JPG(humanDetectedVector[i], frame, frameCount, currentMsec, i, videoStartMsec);
+				saveSegmentation_JPG(humanDetectedVector[i], frame, frameCount, currentMsec, i, videoStartMsec, video_filename);
 				saveSegmentation_TXT(humanDetectedVector[i], frameCount, currentMsec, fp, i);
 			}
 		}
@@ -557,7 +574,7 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 			// 새로운 이름 할당
 			humanDetectedVector[i].timeTag = currentMsec;
 			humanDetectedVector[i].fileName = allocatingComponentFilename(humanDetectedVector, currentMsec, currentMsec, frameCount, i);
-			saveSegmentation_JPG(humanDetectedVector[i], frame, frameCount, currentMsec, i, videoStartMsec);
+			saveSegmentation_JPG(humanDetectedVector[i], frame, frameCount, currentMsec, i, videoStartMsec, video_filename);
 			saveSegmentation_TXT(humanDetectedVector[i], frameCount, currentMsec, fp, i);
 			// 위 네줄에 대한 코드중복이 좀 있음, 정보 추가 시 변형 가능성도 존재(검색 기능 구현할 때)
 		}
@@ -600,7 +617,7 @@ Mat getSyntheticFrame(Mat tempBackGround) {
 			//객체가 이전 객체와 겹치는지 비교
 			if (i != 0 && m_segmentArray[curIndex].timeTag == m_segmentArray[curIndex].msec){	//처음이 아니고 현재 출력할 객체가 timetag의 첫 프레임 일 때
 				for (int j = 0; j< i; j++){	//이전에 그린 객체 모두와 겹치는지 판별
-					if (objectOverlapingDetector(m_segmentArray, vectorPreNodeIndex, curIndex, j) ){
+					if (IsObjectOverlapingDetector(m_segmentArray, vectorPreNodeIndex, curIndex, j) ){
 						isCross = false; // 겹치지 않음
 					}
 					else{ //겹침
@@ -638,7 +655,7 @@ Mat getSyntheticFrame(Mat tempBackGround) {
 	return tempBackGround;
 }
 // 객체들 끼리 겹침을 판별하는 함수, 하나라도 성립하면 겹치지 않음
-bool objectOverlapingDetector(segment *m_segment, vector<int> preNodeIndex_data, int curIndex, int countOfObj_j) {
+bool IsObjectOverlapingDetector(segment *m_segment, vector<int> preNodeIndex_data, int curIndex, int countOfObj_j) {
 	return m_segment[curIndex].left > m_segmentArray[preNodeIndex_data.at(countOfObj_j)].right
 		|| m_segment[curIndex].right < m_segmentArray[preNodeIndex_data.at(countOfObj_j)].left
 		|| m_segment[curIndex].top > m_segmentArray[preNodeIndex_data.at(countOfObj_j)].bottom
@@ -663,11 +680,9 @@ void CMFC_SyntheticDlg::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBa
 void CMFC_SyntheticDlg::OnClickedBtnSynPlay()
 {
 	isPlayBtnClicked = true;
-	char txtBuffer[100] = { 0, };	//텍스트파일 읽을 때 사용할 buffer
-	//frameInfo.txt 파일이 있고, 내용이 비어있지 않으면 실행가능하다고 표시
-	FILE *fp;
 	string path = "./";
-	path.append(RESULT_TEXT_FILENAME);
+	path.append(txt_filename);
+
 	fp = fopen(path.c_str(), "r");
 	boolean isPlayable = false;
 	if (fp){	//파일을 제대로 불러왔을 경우
@@ -733,9 +748,9 @@ void CMFC_SyntheticDlg::OnClickedBtnSynPlay()
 		//큐 초기화
 		InitQueue(&segment_queue);
 
-		// 고정 배경 프레임 불러오기
-		m_resultBackground = imread("background.jpg");
-
+		// 배경 프레임 불러오기, segmentation으로 부터 얻은 배경을 사용 
+		printf("%s\n", background_filename);
+		m_resultBackground = imread(background_filename);
 
 
 		/************************************/
@@ -786,7 +801,7 @@ bool segmentationTimeInputException(CString str_h, CString str_m) {
 	else if ( (str_h == "0" && atoi(str_h) == 0)
 		|| (str_m == "0" && atoi(str_m) == 0) )
 		return true;
-
+	// To Do :: 하나는 0, 다른 하나는 문자를 받았을 떄 실행되는 경우가 있음
 	else if ((str_h != "0" && atoi(str_h) == 0)
 		|| (str_m != "0" && atoi(str_m) == 0))
 		return false;
