@@ -73,6 +73,7 @@ END_MESSAGE_MAP()
 
 CMFC_SyntheticDlg::CMFC_SyntheticDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(CMFC_SyntheticDlg::IDD, pParent)
+	, mRadioPlay(0)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -83,6 +84,7 @@ void CMFC_SyntheticDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_SYN_SLIDER_START_TIME, m_sliderSearchStartTime);
 	DDX_Control(pDX, IDC_SYN_SLIDER_END_TIME, m_sliderSearchEndTime);
 	DDX_Control(pDX, IDC_SYN_SLIDER_FPS, m_sliderFps);
+	DDX_Radio(pDX, IDC_RADIO_PLAY1, mRadioPlay);
 }
 
 BEGIN_MESSAGE_MAP(CMFC_SyntheticDlg, CDialogEx)
@@ -141,10 +143,33 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	int controlBoxHeight = dialogHeight*0.25;
 	SetWindowPos(&wndTop, 0, 0, dialogWidth, dialogHeight, SWP_NOMOVE);//다이얼로그 크기 조정
 
+	//group box - MENU
+	CWnd *pGroupMenu = GetDlgItem(IDC_GROUP_MENU);
+	CWnd *pStringFileName = GetDlgItem(IDC_MENU_STRING_FILE_NAME);
+	CButton *pButtonLoad = (CButton *)GetDlgItem(IDC_BTN_MENU_LOAD);
+	CWnd *pRadioBtn1 = GetDlgItem(IDC_RADIO_PLAY1);
+	CWnd *pRadioBtn2 = GetDlgItem(IDC_RADIO_PLAY2);
+	int box_MenuX = padding;
+	int box_MenuY = padding;
+	int box_MenuWidth = (dialogWidth-3*padding)*0.2;
+	int box_MenuHeight = ((dialogHeight-3*padding)*0.7-padding)*0.3;
+
+	pGroupMenu->MoveWindow(box_MenuX, box_MenuY, box_MenuWidth, box_MenuHeight, TRUE);
+	pStringFileName->MoveWindow(box_MenuX + padding, box_MenuY + 2*padding, 230, 20, TRUE);
+	pButtonLoad->MoveWindow(box_MenuX + box_MenuWidth - padding - 100, box_MenuY + 3*padding + 20, 100, 20, TRUE);
+	pRadioBtn1->MoveWindow(box_MenuX + padding, box_MenuY + 4 * padding + 40, 100, 20, TRUE);
+	pRadioBtn2->MoveWindow(box_MenuX + padding, box_MenuY + 5 * padding + 60, 100, 20, TRUE);
+
 	//Picture Control
-	int pictureContorlWidth = dialogWidth - padding * 4;
-	int pictureContorlHeight = dialogHeight - controlBoxHeight - padding * 3;
-	pResultImage->MoveWindow(padding, padding, pictureContorlWidth, pictureContorlHeight, TRUE);
+	CButton *pButtonPlay = (CButton *)GetDlgItem(IDC_BTN_PLAY);
+	CButton *pButtonPause = (CButton *)GetDlgItem(IDC_BTN_PAUSE);
+	int pictureContorlX = 2 * padding + box_MenuWidth;
+	int pictureContorlY = padding;
+	int pictureContorlWidth = (dialogWidth - 3 * padding) - box_MenuWidth-15;
+	int pictureContorlHeight = (dialogHeight - 3 * padding)*0.7 - 40;
+	pResultImage->MoveWindow(pictureContorlX, pictureContorlY, pictureContorlWidth, pictureContorlHeight, TRUE);
+	pButtonPlay->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 - padding - 100, pictureContorlY + pictureContorlHeight+10, 100, 20, TRUE);
+	pButtonPause->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 + padding, pictureContorlY + pictureContorlHeight + 10, 100, 20, TRUE);
 
 	//group box - segmetation
 	CWnd *pGroupSegmentation = GetDlgItem(IDC_GROUP_SEG);
@@ -152,32 +177,52 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	CWnd *pStringColon = GetDlgItem(IDC_SEG_STRING_COLON);
 	m_pEditBoxStartHour = (CEdit *)GetDlgItem(IDC_SEG_EDITBOX_START_HOUR);	
 	m_pEditBoxStartMinute = (CEdit *)GetDlgItem(IDC_SEG_EDITBOX_START_MINUTE); 
+	CWnd *pGroupSegWidth = GetDlgItem(IDC_GROUP_SEG_WIDTH);
+	CWnd *pStringWMIN = GetDlgItem(IDC_SEG_STRING_MIN_W);
+	CWnd *pStringWMAX = GetDlgItem(IDC_SEG_STRING_MAX_W);
+	CWnd *pSegSliderWMIN = GetDlgItem(IDC_SEG_SLIDER_WMIN);
+	CWnd *pSegSliderWMAX = GetDlgItem(IDC_SEG_SLIDER_WMAX);
+	CWnd *pGroupSegHeight = GetDlgItem(IDC_GROUP_SEG_HEIGHT);
+	CWnd *pStringHMIN = GetDlgItem(IDC_SEG_STRING_MIN_H);
+	CWnd *pStringHMAX = GetDlgItem(IDC_SEG_STRING_MAX_H);
+	CWnd *pSegSliderHMIN = GetDlgItem(IDC_SEG_SLIDER_HMIN);
+	CWnd *pSegSliderHMAX = GetDlgItem(IDC_SEG_SLIDER_HMAX);
 	CButton *pButtonSegmentation = (CButton *)GetDlgItem(IDC_BTN_SEG_SEGMENTATION);
 	int box_segmentationX = padding;
-	int box_segmentationY = padding*2 + pictureContorlHeight;
-	int box_segmentationWidth = pictureContorlWidth*0.5;
-	int box_segmentationHeight = controlBoxHeight - padding * 3;
+	int box_segmentationY = 2 * padding + box_MenuHeight;
+	int box_segmentationWidth = box_MenuWidth;
+	int box_segmentationHeight = ((dialogHeight - 3 * padding)*0.7 - padding) - box_MenuHeight;
 	pGroupSegmentation->MoveWindow(box_segmentationX, box_segmentationY, box_segmentationWidth, box_segmentationHeight, TRUE);
-	pStringStartTime->MoveWindow(box_segmentationX + padding, box_segmentationY + box_segmentationHeight*0.3, 230, 20, TRUE);
-	m_pEditBoxStartHour->MoveWindow(box_segmentationX + padding, box_segmentationY + box_segmentationHeight*0.3+30, 20, 20, TRUE);
-	pStringColon->MoveWindow(box_segmentationX + padding+25, box_segmentationY + box_segmentationHeight*0.3 + 30, 20, 20, TRUE);
-	m_pEditBoxStartMinute->MoveWindow(box_segmentationX + padding + 35, box_segmentationY + box_segmentationHeight*0.3 + 30, 20, 20, TRUE);
+	pStringStartTime->MoveWindow(box_segmentationX + padding, box_segmentationY + 2*padding, 230, 20, TRUE);
+	m_pEditBoxStartHour->MoveWindow(box_segmentationX + padding + box_segmentationWidth*0.5, box_segmentationY + 3 * padding + 20, 20, 20, TRUE);
+	pStringColon->MoveWindow(box_segmentationX + padding + 25 + box_segmentationWidth*0.5, box_segmentationY + 3 * padding + 20, 20, 20, TRUE);
+	m_pEditBoxStartMinute->MoveWindow(box_segmentationX + padding + 35 + box_segmentationWidth*0.5, box_segmentationY + 3 * padding + 20, 20, 20, TRUE);
+	pGroupSegWidth->MoveWindow(box_segmentationX + padding, box_segmentationY + 4 * padding+40, box_segmentationWidth-2*padding, 80, TRUE);
+	pStringWMIN->MoveWindow(box_segmentationX + 2 * padding, box_segmentationY + 6 * padding + 40, 40, 20, TRUE);
+	pSegSliderWMIN->MoveWindow(box_segmentationX + 3 * padding + 40, box_segmentationY + 6 * padding + 40, box_segmentationWidth - 5 * padding-40 , 20, TRUE);
+	pStringWMAX->MoveWindow(box_segmentationX + 2 * padding, box_segmentationY + 7 * padding + 60, 40, 20, TRUE);
+	pSegSliderWMAX->MoveWindow(box_segmentationX + 3 * padding + 40, box_segmentationY + 7 * padding + 60, box_segmentationWidth - 5 * padding - 40, 20, TRUE);
+	pGroupSegHeight->MoveWindow(box_segmentationX + padding, box_segmentationY + 5 * padding + 120, box_segmentationWidth - 2 * padding, 80, TRUE);
+	pStringHMIN->MoveWindow(box_segmentationX + 2 * padding, box_segmentationY + 7 * padding + 120, 40, 20, TRUE);
+	pSegSliderHMIN->MoveWindow(box_segmentationX + 3 * padding + 40, box_segmentationY + 7 * padding + 120, box_segmentationWidth - 5 * padding - 40, 20, TRUE);
+	pStringHMAX->MoveWindow(box_segmentationX + 2 * padding, box_segmentationY + 8 * padding + 140, 40, 20, TRUE);
+	pSegSliderHMAX->MoveWindow(box_segmentationX + 3 * padding + 40, box_segmentationY + 8 * padding + 140, box_segmentationWidth - 5 * padding - 40, 20, TRUE);
 	pButtonSegmentation->MoveWindow(box_segmentationX + box_segmentationWidth - padding - 100, box_segmentationY + box_segmentationHeight - 30, 100, 20, TRUE);
 	
 
-	//group box - synthetic
-	CWnd *pGroupSynthetic = GetDlgItem(IDC_GROUP_SYN);
+	//group box - Play Settings
+	CWnd *pGroupSynthetic = GetDlgItem(IDC_GROUP_PLAY_SETTINGS);
 	CWnd *pStringSearchStartTime = GetDlgItem(IDC_STRING_SEARCH_START_TIME);
 	CWnd *pStringSearchEndTime = GetDlgItem(IDC_STRING_SEARCH_END_TIME);
 	CWnd *pStringFps = GetDlgItem(IDC_STRING_FPS);
 	CWnd *pStringSearchStartTimeSlider = GetDlgItem(IDC_STRING_SEARCH_START_TIME_SLIDER);
 	CWnd *pStringSearchEndTimeSlider = GetDlgItem(IDC_STRING_SEARCH_END_TIME_SLIDER);
 	CWnd *pStringFpsSlider = GetDlgItem(IDC_STRING_FPS_SLIDER);
-	CButton *pButtonPlay = (CButton *)GetDlgItem(IDC_BTN_SYN_PLAY);
-	int box_syntheticX = padding + box_segmentationWidth;
-	int box_syntheticY = padding * 2 + pictureContorlHeight;
-	int box_syntheticWidth = pictureContorlWidth*0.5;
-	int box_syntheticHeight = controlBoxHeight - padding * 3;
+
+	int box_syntheticX = padding;
+	int box_syntheticY = box_segmentationY + box_segmentationHeight+padding;
+	int box_syntheticWidth = dialogWidth - 3 * padding;
+	int box_syntheticHeight = (dialogHeight - 3 * padding)*0.3-40;
 	pGroupSynthetic->MoveWindow(box_syntheticX, box_syntheticY, box_syntheticWidth, box_syntheticHeight, TRUE);
 	pStringSearchStartTime->MoveWindow(box_syntheticX + padding, box_syntheticY + box_syntheticHeight*0.3, 100, 20, TRUE);
 	m_sliderSearchStartTime.MoveWindow(box_syntheticX + padding, box_syntheticY + box_syntheticHeight*0.3+20+padding, 140, 20, TRUE);
@@ -189,10 +234,9 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 
 	pStringFps->MoveWindow(box_syntheticX + padding + 300, box_syntheticY + box_syntheticHeight*0.3, 100, 20, TRUE);
 	m_sliderFps.MoveWindow(box_syntheticX + padding+300, box_syntheticY + box_syntheticHeight*0.3 + 20 + padding, 140, 20, TRUE);
-	pStringFpsSlider->MoveWindow(box_syntheticX + padding + 70 + 300, box_syntheticY + box_syntheticHeight*0.3 + 40 + padding * 2, 30, 20, TRUE);
+	pStringFpsSlider->MoveWindow(box_syntheticX + padding + 60 + 300, box_syntheticY + box_syntheticHeight*0.3 + 40 + padding * 2, 30, 20, TRUE);
 
-	pButtonPlay->MoveWindow(box_syntheticX + box_syntheticWidth - padding - 100, box_segmentationY + box_syntheticHeight - 30, 100, 20, TRUE);
-
+	
 
 	
 	/*
