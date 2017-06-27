@@ -22,11 +22,13 @@ const int FRAMECOUNT_FOR_MAKE_BACKGROUND = 100; // 배경을 만들기 까지 필요한 프�
 
 /***  전역변수  ***/
 char txtBuffer[100] = { 0, };	//텍스트파일 읽을 때 사용할 buffer
-Mat m_resultBackground;
 segment *m_segmentArray;
 Queue segment_queue; // C++ STL의 queue 키워드와 겹치기 때문에 변수를 조정함
 int videoStartMsec, segmentCount, fps;
 // 시작 millisecond, 세그먼트 카운팅변수, 초당 프레임수
+
+// background 전역변수 삭제
+// synthesis 중에 배경관련 정보들이 사라지는 버그가 발생하여 수정하면서 m_background를 삭제함
 
 // File 관련
 FILE *fp; // frameInfo를 작성할 File Pointer
@@ -429,7 +431,7 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 			//TODO mat에 합성된 결과를 넣어준다.
 			std::string BackgroundFilename = getBackgroundFilename(video_filename);
 			Mat background = imread(BackgroundFilename);
-			printf("불러올 배경파일 이름 :: %s\n", BackgroundFilename.c_str());
+			printf("불러올 배경파일 이름 :: %s, SYN_RESULT 타이머 호출!!!\n", BackgroundFilename.c_str());
 
 			// 불러온 배경을 이용하여 합성을 진행
 			Mat syntheticResult = getSyntheticFrame(background);
@@ -617,9 +619,9 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 }
 
 // 합성된 프레임을 가져오는 연산
-Mat getSyntheticFrame(Mat tempBackGround) {
+Mat getSyntheticFrame(Mat backGround) {
 		int *labelMap
-			= (int*)calloc(m_resultBackground.cols * m_resultBackground.rows, sizeof(int));	//겹침을 판단하는 용도
+			= (int*)calloc(backGround.cols * backGround.rows, sizeof(int));	//겹침을 판단하는 용도
 
 		node tempnode;	//DeQueue한 결과를 받을 node
 		int countOfObj = segment_queue.count;	//큐 인스턴스의 노드 갯수
@@ -628,7 +630,7 @@ Mat getSyntheticFrame(Mat tempBackGround) {
 		//큐가 비었는지 확인한다
 		if (IsEmpty(&segment_queue)){
 			free(labelMap);
-			return tempBackGround;
+			return backGround;
 		}
 
 		vector<int> vectorPreNodeIndex; // 객체들 인덱스 정보를 저장하기 위한 벡터
@@ -639,8 +641,6 @@ Mat getSyntheticFrame(Mat tempBackGround) {
 			vectorPreNodeIndex.push_back(tempnode.indexOfSegmentArray);	//큐에 있는 객체들의 인덱스 정보 저장
 			Enqueue(&segment_queue, tempnode.timeTag, tempnode.indexOfSegmentArray);
 		}
-
-		m_resultBackground.copyTo(tempBackGround);	//임시로 쓸 배경 복사
 		
 		// 큐에 들어있는 객체 갯수 만큼 DeQueue. 
 		for (int i = 0; i < countOfObj; i++) {
@@ -666,7 +666,7 @@ Mat getSyntheticFrame(Mat tempBackGround) {
 
 			if (isCross == false){	//출력된 객체가 없거나 이전 객체와 겹치지 않는 경우
 				//배경에 객체를 올리는 함수
-				tempBackGround = printObjOnBG(tempBackGround, m_segmentArray[tempnode.indexOfSegmentArray], labelMap);
+				backGround = printObjOnBG(backGround, m_segmentArray[tempnode.indexOfSegmentArray], labelMap);
 
 				//타임태그를 string으로 변환
 				string timetag = "";
@@ -676,7 +676,7 @@ Mat getSyntheticFrame(Mat tempBackGround) {
 
 				//커팅된 이미지에 타임태그를 달아준다
 				//params : (Mat, String to show, 출력할 위치, 폰트 타입, 폰트 크기, 색상, 굵기) 
-				putText(tempBackGround, timetag, Point(m_segmentArray[tempnode.indexOfSegmentArray].left + 5, m_segmentArray[tempnode.indexOfSegmentArray].top - 10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 150, 150), 2);
+				putText(backGround, timetag, Point(m_segmentArray[tempnode.indexOfSegmentArray].left + 5, m_segmentArray[tempnode.indexOfSegmentArray].top - 10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 150, 150), 2);
 
 				//다음목록에 같은 타임태그를 가진 객체가 있는지 확인한다. 있으면 EnQueue
 				if (m_segmentArray[tempnode.indexOfSegmentArray + 1].timeTag == m_segmentArray[tempnode.indexOfSegmentArray].timeTag) {
@@ -688,7 +688,7 @@ Mat getSyntheticFrame(Mat tempBackGround) {
 
 		free(labelMap);
 		vector<int>().swap(vectorPreNodeIndex);
-	return tempBackGround;
+	return backGround;
 }
 // 객체들 끼리 겹침을 판별하는 함수, 하나라도 성립하면 겹치지 않음
 bool IsObjectOverlapingDetector(segment *m_segment, vector<int> preNodeIndex_data, int curIndex, int countOfObj_j) {
@@ -783,11 +783,6 @@ void CMFC_SyntheticDlg::OnClickedBtnSynPlay()
 
 		//큐 초기화
 		InitQueue(&segment_queue);
-
-		// 배경 프레임 불러오기, segmentation으로 부터 얻은 배경을 사용 
-		printf("%s\n", background_filename);
-		m_resultBackground = imread(background_filename);
-
 
 		/************************************/
 		//TimeTag를 Edit box로부터 입력받음
