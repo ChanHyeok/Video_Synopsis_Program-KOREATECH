@@ -97,6 +97,7 @@ BEGIN_MESSAGE_MAP(CMFC_SyntheticDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_SEGMENTATION, &CMFC_SyntheticDlg::OnBnClickedBtnSegmentation)
 	ON_WM_HSCROLL()
 	ON_BN_CLICKED(IDC_BTN_SYN_PLAY, &CMFC_SyntheticDlg::OnClickedBtnSynPlay)
+	ON_BN_CLICKED(IDC_BTN_MENU_LOAD, &CMFC_SyntheticDlg::OnBnClickedBtnMenuLoad)
 END_MESSAGE_MAP()
 
 
@@ -141,7 +142,6 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	int dialogWidth = m_rectCurHist.right;
 	int dialogHeight = m_rectCurHist.bottom-50;//작업표시줄 크기 빼줌
 	int padding = 10;
-	int controlBoxHeight = dialogHeight*0.25;
 	SetWindowPos(&wndTop, 0, 0, dialogWidth, dialogHeight, SWP_NOMOVE);//다이얼로그 크기 조정
 
 	//group box - MENU
@@ -248,30 +248,13 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	m_sliderFps.SetRange(0, 100);
 
 	//***************************************************************************************************************
+
 	
-	cimage_mfc = NULL;
+
+	//실행시 비디오 파일 불러옴
+	loadFile();
+
 	isPlayBtnClicked = false;
-
-
-	//실행시 비디오 읽어옴
-	//파일 다이얼로그 호출해서 segmentation 할 영상 선택	
-	char szFilter[] = "Video (*.avi, *.MP4) | *.avi;*.mp4; | All Files(*.*)|*.*||";	//검색 옵션
-	CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, szFilter, AfxGetMainWnd());	//파일 다이얼로그 생성
-	dlg.DoModal();	//다이얼로그 띄움
-
-	// Path를 받아와서 filename만을 떼어서 저장함(배경파일 이름을 결정할 때 사용)
-	CString cstrImgPath = dlg.GetPathName();
-	video_filename = getFileName(cstrImgPath, '\\');
-	txt_filename.append(video_filename).append(".txt"); // frameinfo txt파일 재설정
-	printf("%s\n", video_filename);
-
-	capture.open((string)cstrImgPath);
-	if (!capture.isOpened()) { //예외처리. 해당이름의 파일이 없는 경우
-		perror("No Such File!\n");
-		::SendMessage(GetSafeHwnd(), WM_CLOSE, NULL, NULL);	//다이얼 로그 종료
-	}
-
-	fps = capture.get(CV_CAP_PROP_FPS);
 
 	//edit box default
 	m_pEditBoxStartHour->SetWindowTextA("0");
@@ -280,11 +263,53 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	SetDlgItemText(IDC_STRING_SEARCH_START_TIME_SLIDER, _T("00 : 00 : 00"));
 	SetDlgItemText(IDC_STRING_SEARCH_END_TIME_SLIDER, _T("00 : 00 : 00"));
 	SetDlgItemText(IDC_STRING_FPS_SLIDER, to_string(fps).c_str());
+	m_sliderSearchStartTime.SetPos(0);
+	m_sliderSearchEndTime.SetPos(0);
 	m_sliderFps.SetPos(fps);
 
 	SetTimer(VIDEO_TIMER, fps, NULL);
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
+}
+void CMFC_SyntheticDlg::loadFile(){
+	//파일 다이얼로그 호출해서 segmentation 할 영상 선택	
+	char szFilter[] = "Video (*.avi, *.MP4) | *.avi;*.mp4; | All Files(*.*)|*.*||";	//검색 옵션
+	CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, szFilter, AfxGetMainWnd());	//파일 다이얼로그 생성
+	dlg.DoModal();	//다이얼로그 띄움
+
+	// Path를 받아와서 filename만을 떼어서 저장함(배경파일 이름을 결정할 때 사용)
+	CString cstrImgPath = dlg.GetPathName();
+	String temp = "File Name : ";
+	video_filename = "";
+	video_filename = getFileName(cstrImgPath, '\\');
+	txt_filename = RESULT_TEXT_FILENAME;
+	txt_filename.append(video_filename).append(".txt"); // frameinfo txt파일 재설정
+	CWnd *pStringFileName = GetDlgItem(IDC_MENU_STRING_FILE_NAME);
+	char *cstr = new char[temp.length() + 1];
+	strcpy(cstr, temp.c_str());
+	strcat(cstr, video_filename.c_str());
+	pStringFileName->SetWindowTextA(cstr);
+	capture.open((string)cstrImgPath);
+	if (!capture.isOpened()) { //예외처리. 해당이름의 파일이 없는 경우
+		perror("No Such File!\n");
+		::SendMessage(GetSafeHwnd(), WM_CLOSE, NULL, NULL);	//다이얼 로그 종료
+	}
+
+	fps = capture.get(CV_CAP_PROP_FPS);
+
+
+	isPlayBtnClicked = false;
+
+	//edit box default
+	m_pEditBoxStartHour->SetWindowTextA("0");
+	m_pEditBoxStartMinute->SetWindowTextA("0");
+	//slider default
+	SetDlgItemText(IDC_STRING_SEARCH_START_TIME_SLIDER, _T("00 : 00 : 00"));
+	SetDlgItemText(IDC_STRING_SEARCH_END_TIME_SLIDER, _T("00 : 00 : 00"));
+	SetDlgItemText(IDC_STRING_FPS_SLIDER, to_string(fps).c_str());
+	m_sliderSearchStartTime.SetPos(0);
+	m_sliderSearchEndTime.SetPos(0);
+	m_sliderFps.SetPos(fps);
 }
 
 void CMFC_SyntheticDlg::OnSysCommand(UINT nID, LPARAM lParam)
@@ -869,4 +894,12 @@ stringstream timeConvertor(int t) {
 		s << sec;
 
 	return s;
+}
+
+
+
+
+//load 버튼을 누르면 발생하는 콜백
+void CMFC_SyntheticDlg::OnBnClickedBtnMenuLoad(){
+	loadFile();
 }
