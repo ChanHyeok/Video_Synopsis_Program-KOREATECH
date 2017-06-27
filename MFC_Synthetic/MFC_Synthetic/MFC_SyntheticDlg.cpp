@@ -30,9 +30,8 @@ int videoStartMsec, segmentCount, fps;
 
 // File 관련
 FILE *fp; // frameInfo를 작성할 File Pointer
-
 std::string video_filename(""); // 입력받은 비디오파일 이름
-std::string background_filename = "background_"; // 배경 파일 이름
+std::string background_filename = RESULT_BACKGROUND_FILENAME; // 배경 파일 이름
 std::string txt_filename = RESULT_TEXT_FILENAME; // txt 파일 이름
 /////			/////
 
@@ -428,8 +427,12 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 		if (isPlayBtnClicked == true){
 			printf("#");
 			//TODO mat에 합성된 결과를 넣어준다.
-			Mat syntheticResult;
-			syntheticResult = getSyntheticFrame(syntheticResult);
+			std::string BackgroundFilename = getBackgroundFilename(video_filename);
+			Mat background = imread(BackgroundFilename);
+			printf("불러올 배경파일 이름 :: %s\n", BackgroundFilename.c_str());
+
+			// 불러온 배경을 이용하여 합성을 진행
+			Mat syntheticResult = getSyntheticFrame(background);
 			DisplayImage(IDC_RESULT_IMAGE, syntheticResult, SYN_RESULT_TIMER);
 			syntheticResult.release();
 		}
@@ -498,12 +501,9 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 
 		// 배경생성부분
 		if (frameCount <= FRAMECOUNT_FOR_MAKE_BACKGROUND) {
-			// cvtColor(background, background, CV_RGB2GRAY);
 			BackgroundMaker(frame, background, ROWS*3, COLS); 
-			// color background를 얻기위해 세로길이에 3배를 해주어야 함
 			if (frameCount == (FRAMECOUNT_FOR_MAKE_BACKGROUND - 1)) {
 				background_filename.append(video_filename).append(".jpg");
-				// cvtColor(background, background, CV_GRAY2RGB);
 				int background_write_check = imwrite(background_filename, background);
 				printf("background Making Complete!!\n");
 			}
@@ -552,16 +552,6 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 	MessageBox(0, "Done!!", "ding-dong", MB_OK);
 }
 
-Mat morphologicalOperation(Mat img_binary) {
-	//morphological opening 작은 점들을 제거
-	erode(img_binary, img_binary, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-	dilate(img_binary, img_binary, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-
-	//morphological closing 영역의 구멍 메우기
-	dilate(img_binary, img_binary, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-	erode(img_binary, img_binary, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-	return img_binary;
-}
 // 파일의 이름부분을 저장
 string allocatingComponentFilename(vector<component> humanDetectedVector, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector) {
 	string name;
@@ -628,7 +618,9 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 
 // 합성된 프레임을 가져오는 연산
 Mat getSyntheticFrame(Mat tempBackGround) {
-		int *labelMap = (int*)calloc(m_resultBackground.cols * m_resultBackground.rows, sizeof(int));	//겹침을 판단하는 용도
+		int *labelMap
+			= (int*)calloc(m_resultBackground.cols * m_resultBackground.rows, sizeof(int));	//겹침을 판단하는 용도
+
 		node tempnode;	//DeQueue한 결과를 받을 node
 		int countOfObj = segment_queue.count;	//큐 인스턴스의 노드 갯수
 		stringstream ss;
@@ -854,48 +846,32 @@ bool segmentationTimeInputException(CString str_h, CString str_m) {
 		return false;
 }
 
-// Video Path에서 file이름만 빼서 반환하는 함수 
-String getFileName(CString f_path, char find_char) {
-	// 마지막 \ 뒤의 문자열
-	// 검색대상 :: "Video (*.avi, *.MP4) | *.avi;*.mp4; | All Files(*.*)|*.*||", 
-	char final_index;
-	for (int i = 0; i < f_path.GetLength(); i++) {
-		if (f_path[i] == find_char)
-			final_index = i;
-	} // '\'를 찾고
 
-	for (int i = final_index + 1; i < f_path.GetLength(); i++) {
-		if (f_path[final_index + 1] == NULL) break; // 예외처리
-		char c = f_path[i];
-		video_filename += c;
-	}// 마지막에 나오는 '\' 이후의 문자열을 추출함
+//00:00:00 형식으로 timetag를 변환
+stringstream timeConvertor(int t) {
+	int hour;
+	int min;
+	int sec;
+	stringstream s;
 
-	return video_filename;
-}
+	hour = t / 3600;
+	min = (t % 3600) / 60;
+	sec = t % 60;
 
-//TemporalMedian 방식으로 배경을 만들어 사용하기
-int BackgroundMaker(Mat frameimg, Mat bgimg, int rows, int cols) {
-	int cnt = 0; // 현재픽셀값과 이전 픽셀값과 비교하여 바뀌지 않으면(같으면) 카운팅함(딱히쓸일없음)
-	for (int i = 0; i < rows; i++) {
-		for (int j = 0; j < cols; j++) {
-			if (frameimg.data[i * frameimg.cols + j] > bgimg.data[i * bgimg.cols + j]) {//현재 픽셀이 배경 픽셀보다 클 때
-				if (bgimg.data[i * bgimg.cols + j] == 255) // 연산할 이미지 배열의 값이 255가 넘을 경우( 최대값 )
-					bgimg.data[i * bgimg.cols + j] = 255;
-				else
-					bgimg.data[i * bgimg.cols + j] += 1;//1씩 증가
+	if (t / 3600 < 10)
+		s << "0" << hour << " : ";
+	else
+		s << hour << " : ";
 
-			} // 배경 프레임과 비교하여 현재 프레임의 화소 값이 높은 경우, 다음 배경 프레임의 화소를 증가 
-			else if (frameimg.data[i * frameimg.cols + j] < bgimg.data[i * bgimg.cols + j]) {//현재 픽셀이 배경 픽셀보다 작을 때
-				if (bgimg.data[i * bgimg.cols + j] == 0) // 연산할 이미지 배열의 값이 0보다 작을 경우( 최소값 )
-					bgimg.data[i *bgimg.cols + j] = 0;
-				else
-					bgimg.data[i * bgimg.cols + j] -= 1;//1씩 감소
-			} // 배경 프레임과 비교하여 현재 프레임의 화소 값이 낮은 경우, 다음 배경 프레임의 화소를 감소
-			else if (frameimg.data[i * frameimg.cols + j] == bgimg.data[i * bgimg.cols + j]) {
-				cnt++;
-			}
-		}
-	}
+	if ((t % 3600) / 60 < 10)
+		s << "0" << min << " : ";
+	else
+		s << min << " : ";
 
-	return cnt;
+	if (t % 60 < 10)
+		s << "0" << sec;
+	else
+		s << sec;
+
+	return s;
 }
