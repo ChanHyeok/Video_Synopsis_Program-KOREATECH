@@ -22,17 +22,18 @@ const int FRAMECOUNT_FOR_MAKE_BACKGROUND = 100; // 배경을 만들기 까지 필요한 프�
 
 /***  전역변수  ***/
 char txtBuffer[100] = { 0, };	//텍스트파일 읽을 때 사용할 buffer
-Mat m_resultBackground;
 segment *m_segmentArray;
 Queue segment_queue; // C++ STL의 queue 키워드와 겹치기 때문에 변수를 조정함
 int videoStartMsec, segmentCount, fps;
 // 시작 millisecond, 세그먼트 카운팅변수, 초당 프레임수
 
+// background 전역변수 삭제
+// synthesis 중에 배경관련 정보들이 사라지는 버그가 발생하여 수정하면서 m_background를 삭제함
+
 // File 관련
 FILE *fp; // frameInfo를 작성할 File Pointer
-
 std::string video_filename(""); // 입력받은 비디오파일 이름
-std::string background_filename = "background_"; // 배경 파일 이름
+std::string background_filename = RESULT_BACKGROUND_FILENAME; // 배경 파일 이름
 std::string txt_filename = RESULT_TEXT_FILENAME; // txt 파일 이름
 /////			/////
 
@@ -428,8 +429,12 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 		if (isPlayBtnClicked == true){
 			printf("#");
 			//TODO mat에 합성된 결과를 넣어준다.
-			Mat syntheticResult;
-			syntheticResult = getSyntheticFrame(syntheticResult);
+			std::string BackgroundFilename = getBackgroundFilename(video_filename);
+			Mat background = imread(BackgroundFilename);
+			printf("불러올 배경파일 이름 :: %s, SYN_RESULT 타이머 호출!!!\n", BackgroundFilename.c_str());
+
+			// 불러온 배경을 이용하여 합성을 진행
+			Mat syntheticResult = getSyntheticFrame(background);
 			DisplayImage(IDC_RESULT_IMAGE, syntheticResult, SYN_RESULT_TIMER);
 			syntheticResult.release();
 		}
@@ -498,12 +503,9 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 
 		// 배경생성부분
 		if (frameCount <= FRAMECOUNT_FOR_MAKE_BACKGROUND) {
-			// cvtColor(background, background, CV_RGB2GRAY);
 			BackgroundMaker(frame, background, ROWS*3, COLS); 
-			// color background를 얻기위해 세로길이에 3배를 해주어야 함
 			if (frameCount == (FRAMECOUNT_FOR_MAKE_BACKGROUND - 1)) {
 				background_filename.append(video_filename).append(".jpg");
-				// cvtColor(background, background, CV_GRAY2RGB);
 				int background_write_check = imwrite(background_filename, background);
 				printf("background Making Complete!!\n");
 			}
@@ -552,16 +554,6 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 	MessageBox(0, "Done!!", "ding-dong", MB_OK);
 }
 
-Mat morphologicalOperation(Mat img_binary) {
-	//morphological opening 작은 점들을 제거
-	erode(img_binary, img_binary, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-	dilate(img_binary, img_binary, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-
-	//morphological closing 영역의 구멍 메우기
-	dilate(img_binary, img_binary, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-	erode(img_binary, img_binary, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-	return img_binary;
-}
 // 파일의 이름부분을 저장
 string allocatingComponentFilename(vector<component> humanDetectedVector, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector) {
 	string name;
@@ -627,8 +619,10 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 }
 
 // 합성된 프레임을 가져오는 연산
-Mat getSyntheticFrame(Mat tempBackGround) {
-		int *labelMap = (int*)calloc(m_resultBackground.cols * m_resultBackground.rows, sizeof(int));	//겹침을 판단하는 용도
+Mat getSyntheticFrame(Mat backGround) {
+		int *labelMap
+			= (int*)calloc(backGround.cols * backGround.rows, sizeof(int));	//겹침을 판단하는 용도
+
 		node tempnode;	//DeQueue한 결과를 받을 node
 		int countOfObj = segment_queue.count;	//큐 인스턴스의 노드 갯수
 		stringstream ss;
@@ -636,7 +630,7 @@ Mat getSyntheticFrame(Mat tempBackGround) {
 		//큐가 비었는지 확인한다
 		if (IsEmpty(&segment_queue)){
 			free(labelMap);
-			return tempBackGround;
+			return backGround;
 		}
 
 		vector<int> vectorPreNodeIndex; // 객체들 인덱스 정보를 저장하기 위한 벡터
@@ -647,8 +641,6 @@ Mat getSyntheticFrame(Mat tempBackGround) {
 			vectorPreNodeIndex.push_back(tempnode.indexOfSegmentArray);	//큐에 있는 객체들의 인덱스 정보 저장
 			Enqueue(&segment_queue, tempnode.timeTag, tempnode.indexOfSegmentArray);
 		}
-
-		m_resultBackground.copyTo(tempBackGround);	//임시로 쓸 배경 복사
 		
 		// 큐에 들어있는 객체 갯수 만큼 DeQueue. 
 		for (int i = 0; i < countOfObj; i++) {
@@ -674,7 +666,7 @@ Mat getSyntheticFrame(Mat tempBackGround) {
 
 			if (isCross == false){	//출력된 객체가 없거나 이전 객체와 겹치지 않는 경우
 				//배경에 객체를 올리는 함수
-				tempBackGround = printObjOnBG(tempBackGround, m_segmentArray[tempnode.indexOfSegmentArray], labelMap);
+				backGround = printObjOnBG(backGround, m_segmentArray[tempnode.indexOfSegmentArray], labelMap);
 
 				//타임태그를 string으로 변환
 				string timetag = "";
@@ -684,7 +676,7 @@ Mat getSyntheticFrame(Mat tempBackGround) {
 
 				//커팅된 이미지에 타임태그를 달아준다
 				//params : (Mat, String to show, 출력할 위치, 폰트 타입, 폰트 크기, 색상, 굵기) 
-				putText(tempBackGround, timetag, Point(m_segmentArray[tempnode.indexOfSegmentArray].left + 5, m_segmentArray[tempnode.indexOfSegmentArray].top - 10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 150, 150), 2);
+				putText(backGround, timetag, Point(m_segmentArray[tempnode.indexOfSegmentArray].left + 5, m_segmentArray[tempnode.indexOfSegmentArray].top - 10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 150, 150), 2);
 
 				//다음목록에 같은 타임태그를 가진 객체가 있는지 확인한다. 있으면 EnQueue
 				if (m_segmentArray[tempnode.indexOfSegmentArray + 1].timeTag == m_segmentArray[tempnode.indexOfSegmentArray].timeTag) {
@@ -696,7 +688,7 @@ Mat getSyntheticFrame(Mat tempBackGround) {
 
 		free(labelMap);
 		vector<int>().swap(vectorPreNodeIndex);
-	return tempBackGround;
+	return backGround;
 }
 // 객체들 끼리 겹침을 판별하는 함수, 하나라도 성립하면 겹치지 않음
 bool IsObjectOverlapingDetector(segment *m_segment, vector<int> preNodeIndex_data, int curIndex, int countOfObj_j) {
@@ -792,11 +784,6 @@ void CMFC_SyntheticDlg::OnClickedBtnSynPlay()
 		//큐 초기화
 		InitQueue(&segment_queue);
 
-		// 배경 프레임 불러오기, segmentation으로 부터 얻은 배경을 사용 
-		printf("%s\n", background_filename);
-		m_resultBackground = imread(background_filename);
-
-
 		/************************************/
 		//TimeTag를 Edit box로부터 입력받음
 		unsigned int obj1_TimeTag = m_sliderSearchStartTime.GetPos() * 1000;	//검색할 TimeTag1
@@ -854,48 +841,32 @@ bool segmentationTimeInputException(CString str_h, CString str_m) {
 		return false;
 }
 
-// Video Path에서 file이름만 빼서 반환하는 함수 
-String getFileName(CString f_path, char find_char) {
-	// 마지막 \ 뒤의 문자열
-	// 검색대상 :: "Video (*.avi, *.MP4) | *.avi;*.mp4; | All Files(*.*)|*.*||", 
-	char final_index;
-	for (int i = 0; i < f_path.GetLength(); i++) {
-		if (f_path[i] == find_char)
-			final_index = i;
-	} // '\'를 찾고
 
-	for (int i = final_index + 1; i < f_path.GetLength(); i++) {
-		if (f_path[final_index + 1] == NULL) break; // 예외처리
-		char c = f_path[i];
-		video_filename += c;
-	}// 마지막에 나오는 '\' 이후의 문자열을 추출함
+//00:00:00 형식으로 timetag를 변환
+stringstream timeConvertor(int t) {
+	int hour;
+	int min;
+	int sec;
+	stringstream s;
 
-	return video_filename;
-}
+	hour = t / 3600;
+	min = (t % 3600) / 60;
+	sec = t % 60;
 
-//TemporalMedian 방식으로 배경을 만들어 사용하기
-int BackgroundMaker(Mat frameimg, Mat bgimg, int rows, int cols) {
-	int cnt = 0; // 현재픽셀값과 이전 픽셀값과 비교하여 바뀌지 않으면(같으면) 카운팅함(딱히쓸일없음)
-	for (int i = 0; i < rows; i++) {
-		for (int j = 0; j < cols; j++) {
-			if (frameimg.data[i * frameimg.cols + j] > bgimg.data[i * bgimg.cols + j]) {//현재 픽셀이 배경 픽셀보다 클 때
-				if (bgimg.data[i * bgimg.cols + j] == 255) // 연산할 이미지 배열의 값이 255가 넘을 경우( 최대값 )
-					bgimg.data[i * bgimg.cols + j] = 255;
-				else
-					bgimg.data[i * bgimg.cols + j] += 1;//1씩 증가
+	if (t / 3600 < 10)
+		s << "0" << hour << " : ";
+	else
+		s << hour << " : ";
 
-			} // 배경 프레임과 비교하여 현재 프레임의 화소 값이 높은 경우, 다음 배경 프레임의 화소를 증가 
-			else if (frameimg.data[i * frameimg.cols + j] < bgimg.data[i * bgimg.cols + j]) {//현재 픽셀이 배경 픽셀보다 작을 때
-				if (bgimg.data[i * bgimg.cols + j] == 0) // 연산할 이미지 배열의 값이 0보다 작을 경우( 최소값 )
-					bgimg.data[i *bgimg.cols + j] = 0;
-				else
-					bgimg.data[i * bgimg.cols + j] -= 1;//1씩 감소
-			} // 배경 프레임과 비교하여 현재 프레임의 화소 값이 낮은 경우, 다음 배경 프레임의 화소를 감소
-			else if (frameimg.data[i * frameimg.cols + j] == bgimg.data[i * bgimg.cols + j]) {
-				cnt++;
-			}
-		}
-	}
+	if ((t % 3600) / 60 < 10)
+		s << "0" << min << " : ";
+	else
+		s << min << " : ";
 
-	return cnt;
+	if (t % 60 < 10)
+		s << "0" << sec;
+	else
+		s << sec;
+
+	return s;
 }

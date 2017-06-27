@@ -5,6 +5,9 @@
 #pragma once
 #include <string>
 #include <opencv2/opencv.hpp>
+#include "opencv2/imgcodecs.hpp"
+#include "opencv2/highgui.hpp"
+#include <iostream>
 #include "afxcmn.h"
 using namespace std;
 using namespace cv;
@@ -12,6 +15,10 @@ using namespace cv;
 
 #define BUFFER 8096 // 객체 프레임 데이터를 저장할 버퍼의 크기 
 
+// fileName 상수 관련
+#define RESULT_TEXT_FILENAME  "frameInfo_"
+#define RESULT_FOLDER_NAME "segment_"
+#define RESULT_BACKGROUND_FILENAME "background_"
 
 // segmentation structure
 typedef struct _segment {
@@ -105,24 +112,25 @@ Mat getSyntheticFrame(Mat);
 bool segmentationTimeInputException(CString str_h, CString str_m);
 bool IsComparePrevDetection(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index);
 Mat morphologicalOperation(Mat);
-String getFileName(CString f_path, char find_char);
-int BackgroundMaker(Mat frameimg, Mat bgimg, int rows, int cols);
+stringstream timeConvertor(int t);
 
 bool IsObjectOverlapingDetector(segment *m_segment, vector<int> preNodeIndex_data, int curIndex, int countOfObj_j);
 
 // connectecComponentLabelling.cpp
 vector<component> connectedComponentsLabelling(Mat frame, int rows, int cols);
 
-// tool_foreground.cpp
+// tool_background.cpp, tool_foreground.cpp
 Mat ExtractForegroundToMOG2(Mat frameimg);
 Mat ExtractFg(Mat, Mat, int, int);
+int BackgroundMaker(Mat frameimg, Mat bgimg, int rows, int cols);
 
-
-// file_io.cpp
+// FileProcessing.cpp
 void saveSegmentation_JPG(component, Mat, int, int, int, unsigned int, string video_fname);	//캡쳐한 Components를 jpg파일로 저장하는 함수
 void saveSegmentation_TXT(component, int, int, FILE *, int);	//components의 Data를 txt로 저장하는 함수
-stringstream timeConvertor(int t);
-
+String getFileName(CString f_path, char find_char);
+string getBackgroundFilename(string file_name);
+bool isDirectory(string dir_name, string video_fame);
+Mat loadJPGObjectFile(segment obj);
 
 // tool_synthetic.cpp
 Mat Syn_Background_Foreground(Mat, Mat, Mat, int, int);
