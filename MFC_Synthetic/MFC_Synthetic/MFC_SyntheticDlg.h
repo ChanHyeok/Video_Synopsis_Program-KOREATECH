@@ -179,5 +179,7 @@ public:
 	afx_msg void OnClickedBtnSynPlay();
 	CSliderCtrl m_sliderFps;
 	int mRadioPlay;
+	afx_msg void OnBnClickedBtnMenuLoad();
+	afx_msg void loadFile();
 };
 
