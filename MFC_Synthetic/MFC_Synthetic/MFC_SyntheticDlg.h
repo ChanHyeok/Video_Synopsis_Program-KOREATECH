@@ -129,12 +129,12 @@ void saveSegmentation_JPG(component, Mat, int, int, int, unsigned int, string vi
 void saveSegmentation_TXT(component, int, int, FILE *, int);	//components의 Data를 txt로 저장하는 함수
 String getFileName(CString f_path, char find_char);
 string getBackgroundFilename(string file_name);
-bool isDirectory(string dir_name, string video_fame);
-Mat loadJPGObjectFile(segment obj);
-
+bool isFileOrDirectoryInLocal(string );
+Mat loadJPGObjectFile(segment obj, string file_name);
+bool isDirectory(string dir_name, string video_name);
 // tool_synthetic.cpp
 Mat Syn_Background_Foreground(Mat, Mat, Mat, int, int);
-Mat printObjOnBG(Mat, segment, int*);
+Mat printObjOnBG(Mat, Mat,  segment, int*);
 
 // CMFC_SyntheticDlg dialog
 class CMFC_SyntheticDlg : public CDialogEx{

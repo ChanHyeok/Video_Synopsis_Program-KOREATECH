@@ -18,7 +18,7 @@
 #define VIDEO_TIMER 1
 #define SYN_RESULT_TIMER 2
 #define MAX_STR_BUFFER_SIZE  128 // 문자열 출력에 쓸 버퍼 길이
-const int FRAMECOUNT_FOR_MAKE_BACKGROUND = 100; // 배경을 만들기 까지 필요한 프레임카운트
+const int FRAMECOUNT_FOR_MAKE_BACKGROUND = 200; // 배경을 만들기 까지 필요한 프레임카운트
 
 /***  전역변수  ***/
 char txtBuffer[100] = { 0, };	//텍스트파일 읽을 때 사용할 buffer
@@ -456,7 +456,6 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 			//TODO mat에 합성된 결과를 넣어준다.
 			std::string BackgroundFilename = getBackgroundFilename(video_filename);
 			Mat background = imread(BackgroundFilename);
-			printf("불러올 배경파일 이름 :: %s, SYN_RESULT 타이머 호출!!!\n", BackgroundFilename.c_str());
 
 			// 불러온 배경을 이용하여 합성을 진행
 			Mat syntheticResult = getSyntheticFrame(background);
@@ -690,8 +689,8 @@ Mat getSyntheticFrame(Mat backGround) {
 			}
 
 			if (isCross == false){	//출력된 객체가 없거나 이전 객체와 겹치지 않는 경우
-				//배경에 객체를 올리는 함수
-				backGround = printObjOnBG(backGround, m_segmentArray[tempnode.indexOfSegmentArray], labelMap);
+				Mat temp_frame = loadJPGObjectFile(m_segmentArray[tempnode.indexOfSegmentArray], video_filename);
+				backGround = printObjOnBG(backGround, temp_frame, m_segmentArray[tempnode.indexOfSegmentArray], labelMap);
 
 				//타임태그를 string으로 변환
 				string timetag = "";

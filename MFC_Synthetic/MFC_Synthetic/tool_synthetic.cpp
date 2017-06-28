@@ -23,12 +23,7 @@ Mat Syn_Background_Foreground(Mat background, Mat firstForegroundImage, Mat seco
 	return result;
 }
 
-Mat printObjOnBG(Mat background, segment obj, int* labelMap){
-	// 블렌딩 할 오브젝트의 이미지 불러오기
-	Mat frame;
-	frame = loadJPGObjectFile(obj);
-	bool isPrevObject = false;
-
+Mat printObjOnBG(Mat background, Mat frame, segment obj, int* labelMap){
 	// TO DO :: 블렌딩 보완하기, 강건화
 	for (int i = obj.top; i < obj.bottom; i++) {
 		for (int j = obj.left + 1; j < obj.right; j++) {
