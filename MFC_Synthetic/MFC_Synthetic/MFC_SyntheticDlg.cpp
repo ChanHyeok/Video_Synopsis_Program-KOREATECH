@@ -104,7 +104,6 @@ BEGIN_MESSAGE_MAP(CMFC_SyntheticDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_MENU_LOAD, &CMFC_SyntheticDlg::OnBnClickedBtnMenuLoad)
 	ON_BN_CLICKED(IDC_BTN_PLAY, &CMFC_SyntheticDlg::OnBnClickedBtnPlay)
 	ON_BN_CLICKED(IDC_BTN_PAUSE, &CMFC_SyntheticDlg::OnBnClickedBtnPause)
-	ON_BN_CLICKED(IDC_BTN_STOP, &CMFC_SyntheticDlg::OnBnClickedBtnStop)
 END_MESSAGE_MAP()
 
 
@@ -847,9 +846,9 @@ void CMFC_SyntheticDlg::OnClickedBtnSynPlay()
 
 
 		//실행중인 타이머 종료
-		//KillTimer(VIDEO_TIMER);
+		KillTimer(VIDEO_TIMER);
 		//타이머 시작	params = timerID, ms, callback함수 명(NULL이면 OnTimer)
-		//SetTimer(SYN_RESULT_TIMER, 1000 / m_sliderFps.GetPos(), NULL);
+		SetTimer(SYN_RESULT_TIMER, 1000 / m_sliderFps.GetPos(), NULL);
 	}
 	else{ //실행 못하는 경우 segmentation을 진행하라고 출력
 		AfxMessageBox("You can't play without segmentation results");
@@ -917,56 +916,28 @@ void CMFC_SyntheticDlg::OnBnClickedBtnMenuLoad(){
 //은혜
 void CMFC_SyntheticDlg::OnBnClickedBtnPlay()
 {
-	/*
-	원본 영상일 경우, 합성 영상일 경우
-	
+
 	if(status == 1)
 		SetTimer(VIDEO_TIMER, fps, NULL);
 
 	else if(status == 2)
 		SetTimer(IDC_RESULT_IMAGE, 1000 / m_sliderFps.GetPos(), NULL);
-		
-		*/
 	
-	SetTimer(VIDEO_TIMER, fps, NULL);
 	printf("play\n");
 	timer = true;
-	
 	
 }
 
 
 void CMFC_SyntheticDlg::OnBnClickedBtnPause()
 {
-	/*
-	원본 영상일 경우, 합성 영상일 경우
-	
-
 	if (status == 1)
 		KillTimer(VIDEO_TIMER);
 
 	else if (status == 2)
 		KillTimer(IDC_RESULT_IMAGE);
-		
-		*/
-	KillTimer(VIDEO_TIMER);
+	
 	printf("pause\n");
 	timer = false;
 }
 
-void CMFC_SyntheticDlg::OnBnClickedBtnStop()
-{
-	/*
-	if (status == 1)
-		KillTimer(VIDEO_TIMER);
-
-	else if (status == 2)
-		KillTimer(IDC_RESULT_IMAGE);
-		
-		*/
-
-	KillTimer(VIDEO_TIMER);
-	timer = false;
-
-	timer_fps = 0;
-}
