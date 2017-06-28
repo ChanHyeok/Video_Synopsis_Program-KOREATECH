@@ -176,18 +176,18 @@ protected:
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
-	afx_msg void OnBnClickedOk();
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnBnClickedBtnSegmentation();
 	afx_msg void OnBnClickedGroup1Seg();
-	afx_msg void OnEnChangeEdit1();
 	CSliderCtrl m_sliderSearchStartTime;
 	CSliderCtrl m_sliderSearchEndTime;
 	afx_msg void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
-	afx_msg void OnClickedBtnSynPlay();
+	afx_msg void OnClickedBtnPlay();
 	CSliderCtrl m_sliderFps;
 	int mRadioPlay;
 	afx_msg void OnBnClickedBtnMenuLoad();
 	afx_msg void loadFile();
+	afx_msg void SetRadioStatus(UINT value);
+	afx_msg void OnBnClickedBtnPause();
 };
 
