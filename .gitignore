@@ -94,11 +94,13 @@ dkms.conf
 *.vcxproj
 *.filters
 MFC_Synthetic/MFC_Synthetic/segment/
+MFC_Synthetic/MFC_Synthetic/segment_/
 *.MP4
 *.tlog
 MFC_Synthetic/MFC_Synthetic/frameInfo.txt
 *.avi
 *.raw
+*.jpg
 
 *.opensdf
 *.ipch
