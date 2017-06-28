@@ -189,5 +189,8 @@ public:
 	int mRadioPlay;
 	afx_msg void OnBnClickedBtnMenuLoad();
 	afx_msg void loadFile();
+	afx_msg void OnBnClickedBtnPlay();
+	afx_msg void OnBnClickedBtnPause();
+	afx_msg void OnBnClickedBtnStop();
 };
 

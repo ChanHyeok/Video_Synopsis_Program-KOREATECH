@@ -26,6 +26,10 @@ segment *m_segmentArray;
 Queue segment_queue; // C++ STL의 queue 키워드와 겹치기 때문에 변수를 조정함
 int videoStartMsec, segmentCount, fps;
 // 시작 millisecond, 세그먼트 카운팅변수, 초당 프레임수
+//은혜
+int status;
+bool timer = false;
+double timer_fps = 0;
 
 // background 전역변수 삭제
 // synthesis 중에 배경관련 정보들이 사라지는 버그가 발생하여 수정하면서 m_background를 삭제함
@@ -98,6 +102,9 @@ BEGIN_MESSAGE_MAP(CMFC_SyntheticDlg, CDialogEx)
 	ON_WM_HSCROLL()
 	ON_BN_CLICKED(IDC_BTN_SYN_PLAY, &CMFC_SyntheticDlg::OnClickedBtnSynPlay)
 	ON_BN_CLICKED(IDC_BTN_MENU_LOAD, &CMFC_SyntheticDlg::OnBnClickedBtnMenuLoad)
+	ON_BN_CLICKED(IDC_BTN_PLAY, &CMFC_SyntheticDlg::OnBnClickedBtnPlay)
+	ON_BN_CLICKED(IDC_BTN_PAUSE, &CMFC_SyntheticDlg::OnBnClickedBtnPause)
+	ON_BN_CLICKED(IDC_BTN_STOP, &CMFC_SyntheticDlg::OnBnClickedBtnStop)
 END_MESSAGE_MAP()
 
 
@@ -288,6 +295,7 @@ void CMFC_SyntheticDlg::loadFile(){
 	char *cstr = new char[temp.length() + 1];
 	strcpy(cstr, temp.c_str());
 	strcat(cstr, video_filename.c_str());
+
 	pStringFileName->SetWindowTextA(cstr);
 	capture.open((string)cstrImgPath);
 	if (!capture.isOpened()) { //예외처리. 해당이름의 파일이 없는 경우
@@ -440,6 +448,7 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 {
 	CDialogEx::OnTimer(nIDEvent);
 	switch (nIDEvent){
+		timer_fps++;
 	case VIDEO_TIMER:
 		if (true){
 			printf("$");
@@ -448,6 +457,7 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 			DisplayImage(IDC_RESULT_IMAGE, temp_frame, VIDEO_TIMER);
 			temp_frame.release();
 		}
+		status = 1;	//은혜
 		break;
 
 	case SYN_RESULT_TIMER:
@@ -461,10 +471,12 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 			// 불러온 배경을 이용하여 합성을 진행
 			Mat syntheticResult = getSyntheticFrame(background);
 			DisplayImage(IDC_RESULT_IMAGE, syntheticResult, SYN_RESULT_TIMER);
-			syntheticResult.release();
+			syntheticResult.release();			
 		}
+		status = 2;	//은혜
 		break;
 	}
+	
 
 }
 
@@ -835,9 +847,9 @@ void CMFC_SyntheticDlg::OnClickedBtnSynPlay()
 
 
 		//실행중인 타이머 종료
-		KillTimer(VIDEO_TIMER);
+		//KillTimer(VIDEO_TIMER);
 		//타이머 시작	params = timerID, ms, callback함수 명(NULL이면 OnTimer)
-		SetTimer(SYN_RESULT_TIMER, 1000 / m_sliderFps.GetPos(), NULL);
+		//SetTimer(SYN_RESULT_TIMER, 1000 / m_sliderFps.GetPos(), NULL);
 	}
 	else{ //실행 못하는 경우 segmentation을 진행하라고 출력
 		AfxMessageBox("You can't play without segmentation results");
@@ -896,10 +908,66 @@ stringstream timeConvertor(int t) {
 	return s;
 }
 
-
-
-
 //load 버튼을 누르면 발생하는 콜백
 void CMFC_SyntheticDlg::OnBnClickedBtnMenuLoad(){
 	loadFile();
+}
+
+
+//은혜
+void CMFC_SyntheticDlg::OnBnClickedBtnPlay()
+{
+	/*
+	원본 영상일 경우, 합성 영상일 경우
+	
+	if(status == 1)
+		SetTimer(VIDEO_TIMER, fps, NULL);
+
+	else if(status == 2)
+		SetTimer(IDC_RESULT_IMAGE, 1000 / m_sliderFps.GetPos(), NULL);
+		
+		*/
+	
+	SetTimer(VIDEO_TIMER, fps, NULL);
+	printf("play\n");
+	timer = true;
+	
+	
+}
+
+
+void CMFC_SyntheticDlg::OnBnClickedBtnPause()
+{
+	/*
+	원본 영상일 경우, 합성 영상일 경우
+	
+
+	if (status == 1)
+		KillTimer(VIDEO_TIMER);
+
+	else if (status == 2)
+		KillTimer(IDC_RESULT_IMAGE);
+		
+		*/
+	KillTimer(VIDEO_TIMER);
+	printf("pause\n");
+	timer = false;
+}
+
+
+void CMFC_SyntheticDlg::OnBnClickedBtnStop()
+{
+	/*
+	if (status == 1)
+		KillTimer(VIDEO_TIMER);
+
+	else if (status == 2)
+		KillTimer(IDC_RESULT_IMAGE);
+		
+		*/
+
+	KillTimer(VIDEO_TIMER);
+	timer = false;
+
+	timer_fps = 0;
 }
