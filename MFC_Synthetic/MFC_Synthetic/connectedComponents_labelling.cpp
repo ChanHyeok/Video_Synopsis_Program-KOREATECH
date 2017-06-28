@@ -7,11 +7,14 @@
 #include <opencv\cv.h>
 
 // People Area Detection Parameter
-const int MINWIDTH = 45;
-const int MINHEIGHT = 63;
-const int MAXWIDTH = 245;
-const int MAXHEIGHT = 267;
-
+//const int MINWIDTH = 45;
+//const int MINHEIGHT = 63;
+//const int MAXWIDTH = 245;
+//const int MAXHEIGHT = 267;
+const int MINWIDTH = 89;
+const int MINHEIGHT = 178;
+const int MAXWIDTH = 336;
+const int MAXHEIGHT = 325;
 
 component dataAllocateAtComponent(Mat stats, component c, int indexOflables) {
 	// 영역 저장하기

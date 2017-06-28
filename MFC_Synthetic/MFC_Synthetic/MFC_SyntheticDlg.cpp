@@ -18,7 +18,7 @@
 #define VIDEO_TIMER 1
 #define SYN_RESULT_TIMER 2
 #define MAX_STR_BUFFER_SIZE  128 // 문자열 출력에 쓸 버퍼 길이
-const int FRAMECOUNT_FOR_MAKE_BACKGROUND = 100; // 배경을 만들기 까지 필요한 프레임카운트
+const int FRAMECOUNT_FOR_MAKE_BACKGROUND = 1500; // 배경을 만들기 까지 필요한 프레임카운트
 
 /***  전역변수  ***/
 char txtBuffer[100] = { 0, };	//텍스트파일 읽을 때 사용할 buffer
@@ -267,7 +267,7 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	m_sliderSearchEndTime.SetPos(0);
 	m_sliderFps.SetPos(fps);
 
-	SetTimer(VIDEO_TIMER, fps, NULL);
+	//SetTimer(VIDEO_TIMER, fps, NULL);
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -290,6 +290,7 @@ void CMFC_SyntheticDlg::loadFile(){
 	strcat(cstr, video_filename.c_str());
 	pStringFileName->SetWindowTextA(cstr);
 	capture.open((string)cstrImgPath);
+	capture_temp.open((string)cstrImgPath);
 	if (!capture.isOpened()) { //예외처리. 해당이름의 파일이 없는 경우
 		perror("No Such File!\n");
 		::SendMessage(GetSafeHwnd(), WM_CLOSE, NULL, NULL);	//다이얼 로그 종료
@@ -479,7 +480,7 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 
 	// Edit box에 문자 입력, 또는 범위외 입력 시 예외처리
 	if (segmentationTimeInputException(str_startHour, str_startMinute) ) 
-		segmentationOperator(&capture, atoi(str_startHour), atoi(str_startMinute));	//Object Segmentation
+		segmentationOperator(&capture, &capture_temp, atoi(str_startHour), atoi(str_startMinute));	//Object Segmentation
 	
 	// 범위 외 입력시 예외처리
 	else {
@@ -487,20 +488,13 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 }
 
 // segmentation 기능 수행, 물체 추적 및 파일로 저장
-void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int videoStartMin)
-{
+void segmentationOperator(VideoCapture* vc_Source, VideoCapture* vc_temp, int videoStartHour, int videoStartMin){
 	videoStartMsec = (videoStartHour * 60 + videoStartMin) * 60 * 1000;
 
 	unsigned int COLS = (int)vc_Source->get(CV_CAP_PROP_FRAME_WIDTH);	//가로 길이
 	unsigned int ROWS = (int)vc_Source->get(CV_CAP_PROP_FRAME_HEIGHT);	//세로 길이
 
 	unsigned char* result = (unsigned char*)malloc(sizeof(unsigned char)* ROWS * COLS);
-
-	/* 영상에 텍스트 출력 */
-	char strBuffer[MAX_STR_BUFFER_SIZE] = { 0, }; // fps출력
-	char timeBuffer[MAX_STR_BUFFER_SIZE] = { 0, }; // time 출력
-	Scalar color(0, 0, 255); // B/G/R
-	int thickness = 3;	// line thickness
 
 	// humanDetector Vector
 	vector<component> humanDetectedVector, prevHumanDetectedVector;
@@ -518,22 +512,21 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 	// 얻어낸 객체 프레임의 정보를 써 낼 텍스트 파일 정의
 	fp = fopen(txt_filename.c_str(), "w");	// 쓰기모드
 	fprintf(fp, to_string(videoStartMsec).append("\n").c_str());	//첫줄에 영상시작시간 적어줌
-	
+
+	// 배경생성부분
+	for (int i = 0; i < FRAMECOUNT_FOR_MAKE_BACKGROUND; i++){
+		vc_temp->read(frame); //get single frame
+		BackgroundMaker(frame, background, ROWS * 3, COLS);
+	}
+	background_filename.append(video_filename).append(".jpg");
+	int background_write_check = imwrite(background_filename, background);
+	printf("background Making Complete!!\n");
+
 	while (1) {
 		vc_Source->read(frame); //get single frame
 		if (frame.empty()) {	//예외처리. 프레임이 없음
 			perror("Empty Frame");
 			break;
-		}
-
-		// 배경생성부분
-		if (frameCount <= FRAMECOUNT_FOR_MAKE_BACKGROUND) {
-			BackgroundMaker(frame, background, ROWS*3, COLS); 
-			if (frameCount == (FRAMECOUNT_FOR_MAKE_BACKGROUND - 1)) {
-				background_filename.append(video_filename).append(".jpg");
-				int background_write_check = imwrite(background_filename, background);
-				printf("background Making Complete!!\n");
-			}
 		}
 
 		//그레이스케일 변환

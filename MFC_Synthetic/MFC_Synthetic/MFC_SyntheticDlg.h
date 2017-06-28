@@ -105,7 +105,7 @@ node Dequeue(Queue *);
 
 // MAIN ****
 vector<component> humanDetectedProcess(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector, Mat, int, int, unsigned int, FILE *fp);
-void segmentationOperator(VideoCapture* vc_Source, int, int);
+void segmentationOperator(VideoCapture* vc_Source, VideoCapture* , int, int);
 Mat getSyntheticFrame(Mat);
 
 // addition function of MAIN
@@ -145,7 +145,7 @@ public:
 // Dialog Data
 	enum { IDD = IDD_MFC_SYNTHETIC_DIALOG };
 
-	VideoCapture capture;
+	VideoCapture capture, capture_temp;
 	Mat mat_frame;
 	CImage *cimage_mfc;
 	CStatic m_picture;
