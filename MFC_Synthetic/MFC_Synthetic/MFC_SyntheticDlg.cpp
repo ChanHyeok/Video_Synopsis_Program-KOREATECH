@@ -954,7 +954,6 @@ void CMFC_SyntheticDlg::OnBnClickedBtnPause()
 	timer = false;
 }
 
-
 void CMFC_SyntheticDlg::OnBnClickedBtnStop()
 {
 	/*
