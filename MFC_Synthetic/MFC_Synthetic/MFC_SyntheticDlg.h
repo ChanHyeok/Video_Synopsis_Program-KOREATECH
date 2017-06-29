@@ -105,7 +105,7 @@ node Dequeue(Queue *);
 
 // MAIN ****
 vector<component> humanDetectedProcess(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector, Mat, int, int, unsigned int, FILE *fp);
-void segmentationOperator(VideoCapture* vc_Source, VideoCapture* , int, int);
+void segmentationOperator(VideoCapture* vc_Source, int, int, int ,int ,int ,int);
 Mat getSyntheticFrame(Mat);
 
 // addition function of MAIN
@@ -117,7 +117,8 @@ stringstream timeConvertor(int t);
 bool IsObjectOverlapingDetector(segment *m_segment, vector<int> preNodeIndex_data, int curIndex, int countOfObj_j);
 
 // connectecComponentLabelling.cpp
-vector<component> connectedComponentsLabelling(Mat frame, int rows, int cols);
+vector<component> connectedComponentsLabelling(Mat frame, int rows, int cols, int, int, int, int);
+bool labelSizeFiltering(int width, int height, int, int, int, int);
 
 // tool_background.cpp, tool_foreground.cpp
 Mat ExtractForegroundToMOG2(Mat frameimg);
@@ -141,7 +142,7 @@ class CMFC_SyntheticDlg : public CDialogEx{
 // Construction
 public:
 	CMFC_SyntheticDlg(CWnd* pParent = NULL);	// standard constructor
-
+	~CMFC_SyntheticDlg();
 // Dialog Data
 	enum { IDD = IDD_MFC_SYNTHETIC_DIALOG };
 
@@ -176,18 +177,22 @@ protected:
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
-	afx_msg void OnBnClickedOk();
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnBnClickedBtnSegmentation();
 	afx_msg void OnBnClickedGroup1Seg();
-	afx_msg void OnEnChangeEdit1();
 	CSliderCtrl m_sliderSearchStartTime;
 	CSliderCtrl m_sliderSearchEndTime;
 	afx_msg void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
-	afx_msg void OnClickedBtnSynPlay();
+	afx_msg void OnClickedBtnPlay();
 	CSliderCtrl m_sliderFps;
 	int mRadioPlay;
 	afx_msg void OnBnClickedBtnMenuLoad();
 	afx_msg void loadFile();
+	afx_msg void SetRadioStatus(UINT value);
+	afx_msg void OnBnClickedBtnPause();
+	CSliderCtrl m_SliderWMIN;
+	CSliderCtrl m_SliderWMAX;
+	CSliderCtrl m_SliderHMIN;
+	CSliderCtrl m_SliderHMAX;
 };
 
