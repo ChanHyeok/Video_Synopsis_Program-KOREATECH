@@ -23,8 +23,7 @@ Mat Syn_Background_Foreground(Mat background, Mat firstForegroundImage, Mat seco
 	return result;
 }
 
-Mat printObjOnBG(Mat background, Mat frame, segment obj, int* labelMap){
-	// TO DO :: 블렌딩 보완하기, 강건화
+Mat printObjOnBG(Mat background, Mat frame, segment obj, int* labelMap) {
 	for (int i = obj.top; i < obj.bottom; i++) {
 		for (int j = obj.left + 1; j < obj.right; j++) {
 			Vec3b colorB = background.at<Vec3b>(Point(j, i));
@@ -46,6 +45,5 @@ Mat printObjOnBG(Mat background, Mat frame, segment obj, int* labelMap){
 			}
 		}
 	}
-
 	return background;
 }

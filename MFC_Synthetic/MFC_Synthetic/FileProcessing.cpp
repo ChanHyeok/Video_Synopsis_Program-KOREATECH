@@ -62,14 +62,14 @@ void saveSegmentation_JPG(component object,
 
 	int check_writeFullPath = imwrite(fullPath, img);
 }
-
 // Segmentation된 Obj의 Data를 txt파일로 저장하는 함수
 // format : FILE_NAME(sec_frameCount) X Y WIDTH HEIGHT 
 void saveSegmentation_TXT(component object, int frameCount, int msec, FILE *fp, int index) {
+	string info;
 	stringstream ss;
-	ss << object.fileName << " " << object.left << " " << object.top << " " << object.right << " " << object.bottom
+	ss << object.fileName << " " << object.left << " " << object.top << " " << object.right << " " << object.bottom 
 		<< " " << object.right - object.left << " " << object.bottom - object.top << '\n';
-	string info = ss.str();
+	info = ss.str();
 	fprintf(fp, info.c_str());
 }
 
@@ -92,6 +92,7 @@ Mat objectCutting(component object, Mat img, unsigned int ROWS, unsigned int COL
 	return img(Rect(object.left, object.top, object.right - object.left, object.bottom - object.top)).clone();
 	//잘린 이미지 반환
 }
+
 // 텍스트 파일(세그먼트 정보가 저장된) 이름을 반환하는 함수
 string getTextFileName(string video_name) {
 	return RESULT_TEXT_FILENAME + video_name + (".txt");
@@ -107,17 +108,7 @@ string getDirectoryName(string video_name) {
 	return RESULT_FOLDER_NAME + video_name;
 }
 
-// 로컬에 특정 파일이나 디렉토리의 존재 유무를 판별하는 함수 통합
-bool isFileOrDirectoryInLocal(string file_name) {
-	// string type인 file_name을 const char* 로 바꾸어 access 함수에 넣는 연산
-	std::vector<char> writable(file_name.begin(), file_name.end());
-	writable.push_back('\0');
-	char* ptr = &writable[0];
-
-
-	return _access(ptr, 0) == 0;
-	// 파일 또는 폴더가 있을 경우에는 _access(ptr, 0) 값을 0을 반환하여 true, 그렇지 않으면 false.
-}
+// 프로젝트 내에 해당 디렉토리가 있는 지 체크하는 함수
 bool isDirectory(string dir_name, string video_name) {
 	// string type인 folderName을 const char* 로 바꾸어 access 함수에 넣는 연산
 	std::vector<char> writable(dir_name.begin(), dir_name.end());
