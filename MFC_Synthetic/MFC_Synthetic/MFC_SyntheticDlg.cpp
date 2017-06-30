@@ -1,4 +1,5 @@
 // MFC_SyntheticDlg.cpp : implementation file
+#include <crtdbg.h>
 
 #include "stdafx.h"
 #include "MFC_Synthetic.h"
@@ -7,7 +8,13 @@
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
+#undef THIS_FILE
+static char THIS_FILE[] = __FILE__;
 #endif
+
+// 메모리 누수를 점검하는 키워드 (http://codes.xenotech.net/38)
+// 점검하기 위해 디버깅 모드로 실행 후, 디버그 로그를 보면 됨
+// #include <crtdbg.h> 선언 이후 _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF); 
 
 /*** 각종 상수들 ***/
 #define LOGO_TIMER 0
@@ -20,23 +27,17 @@ const int FRAMECOUNT_FOR_MAKE_BACKGROUND = 500; // 배경을 만들기 까지 필요한 프�
 /***  전역변수  ***/
 char txtBuffer[100] = { 0, };	//텍스트파일 읽을 때 사용할 buffer
 segment *m_segmentArray;
-Queue segment_queue; // C++ STL의 queue 키워드와 겹치기 때문에 변수를 조정함
+Queue segment_queue; 
 int videoStartMsec, segmentCount, fps; // 시작 millisecond, 세그먼트 카운팅변수, 초당 프레임수
 int radioChoice, preRadioChoice;	//라디오 버튼 선택 결과 저장 변수. 0 - 원본영상, 1 - 합성영상, 2 - 이진영상
 boolean isPlayBtnClicked, isPauseBtnClicked;
 Mat background, background_gray; // 배경 프레임과 원본 프레임
 
 unsigned int COLS, ROWS;
-
-// background 전역변수 삭제
-// synthesis 중에 배경관련 정보들이 사라지는 버그가 발생하여 수정하면서 m_background를 삭제함
-
 // File 관련
 FILE *fp; // frameInfo를 작성할 File Pointer
 std::string video_filename(""); // 입력받은 비디오파일 이름
-std::string background_filename = RESULT_BACKGROUND_FILENAME; // 배경 파일 이름
-std::string txt_filename = RESULT_TEXT_FILENAME; // txt 파일 이름
-/////			/////
+std::string background_filename, txt_filename; // 배경 파일 이름과 txt 파일 이름
 
 // CAboutDlg dialog used for App About
 
@@ -81,7 +82,7 @@ CMFC_SyntheticDlg::CMFC_SyntheticDlg(CWnd* pParent /*=NULL*/)
 }
 CMFC_SyntheticDlg::~CMFC_SyntheticDlg()
 {
-	// MFC에서 소멸자에서 메모리 해제는 의미가 없음
+	// MFC에서 소멸자에서의 메모리 해제는 의미가 없음
 }
 
 
@@ -117,6 +118,7 @@ END_MESSAGE_MAP()
 BOOL CMFC_SyntheticDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
+
 	ShowWindow(SW_SHOWMAXIMIZED);	//전체화면
 	this->GetWindowRect(m_rectCurHist);	//다이얼로그 크기를 얻어옴
 
@@ -303,6 +305,9 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 
 	SetTimer(LOGO_TIMER, 1, NULL);
 
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+	// 메모리 누수 Check Point
+
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
@@ -317,9 +322,10 @@ void CMFC_SyntheticDlg::loadFile(){
 	String temp = "File Name : ";
 	video_filename = "";
 	video_filename = getFileName(cstrImgPath, '\\');
-	txt_filename = RESULT_TEXT_FILENAME;
-	txt_filename.append(video_filename).append(".txt"); // frameinfo txt파일 재설정
+	txt_filename = getTextFileName(video_filename); // frameinfo txt파일 재설정
+
 	CWnd *pStringFileName = GetDlgItem(IDC_MENU_STRING_FILE_NAME);
+	
 	char *cstr = new char[temp.length() + 1];
 	strcpy(cstr, temp.c_str());
 	strcat(cstr, video_filename.c_str());
@@ -330,6 +336,11 @@ void CMFC_SyntheticDlg::loadFile(){
 		perror("No Such File!\n");
 		::SendMessage(GetSafeHwnd(), WM_CLOSE, NULL, NULL);	//다이얼 로그 종료
 	}
+
+	// delete[]cstr;
+
+	// To Do :: cstr 메모리 누수
+	// 해제할 경우 에러가 남
 
 	fps = capture.get(CV_CAP_PROP_FPS);
 
@@ -364,19 +375,19 @@ void CMFC_SyntheticDlg::loadFile(){
 
 	// To Do :: 최초 파일을 load 한 후, 배경을 생성 중일떄
 	// 생성중이라고 사용자에게 알려주는 Dialog를 생성해주기
-
+	
 	// 배경생성부분
 	for (int i = 0; i < FRAMECOUNT_FOR_MAKE_BACKGROUND; i++){
 		capture_for_background.read(frame); //get single frame
 		BackgroundMaker(frame, background, ROWS * 3, COLS);
 	}
 
-	background_filename = RESULT_BACKGROUND_FILENAME;
-	background_filename.append(video_filename).append(".jpg");
+	background_filename = getBackgroundFilename(video_filename);
 	int background_write_check = imwrite(background_filename, background);
 	printf("background Making Complete!!\n");
 	//그레이스케일 변환
 	cvtColor(background, background_gray, CV_RGB2GRAY);
+	
 }
 
 void CMFC_SyntheticDlg::OnSysCommand(UINT nID, LPARAM lParam)
@@ -389,16 +400,14 @@ void CMFC_SyntheticDlg::OnSysCommand(UINT nID, LPARAM lParam)
 
 	// 프로그램을 중단(x버튼)했을 때
 	else if (nID == SC_CLOSE) {
-	if (MessageBox("프로그램을 종료하시겠습니까??", "S/W Exit", MB_YESNO) == IDYES) {
-	// 종료시 이벤트
-		AfxGetMainWnd()->PostMessage(WM_CLOSE);
-	// 메모리 해제
+		if (MessageBox("프로그램을 종료하시겠습니까??", "S/W Exit", MB_YESNO) == IDYES) {
+			// 종료시 이벤트
+			AfxGetMainWnd()->PostMessage(WM_CLOSE);
+		}
+		else {
+			// 취소시 이벤트
+		}
 	}
-	else {
-	// 취소시 이벤트
-	}
-	}
-
 
 	else
 	{
@@ -407,25 +416,36 @@ void CMFC_SyntheticDlg::OnSysCommand(UINT nID, LPARAM lParam)
 }
 
 // MFC에서 종료(x)버튼을 누를 시, OnClose()->OnCancel()->OnDestroy()순으로 호출되어 끝남
-void CMFC_SyntheticDlg::OnClose() {
-	printf("OnClose\n");
-}
+// OnClose(), OnDestroy()는 이용할 필요가 없어서 생략함
 
+// 공통 변수 메모리 해제 및 종료연산
 void CMFC_SyntheticDlg::OnCancel() {
 	printf("OnCancel\n");
-	Sleep(2000);
-	// 공통
+	// cpp파일 내 전역변수들 메모리 해제
+	background.release(); 
+	background_gray.release();
+	video_filename.clear(); background_filename.clear(); txt_filename.clear();
+
+	delete[] m_segmentArray;
+	
+	// CMFC_SyntheticDlg 클래스의 멤버변수들 메모리 해제
 	capture.release();
 	capture_for_background.release();
 
-	// 타이머 ID에 맞춰서 메모리를 해제할 변수들을 모두 release 시켜주게끔 함.
+//  layout에서 제공되는 부분을 해제할 경우 오류가 남
+//	free(&m_rectCurHist);
+//	free(m_pEditBoxStartHour);  free(m_pEditBoxStartMinute);
 
+	// To Do :: 열려있는 텍스트 파일 모두 닫음
+
+	// 메모리 누수를 점검하고, 디버그 로그 확인할 수 있도록 함
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+
+	// Sleep(2000);
+	
 	PostQuitMessage(0);
 }
 
-void CMFC_SyntheticDlg::OnDestroy() {
-	printf("OnDestroy\n");
-}
 
 // If you add a minimize button to your dialog, you will need the code below
 //  to draw the icon.  For MFC applications using the document/view model,
@@ -601,8 +621,8 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 
 	case SYN_RESULT_TIMER:
 		printf("#");
-		string BackgroundFilename = getBackgroundFilename(video_filename);
-		Mat background_loadedFromFile = imread(BackgroundFilename);//합성 영상을 출력할 때 바탕이 될 프레임. 영상합성 라디오 버튼 클릭 시 자동으로 파일로부터 로드 됨
+		background_filename = getBackgroundFilename(video_filename);
+		Mat background_loadedFromFile = imread(background_filename);//합성 영상을 출력할 때 바탕이 될 프레임. 영상합성 라디오 버튼 클릭 시 자동으로 파일로부터 로드 됨
 		// 불러온 배경을 이용하여 합성을 진행
 		Mat syntheticResult = getSyntheticFrame(background_loadedFromFile);
 		DisplayImage(IDC_RESULT_IMAGE, syntheticResult, SYN_RESULT_TIMER);
@@ -918,7 +938,7 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 		isPauseBtnClicked = false;
 
 	}
-	else if (radioChoice == 1 && isPlayBtnClicked == false){//라디오버튼이 합성영상일 경우 - 설정에 따라 합성된 영상 재생
+	else if (radioChoice == 1 && isPlayBtnClicked == false){ //라디오버튼이 합성영상일 경우 - 설정에 따라 합성된 영상 재생
 		isPlayBtnClicked = true;
 		isPauseBtnClicked = false;
 
@@ -936,7 +956,7 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 
 		if (isPlayable){
 			//*******************************************텍스트파일을 읽어서 정렬****************************************************************
-			m_segmentArray = new segment[BUFFER];  //(segment*)calloc(BUFFER, sizeof(segment));	//텍스트 파일에서 읽은 segment 정보를 저장할 배열 초기화
+			m_segmentArray = new segment[BUFFER];//텍스트 파일에서 읽은 segment 정보를 저장할 배열 초기화
 			segmentCount = 0;
 			fseek(fp, 0, SEEK_SET);	//포인터 처음으로 이동
 			fgets(txtBuffer, 99, fp);
@@ -965,18 +985,23 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 				segmentCount++;
 			}
 
+			// txtBuffer 메모리 해제
+			delete[] txtBuffer;
+
 			// 버블 정렬 사용하여 m_segmentArray를 TimeTag순으로 정렬
-			segment tmp_segment;
+			segment *tmp_segment = new segment; // 임시 segment 동적생성, 메모리 해제에 용의하게 하기
 			for (int i = 0; i < segmentCount; i++) {
 				for (int j = 0; j < segmentCount - 1; j++) {
 					if (m_segmentArray[j].timeTag > m_segmentArray[j + 1].timeTag) {
 						// m_segmentArray[segmentCount]와 m_segmentArray[segmentCount + 1]의 교체
-						tmp_segment = m_segmentArray[j + 1];
+						*tmp_segment = m_segmentArray[j + 1];
 						m_segmentArray[j + 1] = m_segmentArray[j];
-						m_segmentArray[j] = tmp_segment;
+						m_segmentArray[j] = *tmp_segment;
 					}
 				}
 			}
+			delete tmp_segment;
+
 
 			//정렬 확인 코드
 			//{
@@ -1005,6 +1030,7 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 
 			int prevTimetag = 0;
 			int prevIndex = -1;
+
 			//출력할 객체를 큐에 삽입하는 부분
 			for (int i = 0; i < segmentCount; i++) {
 				//start timetag와 end timetag 사이면 enqueue
@@ -1084,9 +1110,6 @@ stringstream timeConvertor(int t) {
 
 	return s;
 }
-
-
-
 
 //load 버튼을 누르면 발생하는 콜백
 void CMFC_SyntheticDlg::OnBnClickedBtnMenuLoad(){

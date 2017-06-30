@@ -150,22 +150,17 @@ public:
 	enum { IDD = IDD_MFC_SYNTHETIC_DIALOG };
 
 	VideoCapture capture, capture_for_background;
-	Mat mat_frame;
-	CImage *cimage_mfc;
-	CStatic m_picture;
 
 	boolean isPlayBtnClicked;
 	CRect m_rectCurHist;
 	CEdit *m_pEditBoxStartHour;
 	CEdit *m_pEditBoxStartMinute;
 
-
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
 
 public:
 	void DisplayImage(int IDC_PICTURE_TARGET, Mat targetMat, int);
-	//afx_msg void OnDestroy();
 	//afx_msg void OnTimer(UINT_PTR nIDEvent);
 
 
@@ -180,9 +175,9 @@ protected:
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
-	afx_msg void OnClose();
+	// afx_msg void OnClose();
 	afx_msg void OnCancel();
-	afx_msg void OnDestroy();
+	// afx_msg void OnDestroy();
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnBnClickedBtnSegmentation();
 	afx_msg void OnBnClickedGroup1Seg();
