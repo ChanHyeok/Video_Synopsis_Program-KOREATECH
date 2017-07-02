@@ -1,10 +1,6 @@
 // MFC_SyntheticDlg.cpp : implementation file
+#include <crtdbg.h>
 
-// To Do :: 이미 segmentation을 진행하고 다시 실행하였을 때 
-// txt, jpg파일(세그먼트들)이 있는데도 play를 누를 시 팅기는 버그 
-
-// To Do :: 또한 segmentation 누르고 Play 진행하고 또 segmentation 누르면 Done이라고 뜨는데
-// 이후 Play하면 segment 파일이 없다고 뜨는 점
 #include "stdafx.h"
 #include "MFC_Synthetic.h"
 #include "MFC_SyntheticDlg.h"
@@ -12,7 +8,13 @@
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
+#undef THIS_FILE
+static char THIS_FILE[] = __FILE__;
 #endif
+
+// 메모리 누수를 점검하는 키워드 (http://codes.xenotech.net/38)
+// 점검하기 위해 디버깅 모드로 실행 후, 디버그 로그를 보면 됨
+// #include <crtdbg.h> 선언 이후 _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF); 
 
 /*** 각종 상수들 ***/
 #define LOGO_TIMER 0
@@ -23,25 +25,30 @@
 const int FRAMECOUNT_FOR_MAKE_BACKGROUND = 500; // 배경을 만들기 까지 필요한 프레임카운트
 
 /***  전역변수  ***/
-char txtBuffer[100] = { 0, };	//텍스트파일 읽을 때 사용할 buffer
 segment *m_segmentArray;
+<<<<<<< HEAD
 Queue segment_queue; // C++ STL의 queue 키워드와 겹치기 때문에 변수를 조정함
+=======
+Queue segment_queue; 
+>>>>>>> wooyo
 int videoStartMsec, segmentCount, fps; // 시작 millisecond, 세그먼트 카운팅변수, 초당 프레임수
 int radioChoice, preRadioChoice;	//라디오 버튼 선택 결과 저장 변수. 0 - 원본영상, 1 - 합성영상, 2 - 이진영상
 boolean isPlayBtnClicked, isPauseBtnClicked;
 Mat background, background_gray; // 배경 프레임과 원본 프레임
+<<<<<<< HEAD
 
 unsigned int COLS, ROWS;
 
 // background 전역변수 삭제
 // synthesis 중에 배경관련 정보들이 사라지는 버그가 발생하여 수정하면서 m_background를 삭제함
+=======
+>>>>>>> wooyo
 
+unsigned int COLS, ROWS;
 // File 관련
 FILE *fp; // frameInfo를 작성할 File Pointer
 std::string video_filename(""); // 입력받은 비디오파일 이름
-std::string background_filename = RESULT_BACKGROUND_FILENAME; // 배경 파일 이름
-std::string txt_filename = RESULT_TEXT_FILENAME; // txt 파일 이름
-/////			/////
+std::string background_filename, txt_filename; // 배경 파일 이름과 txt 파일 이름
 
 // CAboutDlg dialog used for App About
 
@@ -86,8 +93,12 @@ CMFC_SyntheticDlg::CMFC_SyntheticDlg(CWnd* pParent /*=NULL*/)
 }
 CMFC_SyntheticDlg::~CMFC_SyntheticDlg()
 {
+<<<<<<< HEAD
 	background.release();
 	background_gray.release();
+=======
+	// MFC에서 소멸자에서의 메모리 해제는 의미가 없음
+>>>>>>> wooyo
 }
 
 
@@ -123,6 +134,7 @@ END_MESSAGE_MAP()
 BOOL CMFC_SyntheticDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
+
 	ShowWindow(SW_SHOWMAXIMIZED);	//전체화면
 	this->GetWindowRect(m_rectCurHist);	//다이얼로그 크기를 얻어옴
 
@@ -274,16 +286,25 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	m_sliderSearchEndTime.SetRange(0, 500);
 	m_sliderFps.SetRange(0, 100);
 
+<<<<<<< HEAD
+=======
+	// 영상의 크기에 맞게 slider가 나타날 값의 범위를 조정할 필요가 있음
+	// Default Range Value At Slider
+>>>>>>> wooyo
 	m_SliderWMIN.SetRange(0, 1000);
 	m_SliderWMAX.SetRange(0, 1000);
 	m_SliderHMIN.SetRange(0, 1000);
 	m_SliderHMAX.SetRange(0, 1000);
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> wooyo
 
 	//실행시 비디오 파일 불러옴
 	loadFile();
 
+<<<<<<< HEAD
 	isPlayBtnClicked = false;
 	isPauseBtnClicked = true;
 	CheckRadioButton(IDC_RADIO_PLAY1, IDC_RADIO_PLAY3, IDC_RADIO_PLAY1);//라디오 버튼 초기화
@@ -308,6 +329,11 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	m_SliderHMAX.SetPos(0);
 
 	SetTimer(LOGO_TIMER, 1, NULL);
+=======
+	SetTimer(LOGO_TIMER, 1, NULL);
+	// 메모리 누수 Check Point
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF); 
+>>>>>>> wooyo
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -323,36 +349,89 @@ void CMFC_SyntheticDlg::loadFile(){
 	String temp = "File Name : ";
 	video_filename = "";
 	video_filename = getFileName(cstrImgPath, '\\');
-	txt_filename = RESULT_TEXT_FILENAME;
-	txt_filename.append(video_filename).append(".txt"); // frameinfo txt파일 재설정
+	txt_filename = getTextFileName(video_filename); // frameinfo txt파일 재설정
+
 	CWnd *pStringFileName = GetDlgItem(IDC_MENU_STRING_FILE_NAME);
+	
 	char *cstr = new char[temp.length() + 1];
 	strcpy(cstr, temp.c_str());
 	strcat(cstr, video_filename.c_str());
 	pStringFileName->SetWindowTextA(cstr);
 	capture.open((string)cstrImgPath);
+<<<<<<< HEAD
 	capture_temp.open((string)cstrImgPath);
+=======
+	capture_for_background.open((string)cstrImgPath);
+>>>>>>> wooyo
 	if (!capture.isOpened()) { //예외처리. 해당이름의 파일이 없는 경우
 		perror("No Such File!\n");
 		::SendMessage(GetSafeHwnd(), WM_CLOSE, NULL, NULL);	//다이얼 로그 종료
 	}
+	
+	// delete[]cstr;
 
+	// To Do :: cstr 메모리 누수
+	// 해제할 경우 에러가 남
+
+<<<<<<< HEAD
+=======
+	// 받아올 영상의 정보들 :: 가로, 세로길이 받아오기
+	COLS = (int)capture.get(CV_CAP_PROP_FRAME_WIDTH);	//가로 길이
+	ROWS = (int)capture.get(CV_CAP_PROP_FRAME_HEIGHT);	//세로 길이
 	fps = capture.get(CV_CAP_PROP_FPS);
 
+>>>>>>> wooyo
 	isPlayBtnClicked = false;
 	isPauseBtnClicked = true;
 	CheckRadioButton(IDC_RADIO_PLAY1, IDC_RADIO_PLAY3, IDC_RADIO_PLAY1);//라디오 버튼 초기화
 	radioChoice = 0; preRadioChoice = 0;	//라디오 버튼의 default는 맨 처음 버튼임
+<<<<<<< HEAD
+=======
+
+	// edit box와 slider 기본 값 불러오기
+	loadValueOfSlider(COLS, ROWS, 0, 0); // 일단 startTime과 endTime은 0으로 해놓음
+
+	Mat frame(ROWS, COLS, CV_8UC3); // Mat(height, width, channel)
+	background = Mat(ROWS, COLS, CV_8UC3);
+	background_gray = Mat(ROWS, COLS, CV_8UC1);
+
+	// To Do :: 최초 파일을 load 한 후, 배경을 생성 중일떄
+	// 생성중이라고 사용자에게 알려주는 Dialog를 생성해주기
+	
+	// 배경생성부분
+	for (int i = 0; i < FRAMECOUNT_FOR_MAKE_BACKGROUND; i++){
+		capture_for_background.read(frame); //get single frame
+		BackgroundMaker(frame, background, ROWS * 3, COLS);
+	}
+
+	background_filename = getBackgroundFilename(video_filename);
+	int background_write_check = imwrite(background_filename, background);
+	printf("background Making Complete!!\n");
+	//그레이스케일 변환
+	cvtColor(background, background_gray, CV_RGB2GRAY);
+	
+}
+
+
+// 파일을 불러오면서 각종 slider와 box를 초기화하는 함수
+void CMFC_SyntheticDlg::loadValueOfSlider(int captureCols, int captureRows, int startTime, int endTime) {
+>>>>>>> wooyo
 	//edit box default
 	m_pEditBoxStartHour->SetWindowTextA("0");
 	m_pEditBoxStartMinute->SetWindowTextA("0");
-	//slider default
+
+	// To Do :: startTime, endTime도 매개변수로 받아와서 초기화시켜주기
+	// stringstream time_string;
+	// time_string = timeConvertor(startTime);
+
+	// time slider default
 	SetDlgItemText(IDC_STRING_SEARCH_START_TIME_SLIDER, _T("00 : 00 : 00"));
 	SetDlgItemText(IDC_STRING_SEARCH_END_TIME_SLIDER, _T("00 : 00 : 00"));
 	SetDlgItemText(IDC_STRING_FPS_SLIDER, to_string(fps).c_str());
 	m_sliderSearchStartTime.SetPos(0);
 	m_sliderSearchEndTime.SetPos(0);
 	m_sliderFps.SetPos(fps);
+<<<<<<< HEAD
 	SetDlgItemText(IDC_SEG_STRING_VAL_MIN_W, _T("0"));
 	SetDlgItemText(IDC_SEG_STRING_VAL_MAX_W, _T("0"));
 	SetDlgItemText(IDC_SEG_STRING_VAL_MIN_H, _T("0"));
@@ -379,6 +458,26 @@ void CMFC_SyntheticDlg::loadFile(){
 	printf("background Making Complete!!\n");
 	//그레이스케일 변환
 	cvtColor(background, background_gray, CV_RGB2GRAY);
+=======
+
+	// detection slider range
+	m_SliderWMIN.SetRange(0, captureCols);
+	m_SliderWMAX.SetRange(0, captureCols);
+	m_SliderHMIN.SetRange(0, captureRows);
+	m_SliderHMAX.SetRange(0, captureRows);	
+	
+	// detection slider text
+	SetDlgItemText(IDC_SEG_STRING_VAL_MIN_W, _T(to_string(captureCols / 5).c_str()));
+	SetDlgItemText(IDC_SEG_STRING_VAL_MAX_W, _T(to_string(captureCols / 2).c_str()));
+	SetDlgItemText(IDC_SEG_STRING_VAL_MIN_H, _T(to_string(captureRows / 5).c_str()));
+	SetDlgItemText(IDC_SEG_STRING_VAL_MAX_H, _T(to_string(captureRows / 2).c_str()));
+	
+	// detection slider default position
+	m_SliderWMIN.SetPos(captureCols / 5);
+	m_SliderWMAX.SetPos(captureCols / 2);
+	m_SliderHMIN.SetPos(captureRows / 5);
+	m_SliderHMAX.SetPos(captureRows / 2);
+>>>>>>> wooyo
 }
 
 void CMFC_SyntheticDlg::OnSysCommand(UINT nID, LPARAM lParam)
@@ -388,11 +487,55 @@ void CMFC_SyntheticDlg::OnSysCommand(UINT nID, LPARAM lParam)
 		CAboutDlg dlgAbout;
 		dlgAbout.DoModal();
 	}
+
+	// 프로그램을 중단(x버튼)했을 때
+	else if (nID == SC_CLOSE) {
+		if (MessageBox("프로그램을 종료하시겠습니까??", "S/W Exit", MB_YESNO) == IDYES) {
+			// 종료시 이벤트
+			AfxGetMainWnd()->PostMessage(WM_CLOSE);
+		}
+		else {
+			// 취소시 이벤트
+		}
+	}
+
 	else
 	{
 		CDialogEx::OnSysCommand(nID, lParam);
 	}
 }
+
+// MFC에서 종료(x)버튼을 누를 시, OnClose()->OnCancel()->OnDestroy()순으로 호출되어 끝남
+// OnClose(), OnDestroy()는 이용할 필요가 없어서 생략함
+
+// 공통 변수 메모리 해제 및 종료연산
+void CMFC_SyntheticDlg::OnCancel() {
+	printf("OnCancel\n");
+	// cpp파일 내 전역변수들 메모리 해제
+	background.release(); 
+	background_gray.release();
+	video_filename.clear(); background_filename.clear(); txt_filename.clear();
+
+	delete[] m_segmentArray;
+	
+	// CMFC_SyntheticDlg 클래스의 멤버변수들 메모리 해제
+	capture.release();
+	capture_for_background.release();
+
+//  layout에서 제공되는 부분을 해제할 경우 오류가 남
+//	free(&m_rectCurHist);
+//	free(m_pEditBoxStartHour);  free(m_pEditBoxStartMinute);
+
+	// To Do :: 열려있는 텍스트 파일 모두 닫음
+
+	// 메모리 누수를 점검하고, 디버그 로그 확인할 수 있도록 함
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+
+	// Sleep(2000);
+	
+	PostQuitMessage(0);
+}
+
 
 // If you add a minimize button to your dialog, you will need the code below
 //  to draw the icon.  For MFC applications using the document/view model,
@@ -504,6 +647,7 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 	Mat temp_frame;
 	switch (nIDEvent){
 	case LOGO_TIMER:	//로고 출력
+<<<<<<< HEAD
 		if (true){
 			string logoFileName = "logo.jpg";
 			Mat logo = imread(logoFileName);
@@ -526,6 +670,31 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 		if (true){
 			Mat img_labels, stats, centroids;
 
+=======
+		if (true){
+			string logoFileName = "logo.jpg";
+			Mat logo = imread(logoFileName);
+			DisplayImage(IDC_RESULT_IMAGE, logo, LOGO_TIMER);
+			logo.release();
+			KillTimer(LOGO_TIMER);
+			KillTimer(VIDEO_TIMER);
+			KillTimer(BIN_VIDEO_TIMER);
+			KillTimer(SYN_RESULT_TIMER);
+		}
+		break;
+
+		// 원본 영상 출력
+	case VIDEO_TIMER:
+		printf("$");
+		capture.read(temp_frame);
+		DisplayImage(IDC_RESULT_IMAGE, temp_frame, VIDEO_TIMER);
+		break;
+
+		// 이진 영상 출력
+	case BIN_VIDEO_TIMER:
+		if (true) {
+			Mat img_labels, stats, centroids;
+>>>>>>> wooyo
 			capture.read(temp_frame);
 			//그레이스케일 변환
 			cvtColor(temp_frame, temp_frame, CV_RGB2GRAY);
@@ -555,7 +724,11 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 				int top = stats.at<int>(j, CC_STAT_TOP);
 				int width = stats.at<int>(j, CC_STAT_WIDTH);
 				int height = stats.at<int>(j, CC_STAT_HEIGHT);
+<<<<<<< HEAD
 				if (labelSizeFiltering(width, height, m_SliderWMIN.GetPos(), m_SliderWMAX.GetPos(), m_SliderHMIN.GetPos(), m_SliderHMAX.GetPos())){
+=======
+				if (labelSizeFiltering(width, height, m_SliderWMIN.GetPos(), m_SliderWMAX.GetPos(), m_SliderHMIN.GetPos(), m_SliderHMAX.GetPos())) {
+>>>>>>> wooyo
 					rectangle(temp_frame, Point(left, top), Point(left + width, top + height),
 						Scalar(0, 0, 255), 1);
 				}
@@ -568,8 +741,13 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 
 	case SYN_RESULT_TIMER:
 		printf("#");
+<<<<<<< HEAD
 		string BackgroundFilename = getBackgroundFilename(video_filename);
 		Mat background_loadedFromFile = imread(BackgroundFilename);//합성 영상을 출력할 때 바탕이 될 프레임. 영상합성 라디오 버튼 클릭 시 자동으로 파일로부터 로드 됨
+=======
+		background_filename = getBackgroundFilename(video_filename);
+		Mat background_loadedFromFile = imread(background_filename);//합성 영상을 출력할 때 바탕이 될 프레임. 영상합성 라디오 버튼 클릭 시 자동으로 파일로부터 로드 됨
+>>>>>>> wooyo
 		// 불러온 배경을 이용하여 합성을 진행
 		Mat syntheticResult = getSyntheticFrame(background_loadedFromFile);
 		DisplayImage(IDC_RESULT_IMAGE, syntheticResult, SYN_RESULT_TIMER);
@@ -591,7 +769,12 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 
 	// Edit box에 문자 입력, 또는 범위외 입력 시 예외처리
 	if (segmentationTimeInputException(str_startHour, str_startMinute))
+<<<<<<< HEAD
 		segmentationOperator(&capture, atoi(str_startHour), atoi(str_startMinute), m_SliderWMIN.GetPos(), m_SliderWMAX.GetPos(), m_SliderHMIN.GetPos(), m_SliderHMAX.GetPos());	//Object Segmentation
+=======
+		segmentationOperator(&capture, atoi(str_startHour), atoi(str_startMinute)
+			, m_SliderWMIN.GetPos(), m_SliderWMAX.GetPos(), m_SliderHMIN.GetPos(), m_SliderHMAX.GetPos());	//Object Segmentation
+>>>>>>> wooyo
 	// 범위 외 입력시 예외처리
 	else {
 	}
@@ -621,6 +804,15 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 	fp = fopen(txt_filename.c_str(), "w");	// 쓰기모드
 	fprintf(fp, to_string(videoStartMsec).append("\n").c_str());	//첫줄에 영상시작시간 적어줌
 
+<<<<<<< HEAD
+=======
+	// vc_source의 시작시간 0으로 초기화	
+	vc_Source->set(CV_CAP_PROP_POS_MSEC, 0);
+	
+	// To Do :: 세그먼테이션이 도중에 중단되었을 때 
+	// 그 시점에서부터 다시 세그먼테이션을 진행하고 싶을 때 vc_source의 처리
+
+>>>>>>> wooyo
 	while (1) {
 		vc_Source->read(frame); //get single frame
 		if (frame.empty()) {	//예외처리. 프레임이 없음
@@ -630,10 +822,14 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 		//printf("=====%5d 프레임=====\n", frameCount);
 		//그레이스케일 변환
 		cvtColor(frame, frame_g, CV_RGB2GRAY);
+<<<<<<< HEAD
+=======
+
+		// To Do :: 세그먼테이션 도중 배경을 추출할 수 있어야 함
+>>>>>>> wooyo
 
 		// 전경 추출
 		frame_g = ExtractFg(frame_g, background_gray, ROWS, COLS);
-		// frame_g = ExtractForegroundToMOG2(frame_g);
 
 		// 이진화
 		threshold(frame_g, frame_g, 5, 255, CV_THRESH_BINARY);
@@ -662,16 +858,24 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 
 		frameCount++;	//increase frame count
 	}
-
-	//메모리 해제
-	free(result); 	frame.release(); frame_g.release();
-	vector<component>().swap(humanDetectedVector);
-	vector<component>().swap(prevHumanDetectedVector);
-	fclose(fp);	// 텍스트 파일 닫기
-
 	//HWND hWnd = ::FindWindow(NULL, "Dude, Wait");
 	//if (hWnd){ ::PostMessage(hWnd, WM_CLOSE, 0, 0); }
-	MessageBox(0, "Done!!", "ding-dong", MB_OK);
+
+	// To Do :: 세그먼테이션 완료 메세지 박스가 나타나면서 cvtColor 에러 발생
+	// MessageBox(0, "Done!!", "ding-dong", MB_OK);
+	// printf("messageBox 이후\n");
+	// Sleep(2500);
+
+	//메모리 해제
+<<<<<<< HEAD
+	free(result); 	frame.release(); frame_g.release();
+=======
+	free(result); frame.release(); frame_g.release();
+>>>>>>> wooyo
+	vector<component>().swap(humanDetectedVector);
+	vector<component>().swap(prevHumanDetectedVector);
+	printf("세그멘테이션에 사용하는 변수들 메모리 해제 완료\n");
+	fclose(fp);	// 텍스트 파일 닫기
 }
 
 // 파일의 이름부분을 저장
@@ -787,10 +991,19 @@ Mat getSyntheticFrame(Mat bgFrame) {
 				}
 			}
 		}
+<<<<<<< HEAD
 
 		if (isCross == false){	//출력된 객체가 없거나 이전 객체와 겹치지 않는 경우
 			//배경에 객체를 올리는 함수
 			bgFrame = printObjOnBG(bgFrame, m_segmentArray[tempnode.indexOfSegmentArray], labelMap);
+=======
+
+		if (isCross == false){	//출력된 객체가 없거나 이전 객체와 겹치지 않는 경우
+			//배경에 객체를 올리는 함수
+
+			Mat temp_frame = loadJPGObjectFile(m_segmentArray[tempnode.indexOfSegmentArray], video_filename);
+			bgFrame = printObjOnBG(bgFrame, temp_frame, m_segmentArray[tempnode.indexOfSegmentArray], labelMap);
+>>>>>>> wooyo
 
 			//타임태그를 string으로 변환
 			string timetag = "";
@@ -882,6 +1095,7 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 		isPauseBtnClicked = false;
 
 	}
+<<<<<<< HEAD
 	else if (radioChoice == 1 && isPlayBtnClicked == false){//라디오버튼이 합성영상일 경우 - 설정에 따라 합성된 영상 재생
 		isPlayBtnClicked = true;
 		isPauseBtnClicked = false;
@@ -891,6 +1105,20 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 
 		fp = fopen(path.c_str(), "r");
 		boolean isPlayable = false;
+=======
+	else if (radioChoice == 1 && isPlayBtnClicked == false){ //라디오버튼이 합성영상일 경우 - 설정에 따라 합성된 영상 재생
+		isPlayBtnClicked = true;
+		isPauseBtnClicked = false;
+
+		char *txtBuffer = new char[100];	//텍스트파일 읽을 때 사용할 buffer
+
+		string path = "./";
+		path.append(getTextFileName(video_filename));
+
+		fp = fopen(path.c_str(), "r");
+		boolean isPlayable = false;
+
+>>>>>>> wooyo
 		if (fp){	//파일을 제대로 불러왔을 경우
 			//포인터 끝으로 이동하여 파일 크기 측정
 			fseek(fp, 0, SEEK_END);
@@ -900,7 +1128,11 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 
 		if (isPlayable){
 			//*******************************************텍스트파일을 읽어서 정렬****************************************************************
+<<<<<<< HEAD
 			m_segmentArray = new segment[BUFFER];  //(segment*)calloc(BUFFER, sizeof(segment));	//텍스트 파일에서 읽은 segment 정보를 저장할 배열 초기화
+=======
+			m_segmentArray = new segment[BUFFER];//텍스트 파일에서 읽은 segment 정보를 저장할 배열 초기화
+>>>>>>> wooyo
 			segmentCount = 0;
 			fseek(fp, 0, SEEK_SET);	//포인터 처음으로 이동
 			fgets(txtBuffer, 99, fp);
@@ -927,6 +1159,7 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 
 				// m_segmentArray의 인덱스 증가
 				segmentCount++;
+<<<<<<< HEAD
 			}
 
 			// 버블 정렬 사용하여 m_segmentArray를 TimeTag순으로 정렬
@@ -949,6 +1182,35 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 			//}
 
 			fclose(fp);	// 텍스트 파일 닫기
+=======
+			}
+
+			// 버블 정렬 사용하여 m_segmentArray를 TimeTag순으로 정렬
+			segment *tmp_segment = new segment; // 임시 segment 동적생성, 메모리 해제에 용의하게 하기
+			for (int i = 0; i < segmentCount; i++) {
+				for (int j = 0; j < segmentCount - 1; j++) {
+					if (m_segmentArray[j].timeTag > m_segmentArray[j + 1].timeTag) {
+						// m_segmentArray[segmentCount]와 m_segmentArray[segmentCount + 1]의 교체
+						*tmp_segment = m_segmentArray[j + 1];
+						m_segmentArray[j + 1] = m_segmentArray[j];
+						m_segmentArray[j] = *tmp_segment;
+					}
+				}
+			}
+
+			//정렬 확인 코드
+			//{
+			//for (int i = 0; i < segmentCount; i++)
+			//cout << m_segmentArray[i].fileName << endl;
+			//}
+
+			// 임시 버퍼 메모리 해제
+			delete tmp_segment;
+			delete[] txtBuffer;
+
+			// 텍스트 파일 닫기
+			fclose(fp);
+>>>>>>> wooyo
 			//****************************************************************************************************************
 
 			//큐 초기화
@@ -969,12 +1231,20 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 
 			int prevTimetag = 0;
 			int prevIndex = -1;
+<<<<<<< HEAD
+=======
+
+>>>>>>> wooyo
 			//출력할 객체를 큐에 삽입하는 부분
 			for (int i = 0; i < segmentCount; i++) {
 				//start timetag와 end timetag 사이면 enqueue
 				if (m_segmentArray[i].timeTag >= obj1_TimeTag && m_segmentArray[i].timeTag <= obj2_TimeTag) {	//아직 찾지 못했고 일치하는 타임태그를 찾았을 경우
 					if (m_segmentArray[i].timeTag == m_segmentArray[i].msec){
+<<<<<<< HEAD
 						printf("%s\n", m_segmentArray[i].fileName);
+=======
+						// printf("%s\n", m_segmentArray[i].fileName);
+>>>>>>> wooyo
 						Enqueue(&segment_queue, m_segmentArray[i].timeTag, i);	//출력해야할 객체의 첫 프레임의 타임태그와 위치를 큐에 삽입
 						prevTimetag = m_segmentArray[i].timeTag;
 						prevIndex = m_segmentArray[i].index;
@@ -1048,9 +1318,6 @@ stringstream timeConvertor(int t) {
 
 	return s;
 }
-
-
-
 
 //load 버튼을 누르면 발생하는 콜백
 void CMFC_SyntheticDlg::OnBnClickedBtnMenuLoad(){
