@@ -152,14 +152,11 @@ public:
 // Dialog Data
 	enum { IDD = IDD_MFC_SYNTHETIC_DIALOG };
 
-<<<<<<< HEAD
-	VideoCapture capture, capture_temp;
 	Mat mat_frame;
 	CImage *cimage_mfc;
 	CStatic m_picture;
-=======
+
 	VideoCapture capture, capture_for_background;
->>>>>>> wooyo
 
 	boolean isPlayBtnClicked;
 	CRect m_rectCurHist;
@@ -185,12 +182,11 @@ protected:
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
-<<<<<<< HEAD
-=======
+
 	// afx_msg void OnClose();
 	afx_msg void OnCancel();
 	// afx_msg void OnDestroy();
->>>>>>> wooyo
+
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnBnClickedBtnSegmentation();
 	afx_msg void OnBnClickedGroup1Seg();
@@ -203,17 +199,13 @@ public:
 	afx_msg void OnBnClickedBtnMenuLoad();
 	
 	afx_msg void loadFile();
-<<<<<<< HEAD
+
 	afx_msg void SetRadioStatus(UINT value);
 	afx_msg void OnBnClickedBtnPause();
-=======
+
 	void loadValueOfSlider(int captureCols, int captureRows, int startTime, int endTime); // 슬라이더의 값을 초기화하는 함수
 
-	afx_msg void SetRadioStatus(UINT value);
-	afx_msg void OnBnClickedBtnPause();
-
 	// slider : range of detecting object
->>>>>>> wooyo
 	CSliderCtrl m_SliderWMIN;
 	CSliderCtrl m_SliderWMAX;
 	CSliderCtrl m_SliderHMIN;
