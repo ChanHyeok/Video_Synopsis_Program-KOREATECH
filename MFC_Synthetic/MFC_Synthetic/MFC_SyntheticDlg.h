@@ -108,7 +108,10 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 void segmentationOperator(VideoCapture* vc_Source, int, int, int ,int ,int ,int);
 Mat getSyntheticFrame(Mat);
 
+
+
 // addition function of MAIN
+
 bool segmentationTimeInputException(CString str_h, CString str_m);
 bool IsComparePrevDetection(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index);
 Mat morphologicalOperation(Mat);
@@ -188,9 +191,14 @@ public:
 	CSliderCtrl m_sliderFps;
 	int mRadioPlay;
 	afx_msg void OnBnClickedBtnMenuLoad();
+	
 	afx_msg void loadFile();
+	void loadValueOfSlider(int captureCols, int captureRows, int startTime, int endTime); // 슬라이더의 값을 초기화하는 함수
+
 	afx_msg void SetRadioStatus(UINT value);
 	afx_msg void OnBnClickedBtnPause();
+
+	// slider : range of detecting object
 	CSliderCtrl m_SliderWMIN;
 	CSliderCtrl m_SliderWMAX;
 	CSliderCtrl m_SliderHMIN;
