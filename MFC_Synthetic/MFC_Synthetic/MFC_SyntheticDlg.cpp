@@ -306,8 +306,6 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	m_SliderHMIN.SetPos(0);
 	m_SliderHMAX.SetPos(0);
 
-	SetTimer(LOGO_TIMER, 1, NULL);
-
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
@@ -375,6 +373,7 @@ void CMFC_SyntheticDlg::loadFile(){
 	//그레이스케일 변환
 	cvtColor(background, background_gray, CV_RGB2GRAY);
 	
+	SetTimer(LOGO_TIMER, 1, NULL);
 }
 
 
