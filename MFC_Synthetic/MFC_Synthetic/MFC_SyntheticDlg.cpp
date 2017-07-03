@@ -26,7 +26,7 @@ static char THIS_FILE[] = __FILE__;
 // 배경을 만드는 데 필요한 프레임 카운트 상수들 정의
 const int FRAMES_FOR_MAKE_BACKGROUND = 350; // 첫 번째 배경을 만들기 까지 필요한 프레임카운트
 const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 1500; // 다음 배경을 만들기 위한 시간간격(동적)
-// fps가 약 24 가량 나오는 영상에서 약 1분 30초가 흐른 framecount의 값 : 2000
+// fps가 약 23-25 가량 나오는 영상에서 약 1분이 흐른 framecount 값은 1500
 
 /***  전역변수  ***/
 segment *m_segmentArray;
@@ -312,23 +312,24 @@ void CMFC_SyntheticDlg::loadFile(){
 	txt_filename = getTextFileName(video_filename); // frameinfo txt파일 재설정
 
 	CWnd *pStringFileName = GetDlgItem(IDC_MENU_STRING_FILE_NAME);
-	
+
+	// 다시 영상 파일을 불러올 때 cstr 포인터가 메모리 해제가 
+	// 재대로 안된 상태이기 때문에 에러가 발생하는 경우가 있음
+	// To Do :: cstr 메모리 누수
+
 	char *cstr = new char[temp.length() + 1];
 	strcpy(cstr, temp.c_str());
 	strcat(cstr, video_filename.c_str());
 	pStringFileName->SetWindowTextA(cstr);
 	capture.open((string)cstrImgPath);
 	capture_for_background.open((string)cstrImgPath);
-	capture_for_background.open((string)cstrImgPath);
+
 	if (!capture.isOpened()) { //예외처리. 해당이름의 파일이 없는 경우
 		perror("No Such File!\n");
 		::SendMessage(GetSafeHwnd(), WM_CLOSE, NULL, NULL);	//다이얼 로그 종료
 	}
 	
 	// delete[]cstr;
-
-	// To Do :: cstr 메모리 누수
-	// 해제할 경우 에러가 남
 
 	// 받아올 영상의 정보들 :: 가로, 세로길이 받아오기
 	COLS = (int)capture.get(CV_CAP_PROP_FRAME_WIDTH); //가로 길이
@@ -341,7 +342,7 @@ void CMFC_SyntheticDlg::loadFile(){
 	// edit box와 slider 기본 값 불러오기
 	loadValueOfSlider(COLS, ROWS, 0, 0); // 일단 startTime과 endTime은 0으로 해놓음
 
-										 // 배경 변수 초기화 및 초기 배경 생성
+	// 배경 변수 초기화 및 초기 배경 생성
 	background = Mat(ROWS, COLS, CV_8UC3);
 	background_gray = Mat(ROWS, COLS, CV_8UC1);
 
@@ -700,17 +701,16 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 		// FRAMES_FOR_MAKE_BACKGROUND 갯수 만큼의 프레임을 이용하여 배경 만들기
 		if (frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND > FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND
 			&& frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND < FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1) {
-			Mat tmp_background(ROWS, COLS, CV_8UC3);
+			static Mat tmp_background = background;
 			BackgroundMaker(frame, tmp_background, ROWS, COLS);
 
 			if (frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 2) {
 				// 만든 background 적용
 				background = tmp_background;
-				// int check = imwrite(getBackgroundFilename(video_filename), background);
+				int check = imwrite(getBackgroundFilename(video_filename), background);
 				cvtColor(background, background_gray, CV_RGB2GRAY);
 				printf("Background Changed, %d frame\n", frameCount);
-				background.release();
-				tmp_background.release();
+			//	tmp_background.release();
 			}
 		}
 
@@ -731,7 +731,6 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 
 		threshold(frame_g, frame_g, 5, 255, CV_THRESH_BINARY);
 
-
 		// MAT형으로 라벨링
 		humanDetectedVector.clear();
 		humanDetectedVector = connectedComponentsLabelling(frame_g, ROWS, COLS, WMIN, WMAX, HMIN, HMAX);
@@ -744,8 +743,11 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 			frame, frameCount, videoStartMsec, currentMsec, fp);
 
 		// 현재 검출한 데이터를 이전 데이터에 저장하기
-		prevHumanDetectedVector = humanDetectedVector;
+		vector<component>().swap(prevHumanDetectedVector);
 
+		prevHumanDetectedVector = humanDetectedVector;
+		
+		vector<component>().swap(humanDetectedVector);
 		frameCount++;	//increase frame count
 	}
 	//HWND hWnd = ::FindWindow(NULL, "Dude, Wait");
