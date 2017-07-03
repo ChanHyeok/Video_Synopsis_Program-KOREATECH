@@ -115,6 +115,7 @@ BEGIN_MESSAGE_MAP(CMFC_SyntheticDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_MENU_LOAD, &CMFC_SyntheticDlg::OnBnClickedBtnMenuLoad)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO_PLAY1, IDC_RADIO_PLAY3, &CMFC_SyntheticDlg::SetRadioStatus)
 	ON_BN_CLICKED(IDC_BTN_PAUSE, &CMFC_SyntheticDlg::OnBnClickedBtnPause)
+	ON_BN_CLICKED(IDC_BTN_STOP, &CMFC_SyntheticDlg::OnBnClickedBtnStop)
 END_MESSAGE_MAP()
 
 
@@ -183,13 +184,15 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	//Picture Control
 	CButton *pButtonPlay = (CButton *)GetDlgItem(IDC_BTN_PLAY);
 	CButton *pButtonPause = (CButton *)GetDlgItem(IDC_BTN_PAUSE);
+	CButton *pButtonStop = (CButton *)GetDlgItem(IDC_BTN_STOP);
 	int pictureContorlX = 2 * padding + box_MenuWidth;
 	int pictureContorlY = padding;
 	int pictureContorlWidth = (dialogWidth - 3 * padding) - box_MenuWidth - 15;
 	int pictureContorlHeight = (dialogHeight - 3 * padding)*0.7 - 40;
 	pResultImage->MoveWindow(pictureContorlX, pictureContorlY, pictureContorlWidth, pictureContorlHeight, TRUE);
-	pButtonPlay->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 - padding - 100, pictureContorlY + pictureContorlHeight + 10, 100, 20, TRUE);
-	pButtonPause->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 + padding, pictureContorlY + pictureContorlHeight + 10, 100, 20, TRUE);
+	pButtonPlay->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 -120 - padding, pictureContorlY + pictureContorlHeight + 10, 80, 20, TRUE);
+	pButtonPause->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 - 40, pictureContorlY + pictureContorlHeight + 10, 80, 20, TRUE);
+	pButtonStop->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 +40+ padding, pictureContorlY + pictureContorlHeight + 10, 80, 20, TRUE);
 
 	//group box - segmetation
 	CWnd *pGroupSegmentation = GetDlgItem(IDC_GROUP_SEG);
@@ -1083,7 +1086,7 @@ void CMFC_SyntheticDlg::SetRadioStatus(UINT value) {
 }
 
 
-
+//일시 정지 버튼 콜백 리스너
 void CMFC_SyntheticDlg::OnBnClickedBtnPause()
 {
 	// TODO: Add your control notification handler code here
@@ -1097,4 +1100,10 @@ void CMFC_SyntheticDlg::OnBnClickedBtnPause()
 		KillTimer(SYN_RESULT_TIMER);
 	}
 
+}
+
+
+//정지 버튼 콜백 리스너
+void CMFC_SyntheticDlg::OnBnClickedBtnStop(){
+	printf("정지 버튼 눌림\n");
 }
