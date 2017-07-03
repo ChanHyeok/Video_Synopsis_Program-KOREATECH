@@ -20,6 +20,7 @@ using namespace cv;
 #define RESULT_FOLDER_NAME "segment_"
 #define RESULT_BACKGROUND_FILENAME "background_"
 
+const string SEGMENTATION_DATA_DIRECTORY_NAME = "_data";
 // segmentation structure
 typedef struct _segment {
 	string fileName;
@@ -127,15 +128,18 @@ Mat ExtractFg(Mat, Mat, int, int);
 int BackgroundMaker(Mat frameimg, Mat bgimg, int rows, int cols);
 
 // FileProcessing.cpp
-void saveSegmentation_JPG(component, Mat, int, int, int, unsigned int, string video_fname);	//캡쳐한 Components를 jpg파일로 저장하는 함수
-void saveSegmentation_TXT(component, int, int, FILE *, int);	//components의 Data를 txt로 저장하는 함수
 String getFileName(CString f_path, char find_char);
-
-string getDirectoryName(string video_name);
-string getBackgroundFilename(string file_name);
-string getTextFileName(string video_name);
-bool isDirectory(string dir_name, string video_fame);
 Mat loadJPGObjectFile(segment obj, string file_name);
+bool saveSegmentationData(string video_name, component object, Mat object_frame
+	, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp);
+
+string getTextFileName(string video_name);
+string getBackgroundFilename(string video_name);
+string getDirectoryPath(string video_name);
+
+bool isDirectory(string dir_name);
+bool makeDataRootDirectory();
+bool makeDataSubDirectory(string video_name);
 
 // tool_synthetic.cpp
 Mat Syn_Background_Foreground(Mat, Mat, Mat, int, int);

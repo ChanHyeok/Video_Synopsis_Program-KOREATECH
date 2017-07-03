@@ -686,69 +686,72 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 	// To Do :: 세그먼테이션이 도중에 중단되었을 때 
 	// 그 시점에서부터 다시 세그먼테이션을 진행하고 싶을 때 vc_source의 처리
 
-	// 디렉터리 확인 부분 check point
+	
 
 	// vc_source의 시작시간 0으로 초기화
 	vc_Source->set(CV_CAP_PROP_POS_MSEC, 0);
 
-	while (1) {
-		vc_Source->read(frame); //get single frame
-		if (frame.empty()) {	//예외처리. 프레임이 없음
-			perror("Empty Frame");
-			break;
-		}
-		
-		// FRAMES_FOR_MAKE_BACKGROUND 갯수 만큼의 프레임을 이용하여 배경 만들기
-		if (frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND > FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND
-			&& frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND < FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1) {
-			static Mat tmp_background = background;
-			BackgroundMaker(frame, tmp_background, ROWS, COLS);
+	// 세그먼테이션 파일들(txt, jpg들)을 저장할 디렉토리 생성 및 여부 확인
+	bool tmp = makeDataRootDirectory();
+	bool tmp2 = makeDataSubDirectory(video_filename);
 
-			if (frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 2) {
-				// 만든 background 적용
-				background = tmp_background;
-				int check = imwrite(getBackgroundFilename(video_filename), background);
-				cvtColor(background, background_gray, CV_RGB2GRAY);
-				printf("Background Changed, %d frame\n", frameCount);
-			//	tmp_background.release();
+	if ( true ) {
+		while (1) {
+			vc_Source->read(frame); //get single frame
+			if (frame.empty()) {	//예외처리. 프레임이 없음
+				perror("Empty Frame");
+				break;
 			}
+
+			// FRAMES_FOR_MAKE_BACKGROUND 갯수 만큼의 프레임을 이용하여 배경 만들기
+			if (frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND > FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND
+				&& frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND < FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1) {
+				static Mat tmp_background = background;
+				BackgroundMaker(frame, tmp_background, ROWS, COLS);
+
+				if (frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 2) {
+					// 만든 background 적용
+					background = tmp_background;
+					//	int check = imwrite(getBackgroundFilename(video_filename), background);
+					cvtColor(background, background_gray, CV_RGB2GRAY);
+					//	printf("Background Changed, %d frame\n", frameCount);
+					tmp_background.release();
+				}
+			}
+
+			//printf("=====%5d 프레임=====\n", frameCount);
+			//그레이스케일 변환
+			cvtColor(frame, frame_g, CV_RGB2GRAY);
+
+			// 전경 추출
+			frame_g = ExtractFg(frame_g, background_gray, ROWS, COLS);
+
+			// 이진화
+			threshold(frame_g, frame_g, 5, 255, CV_THRESH_BINARY);
+
+			// 노이즈 제거 및 블러 처리
+			frame_g = morphologicalOperation(frame_g);
+			blur(frame_g, frame_g, Size(9, 9));
+			frame_g = morphologicalOperation(frame_g);
+
+			threshold(frame_g, frame_g, 5, 255, CV_THRESH_BINARY);
+
+			// MAT형으로 라벨링
+			humanDetectedVector.clear();
+			humanDetectedVector = connectedComponentsLabelling(frame_g, ROWS, COLS, WMIN, WMAX, HMIN, HMAX);
+
+			// 현재 프레임의 영상 시간 가져오기
+			currentMsec = vc_Source->get(CV_CAP_PROP_POS_MSEC);
+
+			// 영상을 처리하여 파일로 저장하기
+			humanDetectedVector = humanDetectedProcess(humanDetectedVector, prevHumanDetectedVector,
+				frame, frameCount, videoStartMsec, currentMsec, fp);
+
+			// 현재 검출한 데이터를 이전 데이터에 저장하기
+			prevHumanDetectedVector = humanDetectedVector;
+
+			frameCount++;	//increase frame count
 		}
-
-		//printf("=====%5d 프레임=====\n", frameCount);
-		//그레이스케일 변환
-		cvtColor(frame, frame_g, CV_RGB2GRAY);
-
-		// 전경 추출
-		frame_g = ExtractFg(frame_g, background_gray, ROWS, COLS);
-
-		// 이진화
-		threshold(frame_g, frame_g, 5, 255, CV_THRESH_BINARY);
-
-		// 노이즈 제거 및 블러 처리
-		frame_g = morphologicalOperation(frame_g);
-		blur(frame_g, frame_g, Size(9, 9));
-		frame_g = morphologicalOperation(frame_g);
-
-		threshold(frame_g, frame_g, 5, 255, CV_THRESH_BINARY);
-
-		// MAT형으로 라벨링
-		humanDetectedVector.clear();
-		humanDetectedVector = connectedComponentsLabelling(frame_g, ROWS, COLS, WMIN, WMAX, HMIN, HMAX);
-
-		// 현재 프레임의 영상 시간 가져오기
-		currentMsec = vc_Source->get(CV_CAP_PROP_POS_MSEC);
-
-		// 영상을 처리하여 파일로 저장하기
-		humanDetectedVector = humanDetectedProcess(humanDetectedVector, prevHumanDetectedVector,
-			frame, frameCount, videoStartMsec, currentMsec, fp);
-
-		// 현재 검출한 데이터를 이전 데이터에 저장하기
-		vector<component>().swap(prevHumanDetectedVector);
-
-		prevHumanDetectedVector = humanDetectedVector;
-		
-		vector<component>().swap(humanDetectedVector);
-		frameCount++;	//increase frame count
 	}
 	//HWND hWnd = ::FindWindow(NULL, "Dude, Wait");
 	//if (hWnd){ ::PostMessage(hWnd, WM_CLOSE, 0, 0); }
@@ -762,17 +765,7 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 
 	vector<component>().swap(humanDetectedVector);
 	vector<component>().swap(prevHumanDetectedVector);
-	printf("세그멘테이션에 사용하는 변수들 메모리 해제 완료\n");
 	fclose(fp);	// 텍스트 파일 닫기
-}
-
-// 파일의 이름부분을 저장
-string allocatingComponentFilename(vector<component> humanDetectedVector, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector) {
-	string name;
-	return name.append(to_string(timeTag)).append("_")
-		.append(to_string(currentMsec)).append("_")
-		.append(to_string(frameCount)).append("_")
-		.append(to_string(indexOfhumanDetectedVector));
 }
 
 // 현재와 이전에 검출한 결과를 비교, true 면 겹칠 수 없음
@@ -788,41 +781,38 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 
 	//printf("cur msec : %d\n", currentMsec);
 	int prevTimeTag;
-	for (int i = 0; i < humanDetectedVector.size(); i++) {
+	for (int index = 0; index < humanDetectedVector.size(); index++) {
 		// TODO : 현재 프레임에서 이전프레임과 겹치는 obj가 있는지 판단한다. 
 		// 이전 오브젝트에 다음오브젝트가 두개가 걸칠 경우 어떻게 처리할 것인가?
 		if (!prevHumanDetectedVector.empty()) {	//이전 프레임의 검출된 객체가 있을 경우
 			bool findFlag = false;
 			for (int j = 0; j < prevHumanDetectedVector.size(); j++) {
-				if (!IsComparePrevDetection(humanDetectedVector, prevHumanDetectedVector, i, j)) {	// 두 ROI가 겹칠 경우
+				if (!IsComparePrevDetection(humanDetectedVector, prevHumanDetectedVector, index, j)) {	// 두 ROI가 겹칠 경우
 					// 이전 TimeTag를 할당
 					prevTimeTag = prevHumanDetectedVector[j].timeTag;
 					//printf("%d가 겹침\n", prevTimeTag);
-					humanDetectedVector[i].fileName = allocatingComponentFilename(humanDetectedVector, prevTimeTag, currentMsec, frameCount, i);
-					humanDetectedVector[i].timeTag = prevTimeTag;
-					saveSegmentation_JPG(humanDetectedVector[i], frame, frameCount, currentMsec, i, videoStartMsec, video_filename);
-					saveSegmentation_TXT(humanDetectedVector[i], frameCount, currentMsec, fp, i);
+					humanDetectedVector[index].timeTag = prevTimeTag;
+					saveSegmentationData(video_filename, humanDetectedVector[index], frame
+						, prevTimeTag, currentMsec, frameCount, index, fp);
+					
 					findFlag = true;
 					//break;
 				}
 			}
 
 			if (findFlag == false) { // 새 객체의 출현
-				humanDetectedVector[i].timeTag = currentMsec;
-				humanDetectedVector[i].fileName = allocatingComponentFilename(humanDetectedVector, currentMsec, currentMsec, frameCount, i);
-				saveSegmentation_JPG(humanDetectedVector[i], frame, frameCount, currentMsec, i, videoStartMsec, video_filename);
-				saveSegmentation_TXT(humanDetectedVector[i], frameCount, currentMsec, fp, i);
+				humanDetectedVector[index].timeTag = currentMsec;
+				saveSegmentationData(video_filename, humanDetectedVector[index], frame
+					, currentMsec, currentMsec, frameCount, index, fp);
 
 				//printf("새로운 객체 : %s\n", humanDetectedVector[i].fileName);
 			}
 		}
 		else {	// 첫 시행이거나 이전 프레임에 검출된 객체가 없을 경우
 			// 새로운 이름 할당
-			humanDetectedVector[i].timeTag = currentMsec;
-			humanDetectedVector[i].fileName = allocatingComponentFilename(humanDetectedVector, currentMsec, currentMsec, frameCount, i);
-			saveSegmentation_JPG(humanDetectedVector[i], frame, frameCount, currentMsec, i, videoStartMsec, video_filename);
-			saveSegmentation_TXT(humanDetectedVector[i], frameCount, currentMsec, fp, i);
-			// 위 네줄에 대한 코드중복이 좀 있음, 정보 추가 시 변형 가능성도 존재(검색 기능 구현할 때)
+			humanDetectedVector[index].timeTag = currentMsec;
+			saveSegmentationData(video_filename, humanDetectedVector[index], frame
+				, currentMsec, currentMsec, frameCount, index, fp);
 			//printf("***이전프레임 검출 객체 없음\n새로운 객체 : %s\n", humanDetectedVector[i].fileName);
 		}
 	}
