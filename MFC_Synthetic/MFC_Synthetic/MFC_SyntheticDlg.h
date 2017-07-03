@@ -108,7 +108,10 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 void segmentationOperator(VideoCapture* vc_Source, int, int, int ,int ,int ,int);
 Mat getSyntheticFrame(Mat);
 
+
+
 // addition function of MAIN
+
 bool segmentationTimeInputException(CString str_h, CString str_m);
 bool IsComparePrevDetection(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index);
 Mat morphologicalOperation(Mat);
@@ -129,13 +132,16 @@ int BackgroundMaker(Mat frameimg, Mat bgimg, int rows, int cols);
 void saveSegmentation_JPG(component, Mat, int, int, int, unsigned int, string video_fname);	//캡쳐한 Components를 jpg파일로 저장하는 함수
 void saveSegmentation_TXT(component, int, int, FILE *, int);	//components의 Data를 txt로 저장하는 함수
 String getFileName(CString f_path, char find_char);
+
+string getDirectoryName(string video_name);
 string getBackgroundFilename(string file_name);
+string getTextFileName(string video_name);
 bool isDirectory(string dir_name, string video_fame);
-Mat loadJPGObjectFile(segment obj);
+Mat loadJPGObjectFile(segment obj, string file_name);
 
 // tool_synthetic.cpp
 Mat Syn_Background_Foreground(Mat, Mat, Mat, int, int);
-Mat printObjOnBG(Mat, segment, int*);
+Mat printObjOnBG(Mat background, Mat frame, segment obj, int* labelMap);
 
 // CMFC_SyntheticDlg dialog
 class CMFC_SyntheticDlg : public CDialogEx{
@@ -146,23 +152,22 @@ public:
 // Dialog Data
 	enum { IDD = IDD_MFC_SYNTHETIC_DIALOG };
 
-	VideoCapture capture, capture_temp;
 	Mat mat_frame;
 	CImage *cimage_mfc;
 	CStatic m_picture;
+
+	VideoCapture capture, capture_for_background;
 
 	boolean isPlayBtnClicked;
 	CRect m_rectCurHist;
 	CEdit *m_pEditBoxStartHour;
 	CEdit *m_pEditBoxStartMinute;
 
-
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
 
 public:
 	void DisplayImage(int IDC_PICTURE_TARGET, Mat targetMat, int);
-	//afx_msg void OnDestroy();
 	//afx_msg void OnTimer(UINT_PTR nIDEvent);
 
 
@@ -177,6 +182,11 @@ protected:
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
+
+	// afx_msg void OnClose();
+	afx_msg void OnCancel();
+	// afx_msg void OnDestroy();
+
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnBnClickedBtnSegmentation();
 	afx_msg void OnBnClickedGroup1Seg();
@@ -187,9 +197,15 @@ public:
 	CSliderCtrl m_sliderFps;
 	int mRadioPlay;
 	afx_msg void OnBnClickedBtnMenuLoad();
+	
 	afx_msg void loadFile();
+
 	afx_msg void SetRadioStatus(UINT value);
 	afx_msg void OnBnClickedBtnPause();
+
+	void loadValueOfSlider(int captureCols, int captureRows, int startTime, int endTime); // 슬라이더의 값을 초기화하는 함수
+
+	// slider : range of detecting object
 	CSliderCtrl m_SliderWMIN;
 	CSliderCtrl m_SliderWMAX;
 	CSliderCtrl m_SliderHMIN;
