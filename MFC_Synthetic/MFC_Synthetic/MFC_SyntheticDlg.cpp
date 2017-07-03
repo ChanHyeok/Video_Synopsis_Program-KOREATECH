@@ -489,14 +489,11 @@ void CMFC_SyntheticDlg::OnCancel() {
 
 	// To Do :: 열려있는 텍스트 파일 모두 닫음
 
-	// 메모리 누수를 점검하고, 디버그 로그 확인할 수 있도록 함
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-
-	// Sleep(2000);
-	
-	PostQuitMessage(0);
+	PostQuitMessage(0); 
 }
-
+void CMFC_SyntheticDlg::OnDestroy() {
+	printf("OnDestroy\n");
+}
 
 // If you add a minimize button to your dialog, you will need the code below
 //  to draw the icon.  For MFC applications using the document/view model,
