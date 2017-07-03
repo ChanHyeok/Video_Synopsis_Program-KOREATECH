@@ -22,7 +22,11 @@ static char THIS_FILE[] = __FILE__;
 #define SYN_RESULT_TIMER 2
 #define BIN_VIDEO_TIMER 3
 #define MAX_STR_BUFFER_SIZE  128 // 문자열 출력에 쓸 버퍼 길이
-const int FRAMECOUNT_FOR_MAKE_BACKGROUND = 500; // 배경을 만들기 까지 필요한 프레임카운트
+
+// 배경을 만드는 데 필요한 프레임 카운트 상수들 정의
+const int FRAMES_FOR_MAKE_BACKGROUND = 350; // 첫 번째 배경을 만들기 까지 필요한 프레임카운트
+const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 1500; // 다음 배경을 만들기 위한 시간간격(동적)
+// fps가 약 24 가량 나오는 영상에서 약 1분 30초가 흐른 framecount의 값 : 2000
 
 /***  전역변수  ***/
 segment *m_segmentArray;
@@ -266,45 +270,30 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	pStringFpsSlider->MoveWindow(box_syntheticX + padding + 60 + 300, box_syntheticY + box_syntheticHeight*0.3 + 40 + padding * 2, 30, 20, TRUE);
 
 
-	/*
-	slider m_sliderSearchStartTime, m_sliderSearchEndTime, m_sliderFps, segment 트랙바 설정
-	*/
+
+	// slider m_sliderSearchStartTime, m_sliderSearchEndTime, m_sliderFps, segment 트랙바 설정
+
 	m_sliderSearchStartTime.SetRange(0, 500);
 	m_sliderSearchEndTime.SetRange(0, 500);
 	m_sliderFps.SetRange(0, 100);
 
-	// 영상의 크기에 맞게 slider가 나타날 값의 범위를 조정할 필요가 있음
-	// Default Range Value At Slider
-	m_SliderWMIN.SetRange(0, 1000);
-	m_SliderWMAX.SetRange(0, 1000);
-	m_SliderHMIN.SetRange(0, 1000);
-	m_SliderHMAX.SetRange(0, 1000);
-
 	//실행시 비디오 파일 불러옴
 	loadFile();
 
+	// // Play, Pause버튼 상태 초기화
 	isPlayBtnClicked = false;
 	isPauseBtnClicked = true;
-	CheckRadioButton(IDC_RADIO_PLAY1, IDC_RADIO_PLAY3, IDC_RADIO_PLAY1);//라디오 버튼 초기화
-	radioChoice = 0; preRadioChoice = 0;	//라디오 버튼의 default는 맨 처음 버튼임
+
+	// 라디오 버튼 초기화
+	CheckRadioButton(IDC_RADIO_PLAY1, IDC_RADIO_PLAY3, IDC_RADIO_PLAY1);
+	radioChoice = 0; preRadioChoice = 0; //라디오 버튼의 default는 맨 처음 버튼임
+
 	//edit box default
 	m_pEditBoxStartHour->SetWindowTextA("0");
 	m_pEditBoxStartMinute->SetWindowTextA("0");
+	
 	//slider default
-	SetDlgItemText(IDC_STRING_SEARCH_START_TIME_SLIDER, _T("00 : 00 : 00"));
-	SetDlgItemText(IDC_STRING_SEARCH_END_TIME_SLIDER, _T("00 : 00 : 00"));
-	SetDlgItemText(IDC_STRING_FPS_SLIDER, to_string(fps).c_str());
-	m_sliderSearchStartTime.SetPos(0);
-	m_sliderSearchEndTime.SetPos(0);
-	m_sliderFps.SetPos(fps);
-	SetDlgItemText(IDC_SEG_STRING_VAL_MIN_W, _T("0"));
-	SetDlgItemText(IDC_SEG_STRING_VAL_MAX_W, _T("0"));
-	SetDlgItemText(IDC_SEG_STRING_VAL_MIN_H, _T("0"));
-	SetDlgItemText(IDC_SEG_STRING_VAL_MAX_H, _T("0"));
-	m_SliderWMIN.SetPos(0);
-	m_SliderWMAX.SetPos(0);
-	m_SliderHMIN.SetPos(0);
-	m_SliderHMAX.SetPos(0);
+	SetTimer(LOGO_TIMER, 1, NULL);
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -342,38 +331,21 @@ void CMFC_SyntheticDlg::loadFile(){
 	// 해제할 경우 에러가 남
 
 	// 받아올 영상의 정보들 :: 가로, 세로길이 받아오기
-	COLS = (int)capture.get(CV_CAP_PROP_FRAME_WIDTH);	//가로 길이
-	ROWS = (int)capture.get(CV_CAP_PROP_FRAME_HEIGHT);	//세로 길이
+	COLS = (int)capture.get(CV_CAP_PROP_FRAME_WIDTH); //가로 길이
+	ROWS = (int)capture.get(CV_CAP_PROP_FRAME_HEIGHT); //세로 길이
 	fps = capture.get(CV_CAP_PROP_FPS);
 
-	isPlayBtnClicked = false;
-	isPauseBtnClicked = true;
-	CheckRadioButton(IDC_RADIO_PLAY1, IDC_RADIO_PLAY3, IDC_RADIO_PLAY1);//라디오 버튼 초기화
-	radioChoice = 0; preRadioChoice = 0;	//라디오 버튼의 default는 맨 처음 버튼임
+	// isPlayBtnClicked , isPauseBtnClicked 코드 중복 삭제
+	// radiobutton 코드 중복 삭제
 
 	// edit box와 slider 기본 값 불러오기
 	loadValueOfSlider(COLS, ROWS, 0, 0); // 일단 startTime과 endTime은 0으로 해놓음
 
-	Mat frame(ROWS, COLS, CV_8UC3); // Mat(height, width, channel)
+										 // 배경 변수 초기화 및 초기 배경 생성
 	background = Mat(ROWS, COLS, CV_8UC3);
 	background_gray = Mat(ROWS, COLS, CV_8UC1);
 
-	// To Do :: 최초 파일을 load 한 후, 배경을 생성 중일떄
-	// 생성중이라고 사용자에게 알려주는 Dialog를 생성해주기
-	
-	// 배경생성부분
-	for (int i = 0; i < FRAMECOUNT_FOR_MAKE_BACKGROUND; i++){
-		capture_for_background.read(frame); //get single frame
-		BackgroundMaker(frame, background, ROWS * 3, COLS);
-	}
-
-	background_filename = getBackgroundFilename(video_filename);
-	int background_write_check = imwrite(background_filename, background);
-	printf("background Making Complete!!\n");
-	//그레이스케일 변환
-	cvtColor(background, background_gray, CV_RGB2GRAY);
-	
-	SetTimer(LOGO_TIMER, 1, NULL);
+	background_gray = backgroundInit(&capture_for_background, background);
 }
 
 
@@ -404,36 +376,18 @@ void CMFC_SyntheticDlg::loadValueOfSlider(int captureCols, int captureRows, int 
 	m_SliderHMIN.SetPos(0);
 	m_SliderHMAX.SetPos(0);
 
-	COLS = (int)capture.get(CV_CAP_PROP_FRAME_WIDTH);	//가로 길이
-	ROWS = (int)capture.get(CV_CAP_PROP_FRAME_HEIGHT);	//세로 길이
-	Mat frame(ROWS, COLS, CV_8UC3); // Mat(height, width, channel)
-	background = Mat(ROWS, COLS, CV_8UC3);
-	background_gray = Mat(ROWS, COLS, CV_8UC1);
-
-	// 배경생성부분
-	for (int i = 0; i < FRAMECOUNT_FOR_MAKE_BACKGROUND; i++){
-		capture_for_background.read(frame); //get single frame
-		BackgroundMaker(frame, background, ROWS * 3, COLS);
-	}
-	background_filename = RESULT_BACKGROUND_FILENAME;
-	background_filename.append(video_filename).append(".jpg");
-	int background_write_check = imwrite(background_filename, background);
-	printf("background Making Complete!!\n");
-	//그레이스케일 변환
-	cvtColor(background, background_gray, CV_RGB2GRAY);
-
 	// detection slider range
 	m_SliderWMIN.SetRange(0, captureCols);
 	m_SliderWMAX.SetRange(0, captureCols);
 	m_SliderHMIN.SetRange(0, captureRows);
-	m_SliderHMAX.SetRange(0, captureRows);	
-	
+	m_SliderHMAX.SetRange(0, captureRows);
+
 	// detection slider text
 	SetDlgItemText(IDC_SEG_STRING_VAL_MIN_W, _T(to_string(captureCols / 5).c_str()));
 	SetDlgItemText(IDC_SEG_STRING_VAL_MAX_W, _T(to_string(captureCols / 2).c_str()));
 	SetDlgItemText(IDC_SEG_STRING_VAL_MIN_H, _T(to_string(captureRows / 5).c_str()));
 	SetDlgItemText(IDC_SEG_STRING_VAL_MAX_H, _T(to_string(captureRows / 2).c_str()));
-	
+
 	// detection slider default position
 	m_SliderWMIN.SetPos(captureCols / 5);
 	m_SliderWMAX.SetPos(captureCols / 2);
@@ -725,11 +679,16 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 	fp = fopen(txt_filename.c_str(), "w");	// 쓰기모드
 	fprintf(fp, to_string(videoStartMsec).append("\n").c_str());	//첫줄에 영상시작시간 적어줌
 
-	// vc_source의 시작시간 0으로 초기화	
-	vc_Source->set(CV_CAP_PROP_POS_MSEC, 0);
-	
+	// 배경 초기화
+	background_gray = backgroundInit(vc_Source, background);
+
 	// To Do :: 세그먼테이션이 도중에 중단되었을 때 
 	// 그 시점에서부터 다시 세그먼테이션을 진행하고 싶을 때 vc_source의 처리
+
+	// 디렉터리 확인 부분 check point
+
+	// vc_source의 시작시간 0으로 초기화
+	vc_Source->set(CV_CAP_PROP_POS_MSEC, 0);
 
 	while (1) {
 		vc_Source->read(frame); //get single frame
@@ -737,11 +696,27 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 			perror("Empty Frame");
 			break;
 		}
+		
+		// FRAMES_FOR_MAKE_BACKGROUND 갯수 만큼의 프레임을 이용하여 배경 만들기
+		if (frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND > FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND
+			&& frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND < FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1) {
+			Mat tmp_background(ROWS, COLS, CV_8UC3);
+			BackgroundMaker(frame, tmp_background, ROWS, COLS);
+
+			if (frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 2) {
+				// 만든 background 적용
+				background = tmp_background;
+				// int check = imwrite(getBackgroundFilename(video_filename), background);
+				cvtColor(background, background_gray, CV_RGB2GRAY);
+				printf("Background Changed, %d frame\n", frameCount);
+				background.release();
+				tmp_background.release();
+			}
+		}
+
 		//printf("=====%5d 프레임=====\n", frameCount);
 		//그레이스케일 변환
 		cvtColor(frame, frame_g, CV_RGB2GRAY);
-
-		// To Do :: 세그먼테이션 도중 배경을 추출할 수 있어야 함
 
 		// 전경 추출
 		frame_g = ExtractFg(frame_g, background_gray, ROWS, COLS);
@@ -776,10 +751,9 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 	//HWND hWnd = ::FindWindow(NULL, "Dude, Wait");
 	//if (hWnd){ ::PostMessage(hWnd, WM_CLOSE, 0, 0); }
 
-	// To Do :: 세그먼테이션 완료 메세지 박스가 나타나면서 cvtColor 에러 발생
+	// To Do :: 세그먼테이션 완료하면서 에러가 남
 	// MessageBox(0, "Done!!", "ding-dong", MB_OK);
-	// printf("messageBox 이후\n");
-	// Sleep(2500);
+	Sleep(2500);
 
 	//메모리 해제
 	free(result); 	frame.release(); frame_g.release();
@@ -805,12 +779,6 @@ bool IsComparePrevDetection(vector<component> curr_detected, vector<component> p
 		|| curr_detected[curr_index].right < prev_detected[prev_index].left
 		|| curr_detected[curr_index].top > prev_detected[prev_index].bottom
 		|| curr_detected[curr_index].bottom < prev_detected[prev_index].top;
-}
-
-// humanDetectedVector의 파일이름과 timetag를 부여
-// 그리고 TXT, JPG파일에 저장하는 모듈
-void componentVectorHandling() {
-	// TO DO :: 코드의 중복을 줄이기 위해 모듈을 어떻게 만들 것인지 생각하기(매개변수 설정도)
 }
 
 vector<component> humanDetectedProcess(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector
@@ -906,9 +874,9 @@ Mat getSyntheticFrame(Mat bgFrame) {
 
 
 		if (isCross == false){	//출력된 객체가 없거나 이전 객체와 겹치지 않는 경우
-			//배경에 객체를 올리는 함수
-
+			// 아래 삭제 이후 synthetic으로 옮기기
 			Mat temp_frame = loadJPGObjectFile(m_segmentArray[tempnode.indexOfSegmentArray], video_filename);
+			//배경에 객체를 올리는 함수
 			bgFrame = printObjOnBG(bgFrame, temp_frame, m_segmentArray[tempnode.indexOfSegmentArray], labelMap);
 
 			//타임태그를 string으로 변환
@@ -1224,4 +1192,22 @@ void CMFC_SyntheticDlg::OnBnClickedBtnPause()
 		KillTimer(SYN_RESULT_TIMER);
 	}
 
+}
+
+Mat backgroundInit(VideoCapture *vc_Source, Mat bg) {
+	Mat frame(ROWS, COLS, CV_8UC3); // Mat(height, width, channel)
+	Mat bg_gray(ROWS, COLS, CV_8UC1);
+	// 영상 시작점으로 초기화
+	vc_Source->set(CV_CAP_PROP_POS_MSEC, 0);
+	for (int i = 0; i < FRAMES_FOR_MAKE_BACKGROUND; i++) {
+		vc_Source->read(frame); //get single frame
+		BackgroundMaker(frame, bg, ROWS * 3, COLS);
+	}
+	// 비디오 파일 이름을 통해서 bg 파일의 이름 만들어서 jpg 파일로 저장
+	int background_write_check = imwrite(getBackgroundFilename(video_filename), bg);
+	if (background_write_check) printf("First background Making Complete!!\n");
+
+	// 만든 배경을 그레이 변환 후 반환
+	cvtColor(bg, bg_gray, CV_RGB2GRAY);
+	return bg_gray;
 }

@@ -108,16 +108,14 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 void segmentationOperator(VideoCapture* vc_Source, int, int, int ,int ,int ,int);
 Mat getSyntheticFrame(Mat);
 
-
-
 // addition function of MAIN
-
 bool segmentationTimeInputException(CString str_h, CString str_m);
 bool IsComparePrevDetection(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index);
 Mat morphologicalOperation(Mat);
 stringstream timeConvertor(int t);
 
 bool IsObjectOverlapingDetector(segment *m_segment, vector<int> preNodeIndex_data, int curIndex, int countOfObj_j);
+Mat backgroundInit(VideoCapture *vc_Source, Mat bg);
 
 // connectecComponentLabelling.cpp
 vector<component> connectedComponentsLabelling(Mat frame, int rows, int cols, int, int, int, int);
