@@ -388,6 +388,15 @@ void CMFC_SyntheticDlg::loadFile(){
 	
 	SetTimer(LOGO_TIMER, 1, NULL);
 
+	//라디오버튼 - 합성영상 활성화 / 비활성화
+	if (checkSegmentation()){
+		GetDlgItem(IDC_RADIO_PLAY2)->EnableWindow(TRUE);
+	}
+	else{
+		GetDlgItem(IDC_RADIO_PLAY2)->EnableWindow(FALSE);
+	}
+
+
 	//로딩창 제거. 메모리 해제 자동
 	pSplash->Hide();
 }
@@ -722,6 +731,15 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 		pSplash->SetText("Pls wait...");
 		segmentationOperator(&capture, atoi(str_startHour), atoi(str_startMinute)
 			, m_SliderWMIN.GetPos(), m_SliderWMAX.GetPos(), m_SliderHMIN.GetPos(), m_SliderHMAX.GetPos());	//Object Segmentation
+		
+		//라디오버튼 - 합성영상 활성화 / 비활성화
+		if (checkSegmentation()){
+			GetDlgItem(IDC_RADIO_PLAY2)->EnableWindow(TRUE);
+		}
+		else{
+			GetDlgItem(IDC_RADIO_PLAY2)->EnableWindow(FALSE);
+		}
+
 		pSplash->Hide();
 	}
 	else {	// 범위 외 입력시 예외처리
@@ -1033,22 +1051,16 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 		isPlayBtnClicked = true;
 		isPauseBtnClicked = false;
 
-		char *txtBuffer = new char[100];	//텍스트파일 읽을 때 사용할 buffer
+		boolean isSynPlayable = checkSegmentation();
 
-		string path = "./";
-		path.append(getTextFileName(video_filename));
+		if (isSynPlayable){
+			char *txtBuffer = new char[100];	//텍스트파일 읽을 때 사용할 buffer
 
-		fp = fopen(path.c_str(), "r");
-		boolean isPlayable = false;
+			string path = "./";
+			path.append(getTextFileName(video_filename));
 
-		if (fp){	//파일을 제대로 불러왔을 경우
-			//포인터 끝으로 이동하여 파일 크기 측정
-			fseek(fp, 0, SEEK_END);
-			if (ftell(fp) != 0)	//파일 크기가 0 이 아닐 경우 실행
-				isPlayable = true;
-		}
+			fp = fopen(path.c_str(), "r");
 
-		if (isPlayable){
 			//*******************************************텍스트파일을 읽어서 정렬****************************************************************
 			m_segmentArray = new segment[BUFFER];  //(segment*)calloc(BUFFER, sizeof(segment));	//텍스트 파일에서 읽은 segment 정보를 저장할 배열 초기화
 
@@ -1251,4 +1263,29 @@ void CMFC_SyntheticDlg::OnBnClickedBtnPause()
 		KillTimer(SYN_RESULT_TIMER);
 	}
 
+}
+
+bool CMFC_SyntheticDlg::checkSegmentation()
+{
+	string path = "./";
+	path.append(getTextFileName(video_filename));
+
+	FILE *txtFile = fopen(path.c_str(), "r");
+
+	if (txtFile){	//파일을 제대로 불러왔을 경우
+		//포인터 끝으로 이동하여 파일 크기 측정
+		fseek(txtFile, 0, SEEK_END);
+		if (ftell(txtFile) != 0){	//파일 크기가 0 이 아닐 경우 실행
+			fclose(txtFile);
+			return true;
+		}
+		else{ //파일 크기가 0 일 경우
+			fclose(txtFile);
+			return false;
+		}
+	}
+	else{	//파일을 불러오지 못 할 경우
+		printf("\nCan't find txt file");
+		return false;
+	}
 }
