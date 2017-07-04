@@ -49,7 +49,7 @@ vector<component> connectedComponentsLabelling(Mat frame, int rows, int cols, in
 	vector<component> result;
 	result.clear();
 	Rect objectRegion(0, 0, 30, 30); // 레이블 저장할 사각형
-	component *componentArray = (component*)calloc(999, sizeof(component)); // componentArray에 공간 할당
+	component *componentArray = (component*)calloc(100, sizeof(component)); // componentArray에 공간 할당
 
 	Mat img_labels, stats, centroids;
 	int numOfLables = connectedComponentsWithStats(frame, img_labels,
@@ -75,6 +75,8 @@ vector<component> connectedComponentsLabelling(Mat frame, int rows, int cols, in
 			index++;
 		}
 	}
+
+	free(componentArray);
 
 	return result;
 }

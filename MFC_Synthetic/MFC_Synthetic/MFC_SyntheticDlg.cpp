@@ -667,15 +667,13 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 	unsigned int COLS = (int)vc_Source->get(CV_CAP_PROP_FRAME_WIDTH);	//가로 길이
 	unsigned int ROWS = (int)vc_Source->get(CV_CAP_PROP_FRAME_HEIGHT);	//세로 길이
 
-	unsigned char* result = (unsigned char*)malloc(sizeof(unsigned char)* ROWS * COLS);
-
 	// humanDetector Vector
 	vector<component> humanDetectedVector, prevHumanDetectedVector;
 
 	/* Mat */
 	Mat frame(ROWS, COLS, CV_8UC3); // Mat(height, width, channel)
 	Mat frame_g(ROWS, COLS, CV_8UC1);
-
+	Mat tmp_background(ROWS, COLS, CV_8UC3);
 	//frame 카운터와 현재 millisecond
 	int frameCount = 0;
 	unsigned int currentMsec;
@@ -706,9 +704,11 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 			}
 
 			// FRAMES_FOR_MAKE_BACKGROUND 갯수 만큼의 프레임을 이용하여 배경 만들기
-			if (frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND > FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND
+			if (frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND >= FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND
 				&& frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND < FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1) {
-				static Mat tmp_background = background;
+				// 배경을 다시 만들 때 첫번쨰 임시배경을 프레임 중 하나로 선택함(연산을 시작하는 첫번쨰 프레임)
+				if (frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND)
+					tmp_background = frame;
 				BackgroundMaker(frame, tmp_background, ROWS, COLS);
 
 				if (frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 2) {
@@ -739,7 +739,6 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 			threshold(frame_g, frame_g, 5, 255, CV_THRESH_BINARY);
 
 			// MAT형으로 라벨링
-			humanDetectedVector.clear();
 			humanDetectedVector = connectedComponentsLabelling(frame_g, ROWS, COLS, WMIN, WMAX, HMIN, HMAX);
 
 			// 현재 프레임의 영상 시간 가져오기
@@ -749,24 +748,48 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 			humanDetectedVector = humanDetectedProcess(humanDetectedVector, prevHumanDetectedVector,
 				frame, frameCount, videoStartMsec, currentMsec, fp);
 
+			if (frameCount % 100 == 10) {
+			//	printf(" size = %d %d\n", sizeof(prevHumanDetectedVector), sizeof(component) );
+
+			}
+
+			// 벡터 메모리 해제를 빈 벡터 생성(prevHumanDetectedVector 메모리 해제)
+			vector<component> vclear;
+			prevHumanDetectedVector.swap(vclear);
+
+			vclear.clear();
+			prevHumanDetectedVector.clear();
+			
+			
+
 			// 현재 검출한 데이터를 이전 데이터에 저장하기
 			prevHumanDetectedVector = humanDetectedVector;
+
+			// 벡터 메모리 해제를 빈 벡터 생성
+			humanDetectedVector.swap(vclear);
+
+			vclear.clear();
+			humanDetectedVector.clear();
 
 			frameCount++;	//increase frame count
 		}
 	}
+
+	printf("segmentation Operator 끝\n");
+
 	//HWND hWnd = ::FindWindow(NULL, "Dude, Wait");
 	//if (hWnd){ ::PostMessage(hWnd, WM_CLOSE, 0, 0); }
 
 	// To Do :: 세그먼테이션 완료하면서 에러가 남
-	// MessageBox(0, "Done!!", "ding-dong", MB_OK);
+	MessageBox(0, "Done!!", "ding-dong", MB_OK);
 	Sleep(2500);
 
 	//메모리 해제
-	free(result); 	frame.release(); frame_g.release();
+	frame.release(); frame_g.release();
 
 	vector<component>().swap(humanDetectedVector);
 	vector<component>().swap(prevHumanDetectedVector);
+	
 	fclose(fp);	// 텍스트 파일 닫기
 }
 
@@ -1111,7 +1134,6 @@ bool segmentationTimeInputException(CString str_h, CString str_m) {
 		return false;
 }
 
-
 //00:00:00 형식으로 timetag를 변환
 stringstream timeConvertor(int t) {
 	int hour;
@@ -1170,8 +1192,6 @@ void CMFC_SyntheticDlg::SetRadioStatus(UINT value) {
 		break;
 	}
 }
-
-
 
 void CMFC_SyntheticDlg::OnBnClickedBtnPause()
 {
