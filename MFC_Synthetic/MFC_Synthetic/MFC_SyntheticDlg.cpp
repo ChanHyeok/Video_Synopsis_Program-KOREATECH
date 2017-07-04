@@ -44,7 +44,7 @@ unsigned int COLS, ROWS;
 // File 관련
 FILE *fp; // frameInfo를 작성할 File Pointer
 std::string video_filename(""); // 입력받은 비디오파일 이름
-std::string background_filename, txt_filename; // 배경 파일 이름과 txt 파일 이름
+std::string background_filename, txt_filename = RESULT_TEXT_FILENAME; // 배경 파일 이름과 txt 파일 이름
 
 // CAboutDlg dialog used for App About
 
@@ -309,9 +309,13 @@ void CMFC_SyntheticDlg::loadFile(){
 	String temp = "File Name : ";
 	video_filename = "";
 	video_filename = getFileName(cstrImgPath, '\\');
-	txt_filename = getTextFileName(video_filename); // frameinfo txt파일 재설정
+	txt_filename = txt_filename.append(video_filename).append(".txt");
 
 	CWnd *pStringFileName = GetDlgItem(IDC_MENU_STRING_FILE_NAME);
+
+	// 세그먼테이션 데이터(txt, jpg들)를 저장할 디렉토리 유무확인, 없으면 만들어줌
+	int tmp = makeDataRootDirectory();
+	int tmp2 = makeDataSubDirectory(video_filename);
 
 	// 다시 영상 파일을 불러올 때 cstr 포인터가 메모리 해제가 
 	// 재대로 안된 상태이기 때문에 에러가 발생하는 경우가 있음
@@ -625,8 +629,8 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 
 	case SYN_RESULT_TIMER:
 		printf("#");
-		background_filename = getBackgroundFilename(video_filename);
-		Mat background_loadedFromFile = imread(background_filename);//합성 영상을 출력할 때 바탕이 될 프레임. 영상합성 라디오 버튼 클릭 시 자동으로 파일로부터 로드 됨
+		background_filename = getBackgroundFilePath(video_filename);
+		Mat background_loadedFromFile = imread(getBackgroundFilePath(video_filename));//합성 영상을 출력할 때 바탕이 될 프레임. 영상합성 라디오 버튼 클릭 시 자동으로 파일로부터 로드 됨
 		
 		// 불러온 배경을 이용하여 합성을 진행
 		Mat syntheticResult = getSyntheticFrame(background_loadedFromFile);
@@ -676,25 +680,23 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 	int frameCount = 0;
 	unsigned int currentMsec;
 
-	// 얻어낸 객체 프레임의 정보를 써 낼 텍스트 파일 정의
-	fp = fopen(txt_filename.c_str(), "w");	// 쓰기모드
-	fprintf(fp, to_string(videoStartMsec).append("\n").c_str());	//첫줄에 영상시작시간 적어줌
-
 	// 배경 초기화
 	background_gray = backgroundInit(vc_Source, background);
 
 	// To Do :: 세그먼테이션이 도중에 중단되었을 때 
 	// 그 시점에서부터 다시 세그먼테이션을 진행하고 싶을 때 vc_source의 처리
 
-	
+	// 파일 및 디렉터리 정의 부분
+	// 세그먼테이션 데이터(txt, jpg들)를 저장할 디렉토리 유무확인, 없으면 만들어줌
+	int tmp = makeDataRootDirectory();
+	int tmp2 = makeDataSubDirectory(video_filename);
 
+	// 얻어낸 객체 프레임의 정보를 써 낼 텍스트 파일 정의s
+	fp = fopen(getTextFilePath(video_filename).c_str(), "w");	// 쓰기모드
+	fprintf(fp, to_string(videoStartMsec).append("\n").c_str());	//첫줄에 영상시작시간 적어줌
+	
 	// vc_source의 시작시간 0으로 초기화
 	vc_Source->set(CV_CAP_PROP_POS_MSEC, 0);
-
-	// 세그먼테이션 파일들(txt, jpg들)을 저장할 디렉토리 생성 및 여부 확인
-	bool tmp = makeDataRootDirectory();
-	bool tmp2 = makeDataSubDirectory(video_filename);
-
 	if ( true ) {
 		while (1) {
 			vc_Source->read(frame); //get single frame
@@ -712,9 +714,9 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 				if (frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 2) {
 					// 만든 background 적용
 					background = tmp_background;
-					//	int check = imwrite(getBackgroundFilename(video_filename), background);
+					//	int check = imwrite(getBackgroundFilePath(video_filename), background);
 					cvtColor(background, background_gray, CV_RGB2GRAY);
-					//	printf("Background Changed, %d frame\n", frameCount);
+					printf("Background Changed, %d frame\n", frameCount);
 					tmp_background.release();
 				}
 			}
@@ -867,9 +869,8 @@ Mat getSyntheticFrame(Mat bgFrame) {
 
 		if (isCross == false){	//출력된 객체가 없거나 이전 객체와 겹치지 않는 경우
 			// 아래 삭제 이후 synthetic으로 옮기기
-			Mat temp_frame = loadJPGObjectFile(m_segmentArray[tempnode.indexOfSegmentArray], video_filename);
 			//배경에 객체를 올리는 함수
-			bgFrame = printObjOnBG(bgFrame, temp_frame, m_segmentArray[tempnode.indexOfSegmentArray], labelMap);
+			bgFrame = printObjOnBG(bgFrame, m_segmentArray[tempnode.indexOfSegmentArray], labelMap, video_filename);
 
 			//타임태그를 string으로 변환
 			string timetag = "";
@@ -969,7 +970,7 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 		char *txtBuffer = new char[100];	//텍스트파일 읽을 때 사용할 buffer
 
 		string path = "./";
-		path.append(getTextFileName(video_filename));
+		path.append(getTextFilePath(video_filename));
 
 		fp = fopen(path.c_str(), "r");
 		boolean isPlayable = false;
@@ -977,7 +978,8 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 		if (fp){	//파일을 제대로 불러왔을 경우
 			//포인터 끝으로 이동하여 파일 크기 측정
 			fseek(fp, 0, SEEK_END);
-			if (ftell(fp) != 0)	//파일 크기가 0 이 아닐 경우 실행
+			//  디렉토리 체크하는 조건 수정(경로 재 부여) 
+			if ((isDirectory(getDirectoryPath(video_filename)) && ftell(fp) != 0))	//파일 크기가 0 이 아닐 경우 실행
 				isPlayable = true;
 		}
 
@@ -1196,8 +1198,8 @@ Mat backgroundInit(VideoCapture *vc_Source, Mat bg) {
 		BackgroundMaker(frame, bg, ROWS * 3, COLS);
 	}
 	// 비디오 파일 이름을 통해서 bg 파일의 이름 만들어서 jpg 파일로 저장
-	int background_write_check = imwrite(getBackgroundFilename(video_filename), bg);
-	if (background_write_check) printf("First background Making Complete!!\n");
+	int background_write_check = imwrite(getBackgroundFilePath(video_filename), bg);
+	if (background_write_check)	 printf("First background Making Complete!!\n");
 
 	// 만든 배경을 그레이 변환 후 반환
 	cvtColor(bg, bg_gray, CV_RGB2GRAY);

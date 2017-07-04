@@ -133,17 +133,17 @@ Mat loadJPGObjectFile(segment obj, string file_name);
 bool saveSegmentationData(string video_name, component object, Mat object_frame
 	, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp);
 
-string getTextFileName(string video_name);
-string getBackgroundFilename(string video_name);
+string getTextFilePath(string video_name);
+string getBackgroundFilePath(string video_name);
 string getDirectoryPath(string video_name);
 
 bool isDirectory(string dir_name);
-bool makeDataRootDirectory();
-bool makeDataSubDirectory(string video_name);
+int makeDataRootDirectory();
+int makeDataSubDirectory(string video_name);
 
 // tool_synthetic.cpp
 Mat Syn_Background_Foreground(Mat, Mat, Mat, int, int);
-Mat printObjOnBG(Mat background, Mat frame, segment obj, int* labelMap);
+Mat printObjOnBG(Mat background, segment obj, int* labelMap, string);
 
 // CMFC_SyntheticDlg dialog
 class CMFC_SyntheticDlg : public CDialogEx{

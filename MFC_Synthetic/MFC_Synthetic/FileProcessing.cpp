@@ -5,6 +5,7 @@
 #include <opencv2\opencv.hpp>
 #include <opencv\highgui.h>
 #include <opencv\cv.h>
+#include <direct.h>
 #include <io.h>
 
 // 파일 처리와 관련된 모든 함수들을 선언합니다.
@@ -16,7 +17,7 @@ string allocatingComponentFilename(int timeTag, int currentMsec, int frameCount,
 // segment 폴더 안에 Segmentation된 Obj만을 jpg파일로 저장하는 함수
 Mat objectCutting(component object, Mat img, unsigned int ROWS, unsigned int COLS);
 
-// Video Path에서 file이름만 빼서 반환하는 함수
+// Video Path에서 file이름만 빼서 확장자를 제거하여 반환하는 함수
 String getFileName(CString f_path, char find_char) {
 	// 마지막 \ 뒤의 문자열
 	// 검색대상 :: "Video (*.avi, *.MP4) | *.avi;*.mp4; | All Files(*.*)|*.*||",
@@ -29,12 +30,17 @@ String getFileName(CString f_path, char find_char) {
 
 	for (int i = final_index + 1; i < f_path.GetLength(); i++) {
 		if (f_path[final_index + 1] == NULL) break; // 예외처리
+		if (f_path[i] == '.') break; // 확장자 제거 (. 이후에 문자는 무시)
+		// 폴더를 만드는데 확장자가 붙으면 확장자에 맞는 파일이 생성되는 오류가 있어서 일단 뺌
+		// 혹시나 확장자가 필요할 경우 함수를 하나 더 생성하던지 해야할 듯
 		char c = f_path[i];
 		f_name += c;
 	}// 마지막에 나오는 '\' 이후의 문자열을 추출함
 
 	return f_name;
 }
+
+
 
 // 전체 segment 데이터의 파일들을 저장하는 모듈
 bool saveSegmentationData(string video_name, component object, Mat object_frame
@@ -51,6 +57,8 @@ bool saveSegmentationData(string video_name, component object, Mat object_frame
 
 	// txt파일로 저장
 	saveSegmentation_TXT(object, txt_fp);
+
+	return true;
 }
 
 void saveSegmentation_JPG(component object, Mat frame, string video_path) {
@@ -105,13 +113,15 @@ Mat objectCutting(component object, Mat img, unsigned int ROWS, unsigned int COL
 
 // 텍스트 파일(세그먼트 정보가 저장된) 이름을 반환하는 함수
 // 깔끔하게 매개변수를 삭제할 수도 있음
-string getTextFileName(string video_name) {
-	return RESULT_TEXT_FILENAME + video_name + (".txt");
+string getTextFilePath(string video_name) {
+	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name 
+		+ "/" + RESULT_TEXT_FILENAME + video_name + (".txt");
 }
 
 // 배경 파일 이름을 반환하는 함수
-string getBackgroundFilename(string video_name) {
-	return RESULT_BACKGROUND_FILENAME + video_name + (".jpg");
+string getBackgroundFilePath(string video_name) {
+	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name 
+		+ "/" + RESULT_BACKGROUND_FILENAME + video_name + (".jpg");
 }
 
 // 세그먼트들이 저장된 폴더이름을 반환하는 함수 , 폴더 및 경로 :: /data/(비디오 이름)
@@ -121,36 +131,34 @@ string getDirectoryPath(string video_name) {
 
 // 프로젝트 내에 해당 디렉토리가 있는 지 체크하는 함수
 bool isDirectory(string dir_name) {
-	// string type인 folderName을 const char* 로 바꾸어 access 함수에 넣는 연산
+	// string type을 const char* 로 바꾸는 연산
 	std::vector<char> writable(dir_name.begin(), dir_name.end());
 	writable.push_back('\0');
-	char* ptr = &writable[0];
+	char *ptr_name = &writable[0];
 
-	return _access(ptr, 0) == 0;
 	// 폴더가 있을 경우에는 _access(ptr, 0) 값을 0을 반환하여 true, 그렇지 않으면 false.
+	return _access(ptr_name, 0) == 0;
 }
 
-// data_ 폴더를 생성하는 함수
-bool makeDataRootDirectory() {
+// _data 폴더를 생성하는 함수
+int makeDataRootDirectory() {
 	// 세그먼테이션 결과 데이터가 들어있는 폴더가 없는 경우 만들어 줌
-	if (!isDirectory(SEGMENTATION_DATA_DIRECTORY_NAME)) {
-		string folderCreateCommand = "mkdir " + SEGMENTATION_DATA_DIRECTORY_NAME;
-		system(folderCreateCommand.c_str());
-	}
-	return true;
+	return _mkdir("_data");
 }
 
 // data 폴더 안에 해당 비디오의 이름을 갖는 디렉토리를 생성하는 함수
-bool makeDataSubDirectory(string video_name) {
+int makeDataSubDirectory(string video_name) {
 	// 해당 비디오의 세그먼테이션 결과가 들어갈 폴더경로
 	string data_dir_path = getDirectoryPath(video_name);
 
-	// 폴더가 없으면 생성
-	if (!isDirectory(data_dir_path)) {
-		string folderCreateCommand = "mkdir " + video_name;
-		system(folderCreateCommand.c_str());
-	}
-	return true;
+	// string type을 const char* 로 바꾸는 연산
+	std::vector<char> writable(data_dir_path.begin(), data_dir_path.end());
+	writable.push_back('\0');
+	char *ptr_name = &writable[0];
+
+	// SEGMENTATION_DATA_DIRECTORY의 하위 폴더 생성(/_data/(video_name))
+	// 폴더를 생성하면 0, 생성하지 않으면 -1
+	return _mkdir(ptr_name);
 }
 
 // 파일의 이름부분을 저장
