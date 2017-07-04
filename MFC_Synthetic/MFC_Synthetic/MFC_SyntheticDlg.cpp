@@ -5,6 +5,7 @@
 #include "MFC_Synthetic.h"
 #include "MFC_SyntheticDlg.h"
 #include "afxdialogex.h"
+#include "SplashScreenEx.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -309,11 +310,23 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
-void CMFC_SyntheticDlg::loadFile(){
+void CMFC_SyntheticDlg::loadFile(){	
 	//파일 다이얼로그 호출해서 segmentation 할 영상 선택	
 	char szFilter[] = "Video (*.avi, *.MP4) | *.avi;*.mp4; | All Files(*.*)|*.*||";	//검색 옵션
 	CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, szFilter, AfxGetMainWnd());	//파일 다이얼로그 생성
 	dlg.DoModal();	//다이얼로그 띄움
+
+	//다이얼로그 종료 시 로딩 창 띄움
+	//로딩바 hide하는 순간 메모리해제됨. 그때 그때 사용할 것
+	CSplashScreenEx *pSplash; //로딩창
+	pSplash = new CSplashScreenEx();
+	pSplash->Create(this, "Loading", 0, CSS_FADE | CSS_CENTERAPP | CSS_SHADOW);
+	pSplash->SetBitmap(IDB_LOADING, 0, 0, 0);
+	pSplash->SetTextFont("Arial", 140, CSS_TEXT_BOLD);
+	pSplash->SetTextRect(CRect(148, 38, 228, 70));
+	pSplash->SetTextColor(RGB(0, 0, 0));
+	pSplash->Show();
+	pSplash->SetText("Loading");
 
 	// Path를 받아와서 filename만을 떼어서 저장함(배경파일 이름을 결정할 때 사용)
 	CString cstrImgPath = dlg.GetPathName();
@@ -374,6 +387,9 @@ void CMFC_SyntheticDlg::loadFile(){
 	cvtColor(background, background_gray, CV_RGB2GRAY);
 	
 	SetTimer(LOGO_TIMER, 1, NULL);
+
+	//로딩창 제거. 메모리 해제 자동
+	pSplash->Hide();
 }
 
 
@@ -693,11 +709,22 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 	m_pEditBoxStartMinute->GetWindowTextA(str_startMinute);
 
 	// Edit box에 문자 입력, 또는 범위외 입력 시 예외처리
-	if (segmentationTimeInputException(str_startHour, str_startMinute))
+	if (segmentationTimeInputException(str_startHour, str_startMinute)){
+		//로딩 창 띄움
+		CSplashScreenEx *pSplash; //로딩창
+		pSplash = new CSplashScreenEx();
+		pSplash->Create(this, "Loading", 0, CSS_FADE | CSS_CENTERAPP | CSS_SHADOW);
+		pSplash->SetBitmap(IDB_LOADING, 0, 0, 0);
+		pSplash->SetTextFont("Arial", 110, CSS_TEXT_BOLD);
+		pSplash->SetTextRect(CRect(148, 38, 228, 70));
+		pSplash->SetTextColor(RGB(0, 0, 0));
+		pSplash->Show();
+		pSplash->SetText("Pls wait...");
 		segmentationOperator(&capture, atoi(str_startHour), atoi(str_startMinute)
 			, m_SliderWMIN.GetPos(), m_SliderWMAX.GetPos(), m_SliderHMIN.GetPos(), m_SliderHMAX.GetPos());	//Object Segmentation
-	// 범위 외 입력시 예외처리
-	else {
+		pSplash->Hide();
+	}
+	else {	// 범위 외 입력시 예외처리
 	}
 }
 
