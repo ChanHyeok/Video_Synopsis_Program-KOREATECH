@@ -32,6 +32,7 @@ int radioChoice, preRadioChoice;	//라디오 버튼 선택 결과 저장 변수. 0 - 원본영상
 boolean isPlayBtnClicked, isPauseBtnClicked;
 Mat background, background_gray; // 배경 프레임과 원본 프레임
 
+
 unsigned int COLS, ROWS;
 
 // background 전역변수 삭제
@@ -1235,6 +1236,17 @@ void CMFC_SyntheticDlg::OnBnClickedBtnPause()
 
 
 //정지 버튼 콜백 리스너
-void CMFC_SyntheticDlg::OnBnClickedBtnStop(){
+void CMFC_SyntheticDlg::OnBnClickedBtnStop() {
+
 	printf("정지 버튼 눌림\n");
+
+	isPlayBtnClicked = false;
+
+	KillTimer(VIDEO_TIMER);
+	KillTimer(BIN_VIDEO_TIMER);
+	KillTimer(SYN_RESULT_TIMER);
+
+	SetTimer(LOGO_TIMER, 1, NULL);
+
+	capture.set(CV_CAP_PROP_POS_FRAMES, 0);
 }
