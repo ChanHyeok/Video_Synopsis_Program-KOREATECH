@@ -343,7 +343,7 @@ void CMFC_SyntheticDlg::loadFile(){
 	pStringFileName->SetWindowTextA(cstr);
 	capture.open((string)cstrImgPath);
 	capture_for_background.open((string)cstrImgPath);
-	capture_for_background.open((string)cstrImgPath);
+
 	if (!capture.isOpened()) { //예외처리. 해당이름의 파일이 없는 경우
 		perror("No Such File!\n");
 		::SendMessage(GetSafeHwnd(), WM_CLOSE, NULL, NULL);	//다이얼 로그 종료
