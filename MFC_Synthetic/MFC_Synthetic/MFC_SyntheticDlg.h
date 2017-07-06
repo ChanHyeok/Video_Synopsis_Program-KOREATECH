@@ -20,6 +20,7 @@ using namespace cv;
 #define RESULT_FOLDER_NAME "segment_"
 #define RESULT_BACKGROUND_FILENAME "background_"
 
+const string SEGMENTATION_DATA_DIRECTORY_NAME = "_data";
 // segmentation structure
 typedef struct _segment {
 	string fileName;
@@ -108,16 +109,14 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 void segmentationOperator(VideoCapture* vc_Source, int, int, int ,int ,int ,int);
 Mat getSyntheticFrame(Mat);
 
-
-
 // addition function of MAIN
-
 bool segmentationTimeInputException(CString str_h, CString str_m);
 bool IsComparePrevDetection(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index);
 Mat morphologicalOperation(Mat);
 stringstream timeConvertor(int t);
 
 bool IsObjectOverlapingDetector(segment *m_segment, vector<int> preNodeIndex_data, int curIndex, int countOfObj_j);
+Mat backgroundInit(VideoCapture *vc_Source, Mat bg);
 
 // connectecComponentLabelling.cpp
 vector<component> connectedComponentsLabelling(Mat frame, int rows, int cols, int, int, int, int);
@@ -129,19 +128,22 @@ Mat ExtractFg(Mat, Mat, int, int);
 int BackgroundMaker(Mat frameimg, Mat bgimg, int rows, int cols);
 
 // FileProcessing.cpp
-void saveSegmentation_JPG(component, Mat, int, int, int, unsigned int, string video_fname);	//캡쳐한 Components를 jpg파일로 저장하는 함수
-void saveSegmentation_TXT(component, int, int, FILE *, int);	//components의 Data를 txt로 저장하는 함수
 String getFileName(CString f_path, char find_char);
-
-string getDirectoryName(string video_name);
-string getBackgroundFilename(string file_name);
-string getTextFileName(string video_name);
-bool isDirectory(string dir_name, string video_fame);
 Mat loadJPGObjectFile(segment obj, string file_name);
+bool saveSegmentationData(string video_name, component object, Mat object_frame
+	, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp);
+
+string getTextFilePath(string video_name);
+string getBackgroundFilePath(string video_name);
+string getDirectoryPath(string video_name);
+
+bool isDirectory(string dir_name);
+int makeDataRootDirectory();
+int makeDataSubDirectory(string video_name);
 
 // tool_synthetic.cpp
 Mat Syn_Background_Foreground(Mat, Mat, Mat, int, int);
-Mat printObjOnBG(Mat background, Mat frame, segment obj, int* labelMap);
+Mat printObjOnBG(Mat background, segment obj, int* labelMap, string);
 
 // CMFC_SyntheticDlg dialog
 class CMFC_SyntheticDlg : public CDialogEx{
