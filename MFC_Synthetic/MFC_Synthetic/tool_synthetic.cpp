@@ -23,7 +23,9 @@ Mat Syn_Background_Foreground(Mat background, Mat firstForegroundImage, Mat seco
 	return result;
 }
 
-Mat printObjOnBG(Mat background, Mat frame, segment obj, int* labelMap) {
+Mat printObjOnBG(Mat background, segment obj, int* labelMap, string loadedFrameFileName) {
+	Mat frame = loadJPGObjectFile(obj, loadedFrameFileName);
+	// To do ;: loadJPGObjectFile 다시 옮기기
 	for (int i = obj.top; i < obj.bottom; i++) {
 		for (int j = obj.left + 1; j < obj.right; j++) {
 			Vec3b colorB = background.at<Vec3b>(Point(j, i));
