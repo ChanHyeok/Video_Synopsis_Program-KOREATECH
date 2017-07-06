@@ -48,7 +48,6 @@ std::string video_filename(""); // 입력받은 비디오파일 이름
 std::string background_filename, txt_filename = RESULT_TEXT_FILENAME; // 배경 파일 이름과 txt 파일 이름
 
 // CAboutDlg dialog used for App About
-
 class CAboutDlg : public CDialogEx
 {
 public:
@@ -273,7 +272,6 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 
 
 	// slider m_sliderSearchStartTime, m_sliderSearchEndTime, m_sliderFps, segment 트랙바 설정
-
 	m_sliderSearchStartTime.SetRange(0, 500);
 	m_sliderSearchEndTime.SetRange(0, 500);
 	m_sliderFps.SetRange(0, 100);
@@ -353,8 +351,11 @@ void CMFC_SyntheticDlg::loadFile(){
 	ROWS = (int)capture.get(CV_CAP_PROP_FRAME_HEIGHT); //세로 길이
 	fps = capture.get(CV_CAP_PROP_FPS);
 
-	// isPlayBtnClicked , isPauseBtnClicked 코드 중복 삭제
-	// radiobutton 코드 중복 삭제
+  // 비디오 파일 다시 불러올 때 마다 라디오버튼 초기화
+	isPlayBtnClicked = false;
+	isPauseBtnClicked = true;
+	CheckRadioButton(IDC_RADIO_PLAY1, IDC_RADIO_PLAY3, IDC_RADIO_PLAY1);//라디오 버튼 초기화
+	radioChoice = 0; preRadioChoice = 0;	//라디오 버튼의 default는 맨 처음 버튼임
 
 	// edit box와 slider 기본 값 불러오기
 	loadValueOfSlider(COLS, ROWS, 0, 0); // 일단 startTime과 endTime은 0으로 해놓음
@@ -364,6 +365,19 @@ void CMFC_SyntheticDlg::loadFile(){
 	background_gray = Mat(ROWS, COLS, CV_8UC1);
 
 	background_gray = backgroundInit(&capture_for_background, background);
+	
+	SetTimer(LOGO_TIMER, 1, NULL);
+
+	//라디오버튼 - 합성영상 활성화 / 비활성화
+	if (checkSegmentation()){
+		GetDlgItem(IDC_RADIO_PLAY2)->EnableWindow(TRUE);
+	}
+	else{
+		GetDlgItem(IDC_RADIO_PLAY2)->EnableWindow(FALSE);
+	}
+
+	//로딩창 제거. 메모리 해제 자동
+	pSplash->Hide();
 }
 
 
@@ -707,6 +721,7 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 	Mat frame(ROWS, COLS, CV_8UC3); // Mat(height, width, channel)
 	Mat frame_g(ROWS, COLS, CV_8UC1);
 	Mat tmp_background(ROWS, COLS, CV_8UC3);
+
 	//frame 카운터와 현재 millisecond
 	int frameCount = 0;
 	unsigned int currentMsec;
@@ -793,8 +808,6 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 			vclear.clear();
 			prevHumanDetectedVector.clear();
 			
-			
-
 			// 현재 검출한 데이터를 이전 데이터에 저장하기
 			prevHumanDetectedVector = humanDetectedVector;
 
@@ -818,7 +831,7 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 	Sleep(2500);
 
 	//메모리 해제
-	frame.release(); frame_g.release();
+  frame.release(); frame_g.release();
 
 	vector<component>().swap(humanDetectedVector);
 	vector<component>().swap(prevHumanDetectedVector);
@@ -921,7 +934,6 @@ Mat getSyntheticFrame(Mat bgFrame) {
 				}
 			}
 		}
-
 
 		if (isCross == false){	//출력된 객체가 없거나 이전 객체와 겹치지 않는 경우
 			// 아래 삭제 이후 synthetic으로 옮기기
@@ -1026,10 +1038,9 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 		boolean isSynPlayable = checkSegmentation();
 
 		if (isSynPlayable){
-			char *txtBuffer = new char[100];	//텍스트파일 읽을 때 사용할 buffer
-
+      char *txtBuffer = new char[100];	//텍스트파일 읽을 때 사용할 buffer
 			string path = "./";
-			path.append(getTextFileName(video_filename));
+			path.append(getTextFilePath(video_filename));
 
 			fp = fopen(path.c_str(), "r");
 
@@ -1160,6 +1171,7 @@ bool segmentationTimeInputException(CString str_h, CString str_m) {
 		return false;
 }
 
+
 //00:00:00 형식으로 timetag를 변환
 stringstream timeConvertor(int t) {
 	int hour;
@@ -1234,28 +1246,10 @@ void CMFC_SyntheticDlg::OnBnClickedBtnPause()
 
 }
 
-Mat backgroundInit(VideoCapture *vc_Source, Mat bg) {
-	Mat frame(ROWS, COLS, CV_8UC3); // Mat(height, width, channel)
-	Mat bg_gray(ROWS, COLS, CV_8UC1);
-	// 영상 시작점으로 초기화
-	vc_Source->set(CV_CAP_PROP_POS_MSEC, 0);
-	for (int i = 0; i < FRAMES_FOR_MAKE_BACKGROUND; i++) {
-		vc_Source->read(frame); //get single frame
-		BackgroundMaker(frame, bg, ROWS * 3, COLS);
-	}
-	// 비디오 파일 이름을 통해서 bg 파일의 이름 만들어서 jpg 파일로 저장
-	int background_write_check = imwrite(getBackgroundFilePath(video_filename), bg);
-	if (background_write_check)	 printf("First background Making Complete!!\n");
-
-	// 만든 배경을 그레이 변환 후 반환
-	cvtColor(bg, bg_gray, CV_RGB2GRAY);
-	return bg_gray;
-  }
-
 bool CMFC_SyntheticDlg::checkSegmentation()
 {
 	string path = "./";
-	path.append(getTextFileName(video_filename));
+	path.append(getTextFilePath(video_filename));
 
 	FILE *txtFile = fopen(path.c_str(), "r");
 
@@ -1275,4 +1269,22 @@ bool CMFC_SyntheticDlg::checkSegmentation()
 		printf("\nCan't find txt file");
 		return false;
 	}
+}
+
+Mat backgroundInit(VideoCapture *vc_Source, Mat bg) {
+	Mat frame(ROWS, COLS, CV_8UC3); // Mat(height, width, channel)
+	Mat bg_gray(ROWS, COLS, CV_8UC1);
+	// 영상 시작점으로 초기화
+	vc_Source->set(CV_CAP_PROP_POS_MSEC, 0);
+	for (int i = 0; i < FRAMES_FOR_MAKE_BACKGROUND; i++) {
+		vc_Source->read(frame); //get single frame
+		BackgroundMaker(frame, bg, ROWS * 3, COLS);
+	}
+	// 비디오 파일 이름을 통해서 bg 파일의 이름 만들어서 jpg 파일로 저장
+	int background_write_check = imwrite(getBackgroundFilePath(video_filename), bg);
+	if (background_write_check)	 printf("First background Making Complete!!\n");
+
+	// 만든 배경을 그레이 변환 후 반환
+	cvtColor(bg, bg_gray, CV_RGB2GRAY);
+	return bg_gray;
 }
