@@ -205,6 +205,8 @@ public:
 	afx_msg void SetRadioStatus(UINT value);
 	afx_msg void OnBnClickedBtnPause();
 
+	afx_msg bool checkSegmentation();
+
 	void loadValueOfSlider(int captureCols, int captureRows, int startTime, int endTime); // 슬라이더의 값을 초기화하는 함수
 
 	// slider : range of detecting object

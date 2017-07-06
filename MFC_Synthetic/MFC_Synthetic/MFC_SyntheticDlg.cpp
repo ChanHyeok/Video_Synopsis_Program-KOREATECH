@@ -5,6 +5,7 @@
 #include "MFC_Synthetic.h"
 #include "MFC_SyntheticDlg.h"
 #include "afxdialogex.h"
+#include "SplashScreenEx.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -12,39 +13,39 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-// ¸Ş¸ğ¸® ´©¼ö¸¦ Á¡°ËÇÏ´Â Å°¿öµå (http://codes.xenotech.net/38)
-// Á¡°ËÇÏ±â À§ÇØ µğ¹ö±ë ¸ğµå·Î ½ÇÇà ÈÄ, µğ¹ö±× ·Î±×¸¦ º¸¸é µÊ
-// #include <crtdbg.h> ¼±¾ğ ÀÌÈÄ _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF); 
+// ë©”ëª¨ë¦¬ ëˆ„ìˆ˜ë¥¼ ì ê²€í•˜ëŠ” í‚¤ì›Œë“œ (http://codes.xenotech.net/38)
+// ì ê²€í•˜ê¸° ìœ„í•´ ë””ë²„ê¹… ëª¨ë“œë¡œ ì‹¤í–‰ í›„, ë””ë²„ê·¸ ë¡œê·¸ë¥¼ ë³´ë©´ ë¨
+// #include <crtdbg.h> ì„ ì–¸ ì´í›„ _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF); 
 
-/*** °¢Á¾ »ó¼öµé ***/
+/*** ê°ì¢… ìƒìˆ˜ë“¤ ***/
 #define LOGO_TIMER 0
 #define VIDEO_TIMER 1
 #define SYN_RESULT_TIMER 2
 #define BIN_VIDEO_TIMER 3
-#define MAX_STR_BUFFER_SIZE  128 // ¹®ÀÚ¿­ Ãâ·Â¿¡ ¾µ ¹öÆÛ ±æÀÌ
+#define MAX_STR_BUFFER_SIZE  128 // ë¬¸ìì—´ ì¶œë ¥ì— ì“¸ ë²„í¼ ê¸¸ì´
 
-// ¹è°æÀ» ¸¸µå´Â µ¥ ÇÊ¿äÇÑ ÇÁ·¹ÀÓ Ä«¿îÆ® »ó¼öµé Á¤ÀÇ
-const int FRAMES_FOR_MAKE_BACKGROUND = 350; // Ã¹ ¹øÂ° ¹è°æÀ» ¸¸µé±â ±îÁö ÇÊ¿äÇÑ ÇÁ·¹ÀÓÄ«¿îÆ®
-const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 1500; // ´ÙÀ½ ¹è°æÀ» ¸¸µé±â À§ÇÑ ½Ã°£°£°İ(µ¿Àû)
-// fps°¡ ¾à 23-25 °¡·® ³ª¿À´Â ¿µ»ó¿¡¼­ ¾à 1ºĞÀÌ Èå¸¥ framecount °ªÀº 1500
+// ë°°ê²½ì„ ë§Œë“œëŠ” ë° í•„ìš”í•œ í”„ë ˆì„ ì¹´ìš´íŠ¸ ìƒìˆ˜ë“¤ ì •ì˜
+const int FRAMES_FOR_MAKE_BACKGROUND = 350; // ì²« ë²ˆì§¸ ë°°ê²½ì„ ë§Œë“¤ê¸° ê¹Œì§€ í•„ìš”í•œ í”„ë ˆì„ì¹´ìš´íŠ¸
+const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 1500; // ë‹¤ìŒ ë°°ê²½ì„ ë§Œë“¤ê¸° ìœ„í•œ ì‹œê°„ê°„ê²©(ë™ì )
+// fpsê°€ ì•½ 23-25 ê°€ëŸ‰ ë‚˜ì˜¤ëŠ” ì˜ìƒì—ì„œ ì•½ 1ë¶„ì´ íë¥¸ framecount ê°’ì€ 1500
 
-/***  Àü¿ªº¯¼ö  ***/
+/***  ì „ì—­ë³€ìˆ˜  ***/
 segment *m_segmentArray;
-Queue segment_queue; // C++ STLÀÇ queue Å°¿öµå¿Í °ãÄ¡±â ¶§¹®¿¡ º¯¼ö¸¦ Á¶Á¤ÇÔ
-int videoStartMsec, segmentCount, fps; // ½ÃÀÛ millisecond, ¼¼±×¸ÕÆ® Ä«¿îÆÃº¯¼ö, ÃÊ´ç ÇÁ·¹ÀÓ¼ö
-int radioChoice, preRadioChoice;	//¶óµğ¿À ¹öÆ° ¼±ÅÃ °á°ú ÀúÀå º¯¼ö. 0 - ¿øº»¿µ»ó, 1 - ÇÕ¼º¿µ»ó, 2 - ÀÌÁø¿µ»ó
+Queue segment_queue; // C++ STLì˜ queue í‚¤ì›Œë“œì™€ ê²¹ì¹˜ê¸° ë•Œë¬¸ì— ë³€ìˆ˜ë¥¼ ì¡°ì •í•¨
+int videoStartMsec, segmentCount, fps; // ì‹œì‘ millisecond, ì„¸ê·¸ë¨¼íŠ¸ ì¹´ìš´íŒ…ë³€ìˆ˜, ì´ˆë‹¹ í”„ë ˆì„ìˆ˜
+int radioChoice, preRadioChoice;	//ë¼ë””ì˜¤ ë²„íŠ¼ ì„ íƒ ê²°ê³¼ ì €ì¥ ë³€ìˆ˜. 0 - ì›ë³¸ì˜ìƒ, 1 - í•©ì„±ì˜ìƒ, 2 - ì´ì§„ì˜ìƒ
 boolean isPlayBtnClicked, isPauseBtnClicked;
-Mat background, background_gray; // ¹è°æ ÇÁ·¹ÀÓ°ú ¿øº» ÇÁ·¹ÀÓ
+Mat background, background_gray; // ë°°ê²½ í”„ë ˆì„ê³¼ ì›ë³¸ í”„ë ˆì„
 
 unsigned int COLS, ROWS;
 
-// background Àü¿ªº¯¼ö »èÁ¦
-// synthesis Áß¿¡ ¹è°æ°ü·Ã Á¤º¸µéÀÌ »ç¶óÁö´Â ¹ö±×°¡ ¹ß»ıÇÏ¿© ¼öÁ¤ÇÏ¸é¼­ m_background¸¦ »èÁ¦ÇÔ
+// background ì „ì—­ë³€ìˆ˜ ì‚­ì œ
+// synthesis ì¤‘ì— ë°°ê²½ê´€ë ¨ ì •ë³´ë“¤ì´ ì‚¬ë¼ì§€ëŠ” ë²„ê·¸ê°€ ë°œìƒí•˜ì—¬ ìˆ˜ì •í•˜ë©´ì„œ m_backgroundë¥¼ ì‚­ì œí•¨
 
-// File °ü·Ã
-FILE *fp; // frameInfo¸¦ ÀÛ¼ºÇÒ File Pointer
-std::string video_filename(""); // ÀÔ·Â¹ŞÀº ºñµğ¿ÀÆÄÀÏ ÀÌ¸§
-std::string background_filename, txt_filename = RESULT_TEXT_FILENAME; // ¹è°æ ÆÄÀÏ ÀÌ¸§°ú txt ÆÄÀÏ ÀÌ¸§
+// File ê´€ë ¨
+FILE *fp; // frameInfoë¥¼ ì‘ì„±í•  File Pointer
+std::string video_filename(""); // ì…ë ¥ë°›ì€ ë¹„ë””ì˜¤íŒŒì¼ ì´ë¦„
+std::string background_filename, txt_filename = RESULT_TEXT_FILENAME; // ë°°ê²½ íŒŒì¼ ì´ë¦„ê³¼ txt íŒŒì¼ ì´ë¦„
 
 // CAboutDlg dialog used for App About
 
@@ -91,7 +92,7 @@ CMFC_SyntheticDlg::~CMFC_SyntheticDlg()
 {
 	background.release();
 	background_gray.release();
-	// MFC¿¡¼­ ¼Ò¸êÀÚ¿¡¼­ÀÇ ¸Ş¸ğ¸® ÇØÁ¦´Â ÀÇ¹Ì°¡ ¾øÀ½
+	// MFCì—ì„œ ì†Œë©¸ìì—ì„œì˜ ë©”ëª¨ë¦¬ í•´ì œëŠ” ì˜ë¯¸ê°€ ì—†ìŒ
 }
 
 
@@ -128,8 +129,8 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
 
-	ShowWindow(SW_SHOWMAXIMIZED);	//ÀüÃ¼È­¸é
-	this->GetWindowRect(m_rectCurHist);	//´ÙÀÌ¾ó·Î±× Å©±â¸¦ ¾ò¾î¿È
+	ShowWindow(SW_SHOWMAXIMIZED);	//ì „ì²´í™”ë©´
+	this->GetWindowRect(m_rectCurHist);	//ë‹¤ì´ì–¼ë¡œê·¸ í¬ê¸°ë¥¼ ì–»ì–´ì˜´
 
 	ASSERT((IDM_ABOUTBOX & 0xFFF0) == IDM_ABOUTBOX);
 	ASSERT(IDM_ABOUTBOX < 0xF000);
@@ -154,17 +155,17 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 
 	// TODO: Add extra initialization here
-	//*********************************************Layout ¼¼ÆÃ********************************************************
+	//*********************************************Layout ì„¸íŒ…********************************************************
 	//(http://gandus.tistory.com/530)
 
 	CWnd *pResultImage = GetDlgItem(IDC_RESULT_IMAGE);
 
 	//Dialog
-	//ÇöÀç dialog Å©±â ¾ò¾î¿È
+	//í˜„ì¬ dialog í¬ê¸° ì–»ì–´ì˜´
 	int dialogWidth = m_rectCurHist.right;
-	int dialogHeight = m_rectCurHist.bottom - 50;//ÀÛ¾÷Ç¥½ÃÁÙ Å©±â »©ÁÜ
+	int dialogHeight = m_rectCurHist.bottom - 50;//ì‘ì—…í‘œì‹œì¤„ í¬ê¸° ë¹¼ì¤Œ
 	int padding = 10;
-	SetWindowPos(&wndTop, 0, 0, dialogWidth, dialogHeight, SWP_NOMOVE);//´ÙÀÌ¾ó·Î±× Å©±â Á¶Á¤
+	SetWindowPos(&wndTop, 0, 0, dialogWidth, dialogHeight, SWP_NOMOVE);//ë‹¤ì´ì–¼ë¡œê·¸ í¬ê¸° ì¡°ì •
 
 	//group box - MENU
 	CWnd *pGroupMenu = GetDlgItem(IDC_GROUP_MENU);
@@ -271,22 +272,22 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 
 
 
-	// slider m_sliderSearchStartTime, m_sliderSearchEndTime, m_sliderFps, segment Æ®·¢¹Ù ¼³Á¤
+	// slider m_sliderSearchStartTime, m_sliderSearchEndTime, m_sliderFps, segment íŠ¸ë™ë°” ì„¤ì •
 
 	m_sliderSearchStartTime.SetRange(0, 500);
 	m_sliderSearchEndTime.SetRange(0, 500);
 	m_sliderFps.SetRange(0, 100);
 
-	//½ÇÇà½Ã ºñµğ¿À ÆÄÀÏ ºÒ·¯¿È
+	//ì‹¤í–‰ì‹œ ë¹„ë””ì˜¤ íŒŒì¼ ë¶ˆëŸ¬ì˜´
 	loadFile();
 
-	// // Play, Pause¹öÆ° »óÅÂ ÃÊ±âÈ­
+	// // Play, Pauseë²„íŠ¼ ìƒíƒœ ì´ˆê¸°í™”
 	isPlayBtnClicked = false;
 	isPauseBtnClicked = true;
 
-	// ¶óµğ¿À ¹öÆ° ÃÊ±âÈ­
+	// ë¼ë””ì˜¤ ë²„íŠ¼ ì´ˆê¸°í™”
 	CheckRadioButton(IDC_RADIO_PLAY1, IDC_RADIO_PLAY3, IDC_RADIO_PLAY1);
-	radioChoice = 0; preRadioChoice = 0; //¶óµğ¿À ¹öÆ°ÀÇ default´Â ¸Ç Ã³À½ ¹öÆ°ÀÓ
+	radioChoice = 0; preRadioChoice = 0; //ë¼ë””ì˜¤ ë²„íŠ¼ì˜ defaultëŠ” ë§¨ ì²˜ìŒ ë²„íŠ¼ì„
 
 	//edit box default
 	m_pEditBoxStartHour->SetWindowTextA("0");
@@ -298,13 +299,25 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
-void CMFC_SyntheticDlg::loadFile(){
-	//ÆÄÀÏ ´ÙÀÌ¾ó·Î±× È£ÃâÇØ¼­ segmentation ÇÒ ¿µ»ó ¼±ÅÃ	
-	char szFilter[] = "Video (*.avi, *.MP4) | *.avi;*.mp4; | All Files(*.*)|*.*||";	//°Ë»ö ¿É¼Ç
-	CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, szFilter, AfxGetMainWnd());	//ÆÄÀÏ ´ÙÀÌ¾ó·Î±× »ı¼º
-	dlg.DoModal();	//´ÙÀÌ¾ó·Î±× ¶ç¿ò
+void CMFC_SyntheticDlg::loadFile(){	
+	//íŒŒì¼ ë‹¤ì´ì–¼ë¡œê·¸ í˜¸ì¶œí•´ì„œ segmentation í•  ì˜ìƒ ì„ íƒ	
+	char szFilter[] = "Video (*.avi, *.MP4) | *.avi;*.mp4; | All Files(*.*)|*.*||";	//ê²€ìƒ‰ ì˜µì…˜
+	CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, szFilter, AfxGetMainWnd());	//íŒŒì¼ ë‹¤ì´ì–¼ë¡œê·¸ ìƒì„±
+	dlg.DoModal();	//ë‹¤ì´ì–¼ë¡œê·¸ ë„ì›€
 
-	// Path¸¦ ¹Ş¾Æ¿Í¼­ filename¸¸À» ¶¼¾î¼­ ÀúÀåÇÔ(¹è°æÆÄÀÏ ÀÌ¸§À» °áÁ¤ÇÒ ¶§ »ç¿ë)
+	//ë‹¤ì´ì–¼ë¡œê·¸ ì¢…ë£Œ ì‹œ ë¡œë”© ì°½ ë„ì›€
+	//ë¡œë”©ë°” hideí•˜ëŠ” ìˆœê°„ ë©”ëª¨ë¦¬í•´ì œë¨. ê·¸ë•Œ ê·¸ë•Œ ì‚¬ìš©í•  ê²ƒ
+	CSplashScreenEx *pSplash; //ë¡œë”©ì°½
+	pSplash = new CSplashScreenEx();
+	pSplash->Create(this, "Loading", 0, CSS_FADE | CSS_CENTERAPP | CSS_SHADOW);
+	pSplash->SetBitmap(IDB_LOADING, 0, 0, 0);
+	pSplash->SetTextFont("Arial", 140, CSS_TEXT_BOLD);
+	pSplash->SetTextRect(CRect(148, 38, 228, 70));
+	pSplash->SetTextColor(RGB(0, 0, 0));
+	pSplash->Show();
+	pSplash->SetText("Loading");
+
+	// Pathë¥¼ ë°›ì•„ì™€ì„œ filenameë§Œì„ ë–¼ì–´ì„œ ì €ì¥í•¨(ë°°ê²½íŒŒì¼ ì´ë¦„ì„ ê²°ì •í•  ë•Œ ì‚¬ìš©)
 	CString cstrImgPath = dlg.GetPathName();
 	String temp = "File Name : ";
 	video_filename = "";
@@ -313,13 +326,13 @@ void CMFC_SyntheticDlg::loadFile(){
 
 	CWnd *pStringFileName = GetDlgItem(IDC_MENU_STRING_FILE_NAME);
 
-	// ¼¼±×¸ÕÅ×ÀÌ¼Ç µ¥ÀÌÅÍ(txt, jpgµé)¸¦ ÀúÀåÇÒ µğ·ºÅä¸® À¯¹«È®ÀÎ, ¾øÀ¸¸é ¸¸µé¾îÁÜ
+	// ì„¸ê·¸ë¨¼í…Œì´ì…˜ ë°ì´í„°(txt, jpgë“¤)ë¥¼ ì €ì¥í•  ë””ë ‰í† ë¦¬ ìœ ë¬´í™•ì¸, ì—†ìœ¼ë©´ ë§Œë“¤ì–´ì¤Œ
 	int tmp = makeDataRootDirectory();
 	int tmp2 = makeDataSubDirectory(video_filename);
 
-	// ´Ù½Ã ¿µ»ó ÆÄÀÏÀ» ºÒ·¯¿Ã ¶§ cstr Æ÷ÀÎÅÍ°¡ ¸Ş¸ğ¸® ÇØÁ¦°¡ 
-	// Àç´ë·Î ¾ÈµÈ »óÅÂÀÌ±â ¶§¹®¿¡ ¿¡·¯°¡ ¹ß»ıÇÏ´Â °æ¿ì°¡ ÀÖÀ½
-	// To Do :: cstr ¸Ş¸ğ¸® ´©¼ö
+	// ë‹¤ì‹œ ì˜ìƒ íŒŒì¼ì„ ë¶ˆëŸ¬ì˜¬ ë•Œ cstr í¬ì¸í„°ê°€ ë©”ëª¨ë¦¬ í•´ì œê°€ 
+	// ì¬ëŒ€ë¡œ ì•ˆëœ ìƒíƒœì´ê¸° ë•Œë¬¸ì— ì—ëŸ¬ê°€ ë°œìƒí•˜ëŠ” ê²½ìš°ê°€ ìˆìŒ
+	// To Do :: cstr ë©”ëª¨ë¦¬ ëˆ„ìˆ˜
 
 	char *cstr = new char[temp.length() + 1];
 	strcpy(cstr, temp.c_str());
@@ -328,25 +341,25 @@ void CMFC_SyntheticDlg::loadFile(){
 	capture.open((string)cstrImgPath);
 	capture_for_background.open((string)cstrImgPath);
 
-	if (!capture.isOpened()) { //¿¹¿ÜÃ³¸®. ÇØ´çÀÌ¸§ÀÇ ÆÄÀÏÀÌ ¾ø´Â °æ¿ì
+	if (!capture.isOpened()) { //ì˜ˆì™¸ì²˜ë¦¬. í•´ë‹¹ì´ë¦„ì˜ íŒŒì¼ì´ ì—†ëŠ” ê²½ìš°
 		perror("No Such File!\n");
-		::SendMessage(GetSafeHwnd(), WM_CLOSE, NULL, NULL);	//´ÙÀÌ¾ó ·Î±× Á¾·á
+		::SendMessage(GetSafeHwnd(), WM_CLOSE, NULL, NULL);	//ë‹¤ì´ì–¼ ë¡œê·¸ ì¢…ë£Œ
 	}
 	
 	// delete[]cstr;
 
-	// ¹Ş¾Æ¿Ã ¿µ»óÀÇ Á¤º¸µé :: °¡·Î, ¼¼·Î±æÀÌ ¹Ş¾Æ¿À±â
-	COLS = (int)capture.get(CV_CAP_PROP_FRAME_WIDTH); //°¡·Î ±æÀÌ
-	ROWS = (int)capture.get(CV_CAP_PROP_FRAME_HEIGHT); //¼¼·Î ±æÀÌ
+	// ë°›ì•„ì˜¬ ì˜ìƒì˜ ì •ë³´ë“¤ :: ê°€ë¡œ, ì„¸ë¡œê¸¸ì´ ë°›ì•„ì˜¤ê¸°
+	COLS = (int)capture.get(CV_CAP_PROP_FRAME_WIDTH); //ê°€ë¡œ ê¸¸ì´
+	ROWS = (int)capture.get(CV_CAP_PROP_FRAME_HEIGHT); //ì„¸ë¡œ ê¸¸ì´
 	fps = capture.get(CV_CAP_PROP_FPS);
 
-	// isPlayBtnClicked , isPauseBtnClicked ÄÚµå Áßº¹ »èÁ¦
-	// radiobutton ÄÚµå Áßº¹ »èÁ¦
+	// isPlayBtnClicked , isPauseBtnClicked ì½”ë“œ ì¤‘ë³µ ì‚­ì œ
+	// radiobutton ì½”ë“œ ì¤‘ë³µ ì‚­ì œ
 
-	// edit box¿Í slider ±âº» °ª ºÒ·¯¿À±â
-	loadValueOfSlider(COLS, ROWS, 0, 0); // ÀÏ´Ü startTime°ú endTimeÀº 0À¸·Î ÇØ³õÀ½
+	// edit boxì™€ slider ê¸°ë³¸ ê°’ ë¶ˆëŸ¬ì˜¤ê¸°
+	loadValueOfSlider(COLS, ROWS, 0, 0); // ì¼ë‹¨ startTimeê³¼ endTimeì€ 0ìœ¼ë¡œ í•´ë†“ìŒ
 
-	// ¹è°æ º¯¼ö ÃÊ±âÈ­ ¹× ÃÊ±â ¹è°æ »ı¼º
+	// ë°°ê²½ ë³€ìˆ˜ ì´ˆê¸°í™” ë° ì´ˆê¸° ë°°ê²½ ìƒì„±
 	background = Mat(ROWS, COLS, CV_8UC3);
 	background_gray = Mat(ROWS, COLS, CV_8UC1);
 
@@ -354,13 +367,13 @@ void CMFC_SyntheticDlg::loadFile(){
 }
 
 
-// ÆÄÀÏÀ» ºÒ·¯¿À¸é¼­ °¢Á¾ slider¿Í box¸¦ ÃÊ±âÈ­ÇÏ´Â ÇÔ¼ö
+// íŒŒì¼ì„ ë¶ˆëŸ¬ì˜¤ë©´ì„œ ê°ì¢… sliderì™€ boxë¥¼ ì´ˆê¸°í™”í•˜ëŠ” í•¨ìˆ˜
 void CMFC_SyntheticDlg::loadValueOfSlider(int captureCols, int captureRows, int startTime, int endTime) {
 	//edit box default
 	m_pEditBoxStartHour->SetWindowTextA("0");
 	m_pEditBoxStartMinute->SetWindowTextA("0");
 
-	// To Do :: startTime, endTimeµµ ¸Å°³º¯¼ö·Î ¹Ş¾Æ¿Í¼­ ÃÊ±âÈ­½ÃÄÑÁÖ±â
+	// To Do :: startTime, endTimeë„ ë§¤ê°œë³€ìˆ˜ë¡œ ë°›ì•„ì™€ì„œ ì´ˆê¸°í™”ì‹œì¼œì£¼ê¸°
 	// stringstream time_string;
 	// time_string = timeConvertor(startTime);
 
@@ -408,14 +421,14 @@ void CMFC_SyntheticDlg::OnSysCommand(UINT nID, LPARAM lParam)
 		dlgAbout.DoModal();
 	}
 
-	// ÇÁ·Î±×·¥À» Áß´Ü(x¹öÆ°)ÇßÀ» ¶§
+	// í”„ë¡œê·¸ë¨ì„ ì¤‘ë‹¨(xë²„íŠ¼)í–ˆì„ ë•Œ
 	else if (nID == SC_CLOSE) {
-		if (MessageBox("ÇÁ·Î±×·¥À» Á¾·áÇÏ½Ã°Ú½À´Ï±î??", "S/W Exit", MB_YESNO) == IDYES) {
-			// Á¾·á½Ã ÀÌº¥Æ®
+		if (MessageBox("í”„ë¡œê·¸ë¨ì„ ì¢…ë£Œí•˜ì‹œê² ìŠµë‹ˆê¹Œ??", "S/W Exit", MB_YESNO) == IDYES) {
+			// ì¢…ë£Œì‹œ ì´ë²¤íŠ¸
 			AfxGetMainWnd()->PostMessage(WM_CLOSE);
 		}
 		else {
-			// Ãë¼Ò½Ã ÀÌº¥Æ®
+			// ì·¨ì†Œì‹œ ì´ë²¤íŠ¸
 		}
 	}
 
@@ -425,28 +438,28 @@ void CMFC_SyntheticDlg::OnSysCommand(UINT nID, LPARAM lParam)
 	}
 }
 
-// MFC¿¡¼­ Á¾·á(x)¹öÆ°À» ´©¸¦ ½Ã, OnClose()->OnCancel()->OnDestroy()¼øÀ¸·Î È£ÃâµÇ¾î ³¡³²
-// OnClose(), OnDestroy()´Â ÀÌ¿ëÇÒ ÇÊ¿ä°¡ ¾ø¾î¼­ »ı·«ÇÔ
+// MFCì—ì„œ ì¢…ë£Œ(x)ë²„íŠ¼ì„ ëˆ„ë¥¼ ì‹œ, OnClose()->OnCancel()->OnDestroy()ìˆœìœ¼ë¡œ í˜¸ì¶œë˜ì–´ ëë‚¨
+// OnClose(), OnDestroy()ëŠ” ì´ìš©í•  í•„ìš”ê°€ ì—†ì–´ì„œ ìƒëµí•¨
 
-// °øÅë º¯¼ö ¸Ş¸ğ¸® ÇØÁ¦ ¹× Á¾·á¿¬»ê
+// ê³µí†µ ë³€ìˆ˜ ë©”ëª¨ë¦¬ í•´ì œ ë° ì¢…ë£Œì—°ì‚°
 void CMFC_SyntheticDlg::OnCancel() {
 	printf("OnCancel\n");
-	// cppÆÄÀÏ ³» Àü¿ªº¯¼öµé ¸Ş¸ğ¸® ÇØÁ¦
+	// cppíŒŒì¼ ë‚´ ì „ì—­ë³€ìˆ˜ë“¤ ë©”ëª¨ë¦¬ í•´ì œ
 	background.release(); 
 	background_gray.release();
 	video_filename.clear(); background_filename.clear(); txt_filename.clear();
 
 	delete[] m_segmentArray;
 	
-	// CMFC_SyntheticDlg Å¬·¡½ºÀÇ ¸â¹öº¯¼öµé ¸Ş¸ğ¸® ÇØÁ¦
+	// CMFC_SyntheticDlg í´ë˜ìŠ¤ì˜ ë©¤ë²„ë³€ìˆ˜ë“¤ ë©”ëª¨ë¦¬ í•´ì œ
 	capture.release();
 	capture_for_background.release();
 
-//  layout¿¡¼­ Á¦°øµÇ´Â ºÎºĞÀ» ÇØÁ¦ÇÒ °æ¿ì ¿À·ù°¡ ³²
+//  layoutì—ì„œ ì œê³µë˜ëŠ” ë¶€ë¶„ì„ í•´ì œí•  ê²½ìš° ì˜¤ë¥˜ê°€ ë‚¨
 //	free(&m_rectCurHist);
 //	free(m_pEditBoxStartHour);  free(m_pEditBoxStartMinute);
 
-	// To Do :: ¿­·ÁÀÖ´Â ÅØ½ºÆ® ÆÄÀÏ ¸ğµÎ ´İÀ½
+	// To Do :: ì—´ë ¤ìˆëŠ” í…ìŠ¤íŠ¸ íŒŒì¼ ëª¨ë‘ ë‹«ìŒ
 
 	PostQuitMessage(0); 
 }
@@ -490,9 +503,9 @@ HCURSOR CMFC_SyntheticDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
-// µğ½ºÇÃ·¹ÀÌ ÇÔ¼ö
+// ë””ìŠ¤í”Œë ˆì´ í•¨ìˆ˜
 void CMFC_SyntheticDlg::DisplayImage(int IDC_PICTURE_TARGET, Mat targetMat, int TIMER_ID){
-	if (targetMat.empty()) {	//¿¹¿ÜÃ³¸®. ÇÁ·¹ÀÓÀÌ ¾øÀ½
+	if (targetMat.empty()) {	//ì˜ˆì™¸ì²˜ë¦¬. í”„ë ˆì„ì´ ì—†ìŒ
 		perror("Empty Frame");
 		KillTimer(TIMER_ID);
 		return;
@@ -505,7 +518,7 @@ void CMFC_SyntheticDlg::DisplayImage(int IDC_PICTURE_TARGET, Mat targetMat, int 
 	bitmapInfo.bmiHeader.biWidth = targetMat.cols;
 	bitmapInfo.bmiHeader.biHeight = -targetMat.rows;
 
-	// IplImage ÁÖ¼Ò¼³Á¤
+	// IplImage ì£¼ì†Œì„¤ì •
 	IplImage *tempImage;
 	IplImage tempImageAddress;
 	tempImage = &tempImageAddress;
@@ -530,7 +543,7 @@ void CMFC_SyntheticDlg::DisplayImage(int IDC_PICTURE_TARGET, Mat targetMat, int 
 	//http://blog.naver.com/PostView.nhn?blogId=hayandoud&logNo=220851430885&categoryNo=0&parentCategoryNo=0&viewDate=&currentPage=1&postListTopCurrentPage=1&from=postView
 	pDC->SetStretchBltMode(COLORONCOLOR);
 
-	// ¿µ»ó ºñÀ¯À»À» °è»êÇÏ¿© Picture control¿¡ Ãâ·Â
+	// ì˜ìƒ ë¹„ìœ ì„ì„ ê³„ì‚°í•˜ì—¬ Picture controlì— ì¶œë ¥
 	float fImageRatio = float(tempImage->width) / float(tempImage->height);
 	float fRectRatio = float(rect.right) / float(rect.bottom);
 	float fScaleFactor;
@@ -548,7 +561,7 @@ void CMFC_SyntheticDlg::DisplayImage(int IDC_PICTURE_TARGET, Mat targetMat, int 
 		rect.top = halfOfDif;
 		rect.bottom = bottomWithRatio;
 	}
-	//ÀÌ¹ÌÁö Ãâ·Â (https://thebook.io/006796/ch03/04/01_01/)
+	//ì´ë¯¸ì§€ ì¶œë ¥ (https://thebook.io/006796/ch03/04/01_01/)
 	::StretchDIBits(pDC->GetSafeHdc(),
 		rect.left + 5, rect.top + 5, rect.right - 10, rect.bottom - 10,
 		0, 0, tempImage->width, tempImage->height,
@@ -557,13 +570,13 @@ void CMFC_SyntheticDlg::DisplayImage(int IDC_PICTURE_TARGET, Mat targetMat, int 
 	cvReleaseImage(&tempImage);
 }
 
-//Å¸ÀÌ¸Ó
+//íƒ€ì´ë¨¸
 void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 {
 	CDialogEx::OnTimer(nIDEvent);
 	Mat temp_frame;
 	switch (nIDEvent){
-	case LOGO_TIMER:	//·Î°í Ãâ·Â
+	case LOGO_TIMER:	//ë¡œê³  ì¶œë ¥
 		if (true){
 			string logoFileName = "logo.jpg";
 			Mat logo = imread(logoFileName);
@@ -576,28 +589,28 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 		}
 		break;
 
-		// ¿øº» ¿µ»ó Ãâ·Â
+		// ì›ë³¸ ì˜ìƒ ì¶œë ¥
 	case VIDEO_TIMER:
 		printf("$");
 		capture.read(temp_frame);
 		DisplayImage(IDC_RESULT_IMAGE, temp_frame, VIDEO_TIMER);
 		break;
 
-		// ÀÌÁø ¿µ»ó Ãâ·Â
+		// ì´ì§„ ì˜ìƒ ì¶œë ¥
 	case BIN_VIDEO_TIMER:
 		if (true) {
 			Mat img_labels, stats, centroids;
 			capture.read(temp_frame);
-			//±×·¹ÀÌ½ºÄÉÀÏ º¯È¯
+			//ê·¸ë ˆì´ìŠ¤ì¼€ì¼ ë³€í™˜
 			cvtColor(temp_frame, temp_frame, CV_RGB2GRAY);
-			// Àü°æ ÃßÃâ
+			// ì „ê²½ ì¶”ì¶œ
 			temp_frame = ExtractFg(temp_frame, background_gray, ROWS, COLS);
 			// frame_g = ExtractForegroundToMOG2(frame_g);
 
-			// ÀÌÁøÈ­
+			// ì´ì§„í™”
 			threshold(temp_frame, temp_frame, 5, 255, CV_THRESH_BINARY);
 
-			// ³ëÀÌÁî Á¦°Å
+			// ë…¸ì´ì¦ˆ ì œê±°
 			temp_frame = morphologicalOperation(temp_frame);
 			blur(temp_frame, temp_frame, Size(9, 9));
 			temp_frame = morphologicalOperation(temp_frame);
@@ -609,7 +622,7 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 
 			cvtColor(temp_frame, temp_frame, CV_GRAY2BGR);
 
-			//¶óº§¸µ µÈ ÀÌ¹ÌÁö¿¡ °¢°¢ Á÷»ç°¢ÇüÀ¸·Î µÑ·¯½Î±â 
+			//ë¼ë²¨ë§ ëœ ì´ë¯¸ì§€ì— ê°ê° ì§ì‚¬ê°í˜•ìœ¼ë¡œ ë‘˜ëŸ¬ì‹¸ê¸° 
 			for (int j = 1; j < numOfLables; j++) {
 				int area = stats.at<int>(j, CC_STAT_AREA);
 				int left = stats.at<int>(j, CC_STAT_LEFT);
@@ -630,9 +643,9 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 	case SYN_RESULT_TIMER:
 		printf("#");
 		background_filename = getBackgroundFilePath(video_filename);
-		Mat background_loadedFromFile = imread(getBackgroundFilePath(video_filename));//ÇÕ¼º ¿µ»óÀ» Ãâ·ÂÇÒ ¶§ ¹ÙÅÁÀÌ µÉ ÇÁ·¹ÀÓ. ¿µ»óÇÕ¼º ¶óµğ¿À ¹öÆ° Å¬¸¯ ½Ã ÀÚµ¿À¸·Î ÆÄÀÏ·ÎºÎÅÍ ·Îµå µÊ
+		Mat background_loadedFromFile = imread(getBackgroundFilePath(video_filename));//í•©ì„± ì˜ìƒì„ ì¶œë ¥í•  ë•Œ ë°”íƒ•ì´ ë  í”„ë ˆì„. ì˜ìƒí•©ì„± ë¼ë””ì˜¤ ë²„íŠ¼ í´ë¦­ ì‹œ ìë™ìœ¼ë¡œ íŒŒì¼ë¡œë¶€í„° ë¡œë“œ ë¨
 		
-		// ºÒ·¯¿Â ¹è°æÀ» ÀÌ¿ëÇÏ¿© ÇÕ¼ºÀ» ÁøÇà
+		// ë¶ˆëŸ¬ì˜¨ ë°°ê²½ì„ ì´ìš©í•˜ì—¬ í•©ì„±ì„ ì§„í–‰
 		Mat syntheticResult = getSyntheticFrame(background_loadedFromFile);
 		DisplayImage(IDC_RESULT_IMAGE, syntheticResult, SYN_RESULT_TIMER);
 		syntheticResult.release();
@@ -642,30 +655,50 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 	temp_frame.release();
 }
 
-// segmentation ButtonÀ» ´­·¶À» ¶§ÀÇ ¿¬»ê
-// ½Ã¿Í ºĞÀ» ÀÔ·Â¹Ş¾Æ segmentationÀ» ÁøÇàÇÔ
+// segmentation Buttonì„ ëˆŒë €ì„ ë•Œì˜ ì—°ì‚°
+// ì‹œì™€ ë¶„ì„ ì…ë ¥ë°›ì•„ segmentationì„ ì§„í–‰í•¨
 void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 {
 	CString str_startHour, str_startMinute;
-	//Edit Box·ÎºÎÅÍ ½ÃÀÛ ½Ã°£°ú ºĞÀ» ÀĞ¾î¿È
+	//Edit Boxë¡œë¶€í„° ì‹œì‘ ì‹œê°„ê³¼ ë¶„ì„ ì½ì–´ì˜´
 	m_pEditBoxStartHour->GetWindowTextA(str_startHour);
 	m_pEditBoxStartMinute->GetWindowTextA(str_startMinute);
 
-	// Edit box¿¡ ¹®ÀÚ ÀÔ·Â, ¶Ç´Â ¹üÀ§¿Ü ÀÔ·Â ½Ã ¿¹¿ÜÃ³¸®
-	if (segmentationTimeInputException(str_startHour, str_startMinute))
+	// Edit boxì— ë¬¸ì ì…ë ¥, ë˜ëŠ” ë²”ìœ„ì™¸ ì…ë ¥ ì‹œ ì˜ˆì™¸ì²˜ë¦¬
+	if (segmentationTimeInputException(str_startHour, str_startMinute)){
+		//ë¡œë”© ì°½ ë„ì›€
+		CSplashScreenEx *pSplash; //ë¡œë”©ì°½
+		pSplash = new CSplashScreenEx();
+		pSplash->Create(this, "Loading", 0, CSS_FADE | CSS_CENTERAPP | CSS_SHADOW);
+		pSplash->SetBitmap(IDB_LOADING, 0, 0, 0);
+		pSplash->SetTextFont("Arial", 110, CSS_TEXT_BOLD);
+		pSplash->SetTextRect(CRect(148, 38, 228, 70));
+		pSplash->SetTextColor(RGB(0, 0, 0));
+		pSplash->Show();
+		pSplash->SetText("Pls wait...");
 		segmentationOperator(&capture, atoi(str_startHour), atoi(str_startMinute)
 			, m_SliderWMIN.GetPos(), m_SliderWMAX.GetPos(), m_SliderHMIN.GetPos(), m_SliderHMAX.GetPos());	//Object Segmentation
-	// ¹üÀ§ ¿Ü ÀÔ·Â½Ã ¿¹¿ÜÃ³¸®
-	else {
+		
+		//ë¼ë””ì˜¤ë²„íŠ¼ - í•©ì„±ì˜ìƒ í™œì„±í™” / ë¹„í™œì„±í™”
+		if (checkSegmentation()){
+			GetDlgItem(IDC_RADIO_PLAY2)->EnableWindow(TRUE);
+		}
+		else{
+			GetDlgItem(IDC_RADIO_PLAY2)->EnableWindow(FALSE);
+		}
+
+		pSplash->Hide();
+	}
+	else {	// ë²”ìœ„ ì™¸ ì…ë ¥ì‹œ ì˜ˆì™¸ì²˜ë¦¬
 	}
 }
 
-// segmentation ±â´É ¼öÇà, ¹°Ã¼ ÃßÀû ¹× ÆÄÀÏ·Î ÀúÀå
+// segmentation ê¸°ëŠ¥ ìˆ˜í–‰, ë¬¼ì²´ ì¶”ì  ë° íŒŒì¼ë¡œ ì €ì¥
 void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int videoStartMin, int WMIN, int WMAX, int HMIN, int HMAX){
 	videoStartMsec = (videoStartHour * 60 + videoStartMin) * 60 * 1000;
 
-	unsigned int COLS = (int)vc_Source->get(CV_CAP_PROP_FRAME_WIDTH);	//°¡·Î ±æÀÌ
-	unsigned int ROWS = (int)vc_Source->get(CV_CAP_PROP_FRAME_HEIGHT);	//¼¼·Î ±æÀÌ
+	unsigned int COLS = (int)vc_Source->get(CV_CAP_PROP_FRAME_WIDTH);	//ê°€ë¡œ ê¸¸ì´
+	unsigned int ROWS = (int)vc_Source->get(CV_CAP_PROP_FRAME_HEIGHT);	//ì„¸ë¡œ ê¸¸ì´
 
 	// humanDetector Vector
 	vector<component> humanDetectedVector, prevHumanDetectedVector;
@@ -674,45 +707,45 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 	Mat frame(ROWS, COLS, CV_8UC3); // Mat(height, width, channel)
 	Mat frame_g(ROWS, COLS, CV_8UC1);
 	Mat tmp_background(ROWS, COLS, CV_8UC3);
-	//frame Ä«¿îÅÍ¿Í ÇöÀç millisecond
+	//frame ì¹´ìš´í„°ì™€ í˜„ì¬ millisecond
 	int frameCount = 0;
 	unsigned int currentMsec;
 
-	// ¹è°æ ÃÊ±âÈ­
+	// ë°°ê²½ ì´ˆê¸°í™”
 	background_gray = backgroundInit(vc_Source, background);
 
-	// To Do :: ¼¼±×¸ÕÅ×ÀÌ¼ÇÀÌ µµÁß¿¡ Áß´ÜµÇ¾úÀ» ¶§ 
-	// ±× ½ÃÁ¡¿¡¼­ºÎÅÍ ´Ù½Ã ¼¼±×¸ÕÅ×ÀÌ¼ÇÀ» ÁøÇàÇÏ°í ½ÍÀ» ¶§ vc_sourceÀÇ Ã³¸®
+	// To Do :: ì„¸ê·¸ë¨¼í…Œì´ì…˜ì´ ë„ì¤‘ì— ì¤‘ë‹¨ë˜ì—ˆì„ ë•Œ 
+	// ê·¸ ì‹œì ì—ì„œë¶€í„° ë‹¤ì‹œ ì„¸ê·¸ë¨¼í…Œì´ì…˜ì„ ì§„í–‰í•˜ê³  ì‹¶ì„ ë•Œ vc_sourceì˜ ì²˜ë¦¬
 
-	// ÆÄÀÏ ¹× µğ·ºÅÍ¸® Á¤ÀÇ ºÎºĞ
-	// ¼¼±×¸ÕÅ×ÀÌ¼Ç µ¥ÀÌÅÍ(txt, jpgµé)¸¦ ÀúÀåÇÒ µğ·ºÅä¸® À¯¹«È®ÀÎ, ¾øÀ¸¸é ¸¸µé¾îÁÜ
+	// íŒŒì¼ ë° ë””ë ‰í„°ë¦¬ ì •ì˜ ë¶€ë¶„
+	// ì„¸ê·¸ë¨¼í…Œì´ì…˜ ë°ì´í„°(txt, jpgë“¤)ë¥¼ ì €ì¥í•  ë””ë ‰í† ë¦¬ ìœ ë¬´í™•ì¸, ì—†ìœ¼ë©´ ë§Œë“¤ì–´ì¤Œ
 	int tmp = makeDataRootDirectory();
 	int tmp2 = makeDataSubDirectory(video_filename);
 
-	// ¾ò¾î³½ °´Ã¼ ÇÁ·¹ÀÓÀÇ Á¤º¸¸¦ ½á ³¾ ÅØ½ºÆ® ÆÄÀÏ Á¤ÀÇs
-	fp = fopen(getTextFilePath(video_filename).c_str(), "w");	// ¾²±â¸ğµå
-	fprintf(fp, to_string(videoStartMsec).append("\n").c_str());	//Ã¹ÁÙ¿¡ ¿µ»ó½ÃÀÛ½Ã°£ Àû¾îÁÜ
+	// ì–»ì–´ë‚¸ ê°ì²´ í”„ë ˆì„ì˜ ì •ë³´ë¥¼ ì¨ ë‚¼ í…ìŠ¤íŠ¸ íŒŒì¼ ì •ì˜s
+	fp = fopen(getTextFilePath(video_filename).c_str(), "w");	// ì“°ê¸°ëª¨ë“œ
+	fprintf(fp, to_string(videoStartMsec).append("\n").c_str());	//ì²«ì¤„ì— ì˜ìƒì‹œì‘ì‹œê°„ ì ì–´ì¤Œ
 	
-	// vc_sourceÀÇ ½ÃÀÛ½Ã°£ 0À¸·Î ÃÊ±âÈ­
+	// vc_sourceì˜ ì‹œì‘ì‹œê°„ 0ìœ¼ë¡œ ì´ˆê¸°í™”
 	vc_Source->set(CV_CAP_PROP_POS_MSEC, 0);
 	if ( true ) {
 		while (1) {
 			vc_Source->read(frame); //get single frame
-			if (frame.empty()) {	//¿¹¿ÜÃ³¸®. ÇÁ·¹ÀÓÀÌ ¾øÀ½
+			if (frame.empty()) {	//ì˜ˆì™¸ì²˜ë¦¬. í”„ë ˆì„ì´ ì—†ìŒ
 				perror("Empty Frame");
 				break;
 			}
 
-			// FRAMES_FOR_MAKE_BACKGROUND °¹¼ö ¸¸Å­ÀÇ ÇÁ·¹ÀÓÀ» ÀÌ¿ëÇÏ¿© ¹è°æ ¸¸µé±â
+			// FRAMES_FOR_MAKE_BACKGROUND ê°¯ìˆ˜ ë§Œí¼ì˜ í”„ë ˆì„ì„ ì´ìš©í•˜ì—¬ ë°°ê²½ ë§Œë“¤ê¸°
 			if (frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND >= FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND
 				&& frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND < FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1) {
-				// ¹è°æÀ» ´Ù½Ã ¸¸µé ¶§ Ã¹¹ø¤Š ÀÓ½Ã¹è°æÀ» ÇÁ·¹ÀÓ Áß ÇÏ³ª·Î ¼±ÅÃÇÔ(¿¬»êÀ» ½ÃÀÛÇÏ´Â Ã¹¹ø¤Š ÇÁ·¹ÀÓ)
+				// ë°°ê²½ì„ ë‹¤ì‹œ ë§Œë“¤ ë•Œ ì²«ë²ˆÂŠ ì„ì‹œë°°ê²½ì„ í”„ë ˆì„ ì¤‘ í•˜ë‚˜ë¡œ ì„ íƒí•¨(ì—°ì‚°ì„ ì‹œì‘í•˜ëŠ” ì²«ë²ˆÂŠ í”„ë ˆì„)
 				if (frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND)
 					tmp_background = frame;
 				BackgroundMaker(frame, tmp_background, ROWS, COLS);
 
 				if (frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 2) {
-					// ¸¸µç background Àû¿ë
+					// ë§Œë“  background ì ìš©
 					background = tmp_background;
 					//	int check = imwrite(getBackgroundFilePath(video_filename), background);
 					cvtColor(background, background_gray, CV_RGB2GRAY);
@@ -721,30 +754,30 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 				}
 			}
 
-			//printf("=====%5d ÇÁ·¹ÀÓ=====\n", frameCount);
-			//±×·¹ÀÌ½ºÄÉÀÏ º¯È¯
+			//printf("=====%5d í”„ë ˆì„=====\n", frameCount);
+			//ê·¸ë ˆì´ìŠ¤ì¼€ì¼ ë³€í™˜
 			cvtColor(frame, frame_g, CV_RGB2GRAY);
 
-			// Àü°æ ÃßÃâ
+			// ì „ê²½ ì¶”ì¶œ
 			frame_g = ExtractFg(frame_g, background_gray, ROWS, COLS);
 
-			// ÀÌÁøÈ­
+			// ì´ì§„í™”
 			threshold(frame_g, frame_g, 5, 255, CV_THRESH_BINARY);
 
-			// ³ëÀÌÁî Á¦°Å ¹× ºí·¯ Ã³¸®
+			// ë…¸ì´ì¦ˆ ì œê±° ë° ë¸”ëŸ¬ ì²˜ë¦¬
 			frame_g = morphologicalOperation(frame_g);
 			blur(frame_g, frame_g, Size(9, 9));
 			frame_g = morphologicalOperation(frame_g);
 
 			threshold(frame_g, frame_g, 5, 255, CV_THRESH_BINARY);
 
-			// MATÇüÀ¸·Î ¶óº§¸µ
+			// MATí˜•ìœ¼ë¡œ ë¼ë²¨ë§
 			humanDetectedVector = connectedComponentsLabelling(frame_g, ROWS, COLS, WMIN, WMAX, HMIN, HMAX);
 
-			// ÇöÀç ÇÁ·¹ÀÓÀÇ ¿µ»ó ½Ã°£ °¡Á®¿À±â
+			// í˜„ì¬ í”„ë ˆì„ì˜ ì˜ìƒ ì‹œê°„ ê°€ì ¸ì˜¤ê¸°
 			currentMsec = vc_Source->get(CV_CAP_PROP_POS_MSEC);
 
-			// ¿µ»óÀ» Ã³¸®ÇÏ¿© ÆÄÀÏ·Î ÀúÀåÇÏ±â
+			// ì˜ìƒì„ ì²˜ë¦¬í•˜ì—¬ íŒŒì¼ë¡œ ì €ì¥í•˜ê¸°
 			humanDetectedVector = humanDetectedProcess(humanDetectedVector, prevHumanDetectedVector,
 				frame, frameCount, videoStartMsec, currentMsec, fp);
 
@@ -753,7 +786,7 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 
 			}
 
-			// º¤ÅÍ ¸Ş¸ğ¸® ÇØÁ¦¸¦ ºó º¤ÅÍ »ı¼º(prevHumanDetectedVector ¸Ş¸ğ¸® ÇØÁ¦)
+			// ë²¡í„° ë©”ëª¨ë¦¬ í•´ì œë¥¼ ë¹ˆ ë²¡í„° ìƒì„±(prevHumanDetectedVector ë©”ëª¨ë¦¬ í•´ì œ)
 			vector<component> vclear;
 			prevHumanDetectedVector.swap(vclear);
 
@@ -762,10 +795,10 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 			
 			
 
-			// ÇöÀç °ËÃâÇÑ µ¥ÀÌÅÍ¸¦ ÀÌÀü µ¥ÀÌÅÍ¿¡ ÀúÀåÇÏ±â
+			// í˜„ì¬ ê²€ì¶œí•œ ë°ì´í„°ë¥¼ ì´ì „ ë°ì´í„°ì— ì €ì¥í•˜ê¸°
 			prevHumanDetectedVector = humanDetectedVector;
 
-			// º¤ÅÍ ¸Ş¸ğ¸® ÇØÁ¦¸¦ ºó º¤ÅÍ »ı¼º
+			// ë²¡í„° ë©”ëª¨ë¦¬ í•´ì œë¥¼ ë¹ˆ ë²¡í„° ìƒì„±
 			humanDetectedVector.swap(vclear);
 
 			vclear.clear();
@@ -775,25 +808,25 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 		}
 	}
 
-	printf("segmentation Operator ³¡\n");
+	printf("segmentation Operator ë\n");
 
 	//HWND hWnd = ::FindWindow(NULL, "Dude, Wait");
 	//if (hWnd){ ::PostMessage(hWnd, WM_CLOSE, 0, 0); }
 
-	// To Do :: ¼¼±×¸ÕÅ×ÀÌ¼Ç ¿Ï·áÇÏ¸é¼­ ¿¡·¯°¡ ³²
+	// To Do :: ì„¸ê·¸ë¨¼í…Œì´ì…˜ ì™„ë£Œí•˜ë©´ì„œ ì—ëŸ¬ê°€ ë‚¨
 	MessageBox(0, "Done!!", "ding-dong", MB_OK);
 	Sleep(2500);
 
-	//¸Ş¸ğ¸® ÇØÁ¦
+	//ë©”ëª¨ë¦¬ í•´ì œ
 	frame.release(); frame_g.release();
 
 	vector<component>().swap(humanDetectedVector);
 	vector<component>().swap(prevHumanDetectedVector);
 	
-	fclose(fp);	// ÅØ½ºÆ® ÆÄÀÏ ´İ±â
+	fclose(fp);	// í…ìŠ¤íŠ¸ íŒŒì¼ ë‹«ê¸°
 }
 
-// ÇöÀç¿Í ÀÌÀü¿¡ °ËÃâÇÑ °á°ú¸¦ ºñ±³, true ¸é °ãÄ¥ ¼ö ¾øÀ½
+// í˜„ì¬ì™€ ì´ì „ì— ê²€ì¶œí•œ ê²°ê³¼ë¥¼ ë¹„êµ, true ë©´ ê²¹ì¹  ìˆ˜ ì—†ìŒ
 bool IsComparePrevDetection(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index) {
 	return curr_detected[curr_index].left > prev_detected[prev_index].right
 		|| curr_detected[curr_index].right < prev_detected[prev_index].left
@@ -807,15 +840,15 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 	//printf("cur msec : %d\n", currentMsec);
 	int prevTimeTag;
 	for (int index = 0; index < humanDetectedVector.size(); index++) {
-		// TODO : ÇöÀç ÇÁ·¹ÀÓ¿¡¼­ ÀÌÀüÇÁ·¹ÀÓ°ú °ãÄ¡´Â obj°¡ ÀÖ´ÂÁö ÆÇ´ÜÇÑ´Ù. 
-		// ÀÌÀü ¿ÀºêÁ§Æ®¿¡ ´ÙÀ½¿ÀºêÁ§Æ®°¡ µÎ°³°¡ °ÉÄ¥ °æ¿ì ¾î¶»°Ô Ã³¸®ÇÒ °ÍÀÎ°¡?
-		if (!prevHumanDetectedVector.empty()) {	//ÀÌÀü ÇÁ·¹ÀÓÀÇ °ËÃâµÈ °´Ã¼°¡ ÀÖÀ» °æ¿ì
+		// TODO : í˜„ì¬ í”„ë ˆì„ì—ì„œ ì´ì „í”„ë ˆì„ê³¼ ê²¹ì¹˜ëŠ” objê°€ ìˆëŠ”ì§€ íŒë‹¨í•œë‹¤. 
+		// ì´ì „ ì˜¤ë¸Œì íŠ¸ì— ë‹¤ìŒì˜¤ë¸Œì íŠ¸ê°€ ë‘ê°œê°€ ê±¸ì¹  ê²½ìš° ì–´ë–»ê²Œ ì²˜ë¦¬í•  ê²ƒì¸ê°€?
+		if (!prevHumanDetectedVector.empty()) {	//ì´ì „ í”„ë ˆì„ì˜ ê²€ì¶œëœ ê°ì²´ê°€ ìˆì„ ê²½ìš°
 			bool findFlag = false;
 			for (int j = 0; j < prevHumanDetectedVector.size(); j++) {
-				if (!IsComparePrevDetection(humanDetectedVector, prevHumanDetectedVector, index, j)) {	// µÎ ROI°¡ °ãÄ¥ °æ¿ì
-					// ÀÌÀü TimeTag¸¦ ÇÒ´ç
+				if (!IsComparePrevDetection(humanDetectedVector, prevHumanDetectedVector, index, j)) {	// ë‘ ROIê°€ ê²¹ì¹  ê²½ìš°
+					// ì´ì „ TimeTagë¥¼ í• ë‹¹
 					prevTimeTag = prevHumanDetectedVector[j].timeTag;
-					//printf("%d°¡ °ãÄ§\n", prevTimeTag);
+					//printf("%dê°€ ê²¹ì¹¨\n", prevTimeTag);
 					humanDetectedVector[index].timeTag = prevTimeTag;
 					saveSegmentationData(video_filename, humanDetectedVector[index], frame
 						, prevTimeTag, currentMsec, frameCount, index, fp);
@@ -825,99 +858,99 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 				}
 			}
 
-			if (findFlag == false) { // »õ °´Ã¼ÀÇ ÃâÇö
+			if (findFlag == false) { // ìƒˆ ê°ì²´ì˜ ì¶œí˜„
 				humanDetectedVector[index].timeTag = currentMsec;
 				saveSegmentationData(video_filename, humanDetectedVector[index], frame
 					, currentMsec, currentMsec, frameCount, index, fp);
 
-				//printf("»õ·Î¿î °´Ã¼ : %s\n", humanDetectedVector[i].fileName);
+				//printf("ìƒˆë¡œìš´ ê°ì²´ : %s\n", humanDetectedVector[i].fileName);
 			}
 		}
-		else {	// Ã¹ ½ÃÇàÀÌ°Å³ª ÀÌÀü ÇÁ·¹ÀÓ¿¡ °ËÃâµÈ °´Ã¼°¡ ¾øÀ» °æ¿ì
-			// »õ·Î¿î ÀÌ¸§ ÇÒ´ç
+		else {	// ì²« ì‹œí–‰ì´ê±°ë‚˜ ì´ì „ í”„ë ˆì„ì— ê²€ì¶œëœ ê°ì²´ê°€ ì—†ì„ ê²½ìš°
+			// ìƒˆë¡œìš´ ì´ë¦„ í• ë‹¹
 			humanDetectedVector[index].timeTag = currentMsec;
 			saveSegmentationData(video_filename, humanDetectedVector[index], frame
 				, currentMsec, currentMsec, frameCount, index, fp);
-			//printf("***ÀÌÀüÇÁ·¹ÀÓ °ËÃâ °´Ã¼ ¾øÀ½\n»õ·Î¿î °´Ã¼ : %s\n", humanDetectedVector[i].fileName);
+			//printf("***ì´ì „í”„ë ˆì„ ê²€ì¶œ ê°ì²´ ì—†ìŒ\nìƒˆë¡œìš´ ê°ì²´ : %s\n", humanDetectedVector[i].fileName);
 		}
 	}
 	return humanDetectedVector;
 }
 
-// ÇÕ¼ºµÈ ÇÁ·¹ÀÓÀ» °¡Á®¿À´Â ¿¬»ê
+// í•©ì„±ëœ í”„ë ˆì„ì„ ê°€ì ¸ì˜¤ëŠ” ì—°ì‚°
 Mat getSyntheticFrame(Mat bgFrame) {
-	int *labelMap = (int*)calloc(bgFrame.cols * bgFrame.rows, sizeof(int));	//°ãÄ§À» ÆÇ´ÜÇÏ´Â ¿ëµµ
+	int *labelMap = (int*)calloc(bgFrame.cols * bgFrame.rows, sizeof(int));	//ê²¹ì¹¨ì„ íŒë‹¨í•˜ëŠ” ìš©ë„
 
-	node tempnode;	//DeQueueÇÑ °á°ú¸¦ ¹ŞÀ» node
-	int countOfObj = segment_queue.count;	//Å¥ ÀÎ½ºÅÏ½ºÀÇ ³ëµå °¹¼ö
+	node tempnode;	//DeQueueí•œ ê²°ê³¼ë¥¼ ë°›ì„ node
+	int countOfObj = segment_queue.count;	//í ì¸ìŠ¤í„´ìŠ¤ì˜ ë…¸ë“œ ê°¯ìˆ˜
 	stringstream ss;
 
-	//Å¥°¡ ºñ¾ú´ÂÁö È®ÀÎÇÑ´Ù. ºñ¾úÀ¸¸é ´õ ÀÌ»ó Ãâ·Â ÇÒ °ÍÀÌ ¾ø´Â °Í ÀÌ¹Ç·Î Á¾·á
+	//íê°€ ë¹„ì—ˆëŠ”ì§€ í™•ì¸í•œë‹¤. ë¹„ì—ˆìœ¼ë©´ ë” ì´ìƒ ì¶œë ¥ í•  ê²ƒì´ ì—†ëŠ” ê²ƒ ì´ë¯€ë¡œ ì¢…ë£Œ
 	if (IsEmpty(&segment_queue)){
 		free(labelMap);
 		return bgFrame;
 	}
 
-	vector<int> vectorPreNodeIndex; // °´Ã¼µé ÀÎµ¦½º Á¤º¸¸¦ ÀúÀåÇÏ±â À§ÇÑ º¤ÅÍ
+	vector<int> vectorPreNodeIndex; // ê°ì²´ë“¤ ì¸ë±ìŠ¤ ì •ë³´ë¥¼ ì €ì¥í•˜ê¸° ìœ„í•œ ë²¡í„°
 
 	for (int k = 0; k < countOfObj; k++){
 		tempnode = Dequeue(&segment_queue);
 		//if (m_segmentArray[tempnode.indexOfSegmentArray].timeTag == m_segmentArray[tempnode.indexOfSegmentArray].msec)
-		vectorPreNodeIndex.push_back(tempnode.indexOfSegmentArray);	//Å¥¿¡ ÀÖ´Â °´Ã¼µéÀÇ ÀÎµ¦½º Á¤º¸ ÀúÀå
+		vectorPreNodeIndex.push_back(tempnode.indexOfSegmentArray);	//íì— ìˆëŠ” ê°ì²´ë“¤ì˜ ì¸ë±ìŠ¤ ì •ë³´ ì €ì¥
 		Enqueue(&segment_queue, tempnode.timeTag, tempnode.indexOfSegmentArray);
 	}
 
-	// Å¥¿¡ µé¾îÀÖ´Â °´Ã¼ °¹¼ö ¸¸Å­ DeQueue. 
+	// íì— ë“¤ì–´ìˆëŠ” ê°ì²´ ê°¯ìˆ˜ ë§Œí¼ DeQueue. 
 	for (int i = 0; i < countOfObj; i++) {
-		//dequeueÇÑ °´Ã¼¸¦ Ãâ·ÂÇÑ´Ù.
+		//dequeueí•œ ê°ì²´ë¥¼ ì¶œë ¥í•œë‹¤.
 		tempnode = Dequeue(&segment_queue);
 		BOOL isCross = false;
 		int curIndex = tempnode.indexOfSegmentArray;
 
 		//printf("\n%d : %s", i + 1, m_segmentArray[curIndex].fileName);
-		//°´Ã¼°¡ ÀÌÀü °´Ã¼¿Í °ãÄ¡´ÂÁö ºñ±³
-		if (i != 0 && m_segmentArray[curIndex].timeTag == m_segmentArray[curIndex].msec){	//Ã³À½ÀÌ ¾Æ´Ï°í ÇöÀç Ãâ·ÂÇÒ °´Ã¼°¡ timetagÀÇ Ã¹ ÇÁ·¹ÀÓ ÀÏ ¶§
-			for (int j = 0; j < i; j++){	//ÀÌÀü¿¡ ±×¸° °´Ã¼ ¸ğµÎ¿Í °ãÄ¡´ÂÁö ÆÇº°
+		//ê°ì²´ê°€ ì´ì „ ê°ì²´ì™€ ê²¹ì¹˜ëŠ”ì§€ ë¹„êµ
+		if (i != 0 && m_segmentArray[curIndex].timeTag == m_segmentArray[curIndex].msec){	//ì²˜ìŒì´ ì•„ë‹ˆê³  í˜„ì¬ ì¶œë ¥í•  ê°ì²´ê°€ timetagì˜ ì²« í”„ë ˆì„ ì¼ ë•Œ
+			for (int j = 0; j < i; j++){	//ì´ì „ì— ê·¸ë¦° ê°ì²´ ëª¨ë‘ì™€ ê²¹ì¹˜ëŠ”ì§€ íŒë³„
 				if (IsObjectOverlapingDetector(m_segmentArray, vectorPreNodeIndex, curIndex, j)){
-					isCross = false; // °ãÄ¡Áö ¾ÊÀ½
+					isCross = false; // ê²¹ì¹˜ì§€ ì•ŠìŒ
 				}
-				else{ //°ãÄ§
+				else{ //ê²¹ì¹¨
 					isCross = true;
-					Enqueue(&segment_queue, tempnode.timeTag, tempnode.indexOfSegmentArray);	//Ãâ·ÂÇÏÁö ¾Ê°í ´Ù½Ã Å¥¿¡ »ğÀÔ
+					Enqueue(&segment_queue, tempnode.timeTag, tempnode.indexOfSegmentArray);	//ì¶œë ¥í•˜ì§€ ì•Šê³  ë‹¤ì‹œ íì— ì‚½ì…
 					break;
 				}
 			}
 		}
 
 
-		if (isCross == false){	//Ãâ·ÂµÈ °´Ã¼°¡ ¾ø°Å³ª ÀÌÀü °´Ã¼¿Í °ãÄ¡Áö ¾Ê´Â °æ¿ì
-			// ¾Æ·¡ »èÁ¦ ÀÌÈÄ syntheticÀ¸·Î ¿Å±â±â
-			//¹è°æ¿¡ °´Ã¼¸¦ ¿Ã¸®´Â ÇÔ¼ö
+		if (isCross == false){	//ì¶œë ¥ëœ ê°ì²´ê°€ ì—†ê±°ë‚˜ ì´ì „ ê°ì²´ì™€ ê²¹ì¹˜ì§€ ì•ŠëŠ” ê²½ìš°
+			// ì•„ë˜ ì‚­ì œ ì´í›„ syntheticìœ¼ë¡œ ì˜®ê¸°ê¸°
+			//ë°°ê²½ì— ê°ì²´ë¥¼ ì˜¬ë¦¬ëŠ” í•¨ìˆ˜
 			bgFrame = printObjOnBG(bgFrame, m_segmentArray[tempnode.indexOfSegmentArray], labelMap, video_filename);
 
-			//Å¸ÀÓÅÂ±×¸¦ stringÀ¸·Î º¯È¯
+			//íƒ€ì„íƒœê·¸ë¥¼ stringìœ¼ë¡œ ë³€í™˜
 			string timetag = "";
-			int timetagInSec = (m_segmentArray[tempnode.indexOfSegmentArray].timeTag + videoStartMsec) / 1000;	//¿µ»óÀÇ ½ÃÀÛ½Ã°£À» ´õÇØÁØ´Ù.
+			int timetagInSec = (m_segmentArray[tempnode.indexOfSegmentArray].timeTag + videoStartMsec) / 1000;	//ì˜ìƒì˜ ì‹œì‘ì‹œê°„ì„ ë”í•´ì¤€ë‹¤.
 			ss = timeConvertor(timetagInSec);
 			timetag = ss.str();
 
-			//Ä¿ÆÃµÈ ÀÌ¹ÌÁö¿¡ Å¸ÀÓÅÂ±×¸¦ ´Ş¾ÆÁØ´Ù
-			//params : (Mat, String to show, Ãâ·ÂÇÒ À§Ä¡, ÆùÆ® Å¸ÀÔ, ÆùÆ® Å©±â, »ö»ó, ±½±â) 
+			//ì»¤íŒ…ëœ ì´ë¯¸ì§€ì— íƒ€ì„íƒœê·¸ë¥¼ ë‹¬ì•„ì¤€ë‹¤
+			//params : (Mat, String to show, ì¶œë ¥í•  ìœ„ì¹˜, í°íŠ¸ íƒ€ì…, í°íŠ¸ í¬ê¸°, ìƒ‰ìƒ, êµµê¸°) 
 			putText(bgFrame, timetag, Point(m_segmentArray[tempnode.indexOfSegmentArray].left + 5, m_segmentArray[tempnode.indexOfSegmentArray].top - 10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 150, 150), 2);
 
 			//if (m_segmentArray[tempnode.indexOfSegmentArray + 1].timeTag == m_segmentArray[tempnode.indexOfSegmentArray].timeTag) {
 			//	Enqueue(&segment_queue, tempnode.timeTag, tempnode.indexOfSegmentArray + 1);
 			//}
 			
-			//´ÙÀ½ ÇÁ·¹ÀÓ¿¡ °°Àº Å¸ÀÓÅÂ±×¸¦ °¡Áø °´Ã¼°¡ ÀÖ´ÂÁö È®ÀÎÇÑ´Ù. ÀÖÀ¸¸é EnQueue
+			//ë‹¤ìŒ í”„ë ˆì„ì— ê°™ì€ íƒ€ì„íƒœê·¸ë¥¼ ê°€ì§„ ê°ì²´ê°€ ìˆëŠ”ì§€ í™•ì¸í•œë‹¤. ìˆìœ¼ë©´ EnQueue
 			int index = 1;
 			while (1){
-				//´ÙÀ½ ÇÁ·¹ÀÓ¿¡ µµ´ŞÇÒ ¶§ ±îÁö ¾Æ¹«°Íµµ ÇÏÁö ¾Ê´Â´Ù.
+				//ë‹¤ìŒ í”„ë ˆì„ì— ë„ë‹¬í•  ë•Œ ê¹Œì§€ ì•„ë¬´ê²ƒë„ í•˜ì§€ ì•ŠëŠ”ë‹¤.
 				if (m_segmentArray[tempnode.indexOfSegmentArray].frameCount == m_segmentArray[tempnode.indexOfSegmentArray + index].frameCount){
 					index++;
 				}
-				else{//ÇÁ·¹ÀÓ ¹øÈ£°¡ ³Ñ¾î °¬À» °æ¿ì
-					if ((m_segmentArray[tempnode.indexOfSegmentArray].frameCount+1) == m_segmentArray[tempnode.indexOfSegmentArray + index].frameCount){//´ÙÀ½ °´Ã¼°¡ °ËÃâµÈ ÇÁ·¹ÀÓÀÌ ÀÌÀü ÇÁ·¹ÀÓ°ú 1 Â÷ÀÌ°¡ ³¯ ¶§
+				else{//í”„ë ˆì„ ë²ˆí˜¸ê°€ ë„˜ì–´ ê°”ì„ ê²½ìš°
+					if ((m_segmentArray[tempnode.indexOfSegmentArray].frameCount+1) == m_segmentArray[tempnode.indexOfSegmentArray + index].frameCount){//ë‹¤ìŒ ê°ì²´ê°€ ê²€ì¶œëœ í”„ë ˆì„ì´ ì´ì „ í”„ë ˆì„ê³¼ 1 ì°¨ì´ê°€ ë‚  ë•Œ
 						if (m_segmentArray[tempnode.indexOfSegmentArray].timeTag == m_segmentArray[tempnode.indexOfSegmentArray + index].timeTag && m_segmentArray[tempnode.indexOfSegmentArray].index == m_segmentArray[tempnode.indexOfSegmentArray + index].index) {
 							Enqueue(&segment_queue, tempnode.timeTag, tempnode.indexOfSegmentArray + 1);
 							break;
@@ -925,7 +958,7 @@ Mat getSyntheticFrame(Mat bgFrame) {
 						else
 							index++;
 					}
-					else //´ÙÀ½ °´Ã¼°¡ ÀÖ´Â ÇÁ·¹ÀÓÀÌ °´Ã¼°¡ ÀÖ´Â ÇÁ·¹ÀÓ°ú 1Â÷ÀÌ ÀÌ»ó ³¯ ¶§
+					else //ë‹¤ìŒ ê°ì²´ê°€ ìˆëŠ” í”„ë ˆì„ì´ ê°ì²´ê°€ ìˆëŠ” í”„ë ˆì„ê³¼ 1ì°¨ì´ ì´ìƒ ë‚  ë•Œ
 						break;
 				}
 			}
@@ -937,7 +970,7 @@ Mat getSyntheticFrame(Mat bgFrame) {
 	vector<int>().swap(vectorPreNodeIndex);
 	return bgFrame;
 }
-// °´Ã¼µé ³¢¸® °ãÄ§À» ÆÇº°ÇÏ´Â ÇÔ¼ö, ÇÏ³ª¶óµµ ¼º¸³ÇÏ¸é °ãÄ¡Áö ¾ÊÀ½
+// ê°ì²´ë“¤ ë¼ë¦¬ ê²¹ì¹¨ì„ íŒë³„í•˜ëŠ” í•¨ìˆ˜, í•˜ë‚˜ë¼ë„ ì„±ë¦½í•˜ë©´ ê²¹ì¹˜ì§€ ì•ŠìŒ
 bool IsObjectOverlapingDetector(segment *m_segment, vector<int> preNodeIndex_data, int curIndex, int countOfObj_j) {
 	return m_segment[curIndex].left > m_segmentArray[preNodeIndex_data.at(countOfObj_j)].right
 		|| m_segment[curIndex].right < m_segmentArray[preNodeIndex_data.at(countOfObj_j)].left
@@ -945,7 +978,7 @@ bool IsObjectOverlapingDetector(segment *m_segment, vector<int> preNodeIndex_dat
 		|| m_segment[curIndex].bottom < m_segmentArray[preNodeIndex_data.at(countOfObj_j)].top;
 }
 
-//slider controlÀÌ ¿òÁ÷ÀÌ¸é ¹ß»ıÇÏ´Â Äİ¹é
+//slider controlì´ ì›€ì§ì´ë©´ ë°œìƒí•˜ëŠ” ì½œë°±
 void CMFC_SyntheticDlg::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 {
 	if (pScrollBar == (CScrollBar*)&m_sliderSearchStartTime)
@@ -967,17 +1000,17 @@ void CMFC_SyntheticDlg::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBa
 	CDialogEx::OnHScroll(nSBCode, nPos, pScrollBar);
 }
 
-// Play ButtonÀ» ´­·¶À» °æ¿ì¿¡ ½ÇÇàµÇ´Â Äİ¹é
+// Play Buttonì„ ëˆŒë €ì„ ê²½ìš°ì— ì‹¤í–‰ë˜ëŠ” ì½œë°±
 void CMFC_SyntheticDlg::OnClickedBtnPlay()
 {
-	if (radioChoice == 0 && isPlayBtnClicked == false){//¶óµğ¿À¹öÆ°ÀÌ ¿øº»¿µ»óÀÏ °æ¿ì - ±×³É Àç»ı
+	if (radioChoice == 0 && isPlayBtnClicked == false){//ë¼ë””ì˜¤ë²„íŠ¼ì´ ì›ë³¸ì˜ìƒì¼ ê²½ìš° - ê·¸ëƒ¥ ì¬ìƒ
 		KillTimer(BIN_VIDEO_TIMER);
 		KillTimer(SYN_RESULT_TIMER);
 		SetTimer(VIDEO_TIMER, 1000 / m_sliderFps.GetPos(), NULL);
 		isPlayBtnClicked = true;
 		isPauseBtnClicked = false;
 	}
-	else if (radioChoice == 2 && isPlayBtnClicked == false){//¶óµğ¿À¹öÆ°ÀÌ ÀÌÁø¿µ»óÀÏ °æ¿ì - ÀÌÁø ¹× °´Ã¼ °ËÃâ ¹Ù¿î´õ¸®°¡ ±×·ÁÁø ¿µ»ó Àç»ı
+	else if (radioChoice == 2 && isPlayBtnClicked == false){//ë¼ë””ì˜¤ë²„íŠ¼ì´ ì´ì§„ì˜ìƒì¼ ê²½ìš° - ì´ì§„ ë° ê°ì²´ ê²€ì¶œ ë°”ìš´ë”ë¦¬ê°€ ê·¸ë ¤ì§„ ì˜ìƒ ì¬ìƒ
 		KillTimer(SYN_RESULT_TIMER);
 		KillTimer(VIDEO_TIMER);
 		SetTimer(BIN_VIDEO_TIMER, 1000 / m_sliderFps.GetPos(), NULL);
@@ -986,40 +1019,33 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 
 	}
 
-	else if (radioChoice == 1 && isPlayBtnClicked == false){ //¶óµğ¿À¹öÆ°ÀÌ ÇÕ¼º¿µ»óÀÏ °æ¿ì - ¼³Á¤¿¡ µû¶ó ÇÕ¼ºµÈ ¿µ»ó Àç»ı
+	else if (radioChoice == 1 && isPlayBtnClicked == false){ //ë¼ë””ì˜¤ë²„íŠ¼ì´ í•©ì„±ì˜ìƒì¼ ê²½ìš° - ì„¤ì •ì— ë”°ë¼ í•©ì„±ëœ ì˜ìƒ ì¬ìƒ
 		isPlayBtnClicked = true;
 		isPauseBtnClicked = false;
 
-		char *txtBuffer = new char[100];	//ÅØ½ºÆ®ÆÄÀÏ ÀĞÀ» ¶§ »ç¿ëÇÒ buffer
+		boolean isSynPlayable = checkSegmentation();
 
-		string path = "./";
-		path.append(getTextFilePath(video_filename));
+		if (isSynPlayable){
+			char *txtBuffer = new char[100];	//í…ìŠ¤íŠ¸íŒŒì¼ ì½ì„ ë•Œ ì‚¬ìš©í•  buffer
 
-		fp = fopen(path.c_str(), "r");
-		boolean isPlayable = false;
+			string path = "./";
+			path.append(getTextFileName(video_filename));
 
-		if (fp){	//ÆÄÀÏÀ» Á¦´ë·Î ºÒ·¯¿ÔÀ» °æ¿ì
-			//Æ÷ÀÎÅÍ ³¡À¸·Î ÀÌµ¿ÇÏ¿© ÆÄÀÏ Å©±â ÃøÁ¤
-			fseek(fp, 0, SEEK_END);
-			//  µğ·ºÅä¸® Ã¼Å©ÇÏ´Â Á¶°Ç ¼öÁ¤(°æ·Î Àç ºÎ¿©) 
-			if ((isDirectory(getDirectoryPath(video_filename)) && ftell(fp) != 0))	//ÆÄÀÏ Å©±â°¡ 0 ÀÌ ¾Æ´Ò °æ¿ì ½ÇÇà
-				isPlayable = true;
-		}
+			fp = fopen(path.c_str(), "r");
 
-		if (isPlayable){
-			//*******************************************ÅØ½ºÆ®ÆÄÀÏÀ» ÀĞ¾î¼­ Á¤·Ä****************************************************************
-			m_segmentArray = new segment[BUFFER];  //(segment*)calloc(BUFFER, sizeof(segment));	//ÅØ½ºÆ® ÆÄÀÏ¿¡¼­ ÀĞÀº segment Á¤º¸¸¦ ÀúÀåÇÒ ¹è¿­ ÃÊ±âÈ­
+			//*******************************************í…ìŠ¤íŠ¸íŒŒì¼ì„ ì½ì–´ì„œ ì •ë ¬****************************************************************
+			m_segmentArray = new segment[BUFFER];  //(segment*)calloc(BUFFER, sizeof(segment));	//í…ìŠ¤íŠ¸ íŒŒì¼ì—ì„œ ì½ì€ segment ì •ë³´ë¥¼ ì €ì¥í•  ë°°ì—´ ì´ˆê¸°í™”
 
 			segmentCount = 0;
-			fseek(fp, 0, SEEK_SET);	//Æ÷ÀÎÅÍ Ã³À½À¸·Î ÀÌµ¿
+			fseek(fp, 0, SEEK_SET);	//í¬ì¸í„° ì²˜ìŒìœ¼ë¡œ ì´ë™
 			fgets(txtBuffer, 99, fp);
-			sscanf(txtBuffer, "%d", &videoStartMsec);	//ÅØ½ºÆ® ÆÄÀÏ Ã¹ÁÙ¿¡ ¸í½ÃµÈ ½ÇÁ¦ ¿µ»ó ½ÃÀÛ ½Ã°£ ¹Ş¾Æ¿È
+			sscanf(txtBuffer, "%d", &videoStartMsec);	//í…ìŠ¤íŠ¸ íŒŒì¼ ì²«ì¤„ì— ëª…ì‹œëœ ì‹¤ì œ ì˜ìƒ ì‹œì‘ ì‹œê°„ ë°›ì•„ì˜´
 
-			// frameInfo.txt ÆÄÀÏ¿¡¼­ µ¥ÀÌÅÍ¸¦ ÃßÃâ ÇÏ¿© segment array ÃÊ±âÈ­
+			// frameInfo.txt íŒŒì¼ì—ì„œ ë°ì´í„°ë¥¼ ì¶”ì¶œ í•˜ì—¬ segment array ì´ˆê¸°í™”
 			while (!feof(fp)) {
 				fgets(txtBuffer, 99, fp);
 
-				// txtÆÄÀÏ¿¡ ÀÖ´Â ÇÁ·¹ÀÓ µ¥ÀÌÅÍµé segmentArray ¹öÆÛ·Î º¹»ç
+				// txtíŒŒì¼ì— ìˆëŠ” í”„ë ˆì„ ë°ì´í„°ë“¤ segmentArray ë²„í¼ë¡œ ë³µì‚¬
 				sscanf(txtBuffer, "%d_%d_%d_%d %d %d %d %d %d %d",
 					&m_segmentArray[segmentCount].timeTag, &m_segmentArray[segmentCount].msec,
 					&m_segmentArray[segmentCount].frameCount, &m_segmentArray[segmentCount].index,
@@ -1027,23 +1053,23 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 					&m_segmentArray[segmentCount].right, &m_segmentArray[segmentCount].bottom,
 					&m_segmentArray[segmentCount].width, &m_segmentArray[segmentCount].height);
 
-				// filename ÀúÀå
+				// filename ì €ì¥
 				m_segmentArray[segmentCount].fileName
 					.append(to_string(m_segmentArray[segmentCount].timeTag)).append("_")
 					.append(to_string(m_segmentArray[segmentCount].msec)).append("_")
 					.append(to_string(m_segmentArray[segmentCount].frameCount)).append("_")
 					.append(to_string(m_segmentArray[segmentCount].index)).append(".jpg");
 
-				// m_segmentArrayÀÇ ÀÎµ¦½º Áõ°¡
+				// m_segmentArrayì˜ ì¸ë±ìŠ¤ ì¦ê°€
 				segmentCount++;
 			}
 
-			// ¹öºí Á¤·Ä »ç¿ëÇÏ¿© m_segmentArray¸¦ TimeTag¼øÀ¸·Î Á¤·Ä
-			segment *tmp_segment = new segment; // ÀÓ½Ã segment µ¿Àû»ı¼º, ¸Ş¸ğ¸® ÇØÁ¦¿¡ ¿ëÀÇÇÏ°Ô ÇÏ±â
+			// ë²„ë¸” ì •ë ¬ ì‚¬ìš©í•˜ì—¬ m_segmentArrayë¥¼ TimeTagìˆœìœ¼ë¡œ ì •ë ¬
+			segment *tmp_segment = new segment; // ì„ì‹œ segment ë™ì ìƒì„±, ë©”ëª¨ë¦¬ í•´ì œì— ìš©ì˜í•˜ê²Œ í•˜ê¸°
 			for (int i = 0; i < segmentCount; i++) {
 				for (int j = 0; j < segmentCount - 1; j++) {
 					if (m_segmentArray[j].timeTag > m_segmentArray[j + 1].timeTag) {
-						// m_segmentArray[segmentCount]¿Í m_segmentArray[segmentCount + 1]ÀÇ ±³Ã¼
+						// m_segmentArray[segmentCount]ì™€ m_segmentArray[segmentCount + 1]ì˜ êµì²´
 						*tmp_segment = m_segmentArray[j + 1];
 						m_segmentArray[j + 1] = m_segmentArray[j];
 						m_segmentArray[j] = *tmp_segment;
@@ -1051,27 +1077,27 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 				}
 			}
 
-			//Á¤·Ä È®ÀÎ ÄÚµå
+			//ì •ë ¬ í™•ì¸ ì½”ë“œ
 			//{
 			//for (int i = 0; i < segmentCount; i++)
 			//cout << m_segmentArray[i].fileName << endl;
 			//}
 
-			// ÀÓ½Ã ¹öÆÛ ¸Ş¸ğ¸® ÇØÁ¦
+			// ì„ì‹œ ë²„í¼ ë©”ëª¨ë¦¬ í•´ì œ
 			delete tmp_segment;
 			delete[] txtBuffer;
 
-			// ÅØ½ºÆ® ÆÄÀÏ ´İ±â
+			// í…ìŠ¤íŠ¸ íŒŒì¼ ë‹«ê¸°
 			fclose(fp);
 			//****************************************************************************************************************
 
-			//Å¥ ÃÊ±âÈ­
+			//í ì´ˆê¸°í™”
 			InitQueue(&segment_queue);
 
 			/************************************/
-			//TimeTag¸¦ Edit box·ÎºÎÅÍ ÀÔ·Â¹ŞÀ½
-			unsigned int obj1_TimeTag = m_sliderSearchStartTime.GetPos() * 1000;	//°Ë»öÇÒ TimeTag1
-			unsigned int obj2_TimeTag = m_sliderSearchEndTime.GetPos() * 1000;	//°Ë»öÇÒ TimeTag2
+			//TimeTagë¥¼ Edit boxë¡œë¶€í„° ì…ë ¥ë°›ìŒ
+			unsigned int obj1_TimeTag = m_sliderSearchStartTime.GetPos() * 1000;	//ê²€ìƒ‰í•  TimeTag1
+			unsigned int obj2_TimeTag = m_sliderSearchEndTime.GetPos() * 1000;	//ê²€ìƒ‰í•  TimeTag2
 
 			if (obj1_TimeTag > obj2_TimeTag){
 				AfxMessageBox("Search start time can't larger than end time");
@@ -1084,13 +1110,13 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 			int prevTimetag = 0;
 			int prevIndex = -1;
 
-			//Ãâ·ÂÇÒ °´Ã¼¸¦ Å¥¿¡ »ğÀÔÇÏ´Â ºÎºĞ
+			//ì¶œë ¥í•  ê°ì²´ë¥¼ íì— ì‚½ì…í•˜ëŠ” ë¶€ë¶„
 			for (int i = 0; i < segmentCount; i++) {
-				//start timetag¿Í end timetag »çÀÌ¸é enqueue
-				if (m_segmentArray[i].timeTag >= obj1_TimeTag && m_segmentArray[i].timeTag <= obj2_TimeTag) {	//¾ÆÁ÷ Ã£Áö ¸øÇß°í ÀÏÄ¡ÇÏ´Â Å¸ÀÓÅÂ±×¸¦ Ã£¾ÒÀ» °æ¿ì
+				//start timetagì™€ end timetag ì‚¬ì´ë©´ enqueue
+				if (m_segmentArray[i].timeTag >= obj1_TimeTag && m_segmentArray[i].timeTag <= obj2_TimeTag) {	//ì•„ì§ ì°¾ì§€ ëª»í–ˆê³  ì¼ì¹˜í•˜ëŠ” íƒ€ì„íƒœê·¸ë¥¼ ì°¾ì•˜ì„ ê²½ìš°
 					if (m_segmentArray[i].timeTag == m_segmentArray[i].msec){
 						printf("%s\n", m_segmentArray[i].fileName);
-						Enqueue(&segment_queue, m_segmentArray[i].timeTag, i);	//Ãâ·ÂÇØ¾ßÇÒ °´Ã¼ÀÇ Ã¹ ÇÁ·¹ÀÓÀÇ Å¸ÀÓÅÂ±×¿Í À§Ä¡¸¦ Å¥¿¡ »ğÀÔ
+						Enqueue(&segment_queue, m_segmentArray[i].timeTag, i);	//ì¶œë ¥í•´ì•¼í•  ê°ì²´ì˜ ì²« í”„ë ˆì„ì˜ íƒ€ì„íƒœê·¸ì™€ ìœ„ì¹˜ë¥¼ íì— ì‚½ì…
 						prevTimetag = m_segmentArray[i].timeTag;
 						prevIndex = m_segmentArray[i].index;
 					}
@@ -1099,13 +1125,13 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 			/***********/
 
 
-			//½ÇÇàÁßÀÎ Å¸ÀÌ¸Ó Á¾·á
+			//ì‹¤í–‰ì¤‘ì¸ íƒ€ì´ë¨¸ ì¢…ë£Œ
 			KillTimer(BIN_VIDEO_TIMER);
 			KillTimer(VIDEO_TIMER);
-			//Å¸ÀÌ¸Ó ½ÃÀÛ	params = timerID, ms, callbackÇÔ¼ö ¸í(NULLÀÌ¸é OnTimer)
+			//íƒ€ì´ë¨¸ ì‹œì‘	params = timerID, ms, callbackí•¨ìˆ˜ ëª…(NULLì´ë©´ OnTimer)
 			SetTimer(SYN_RESULT_TIMER, 1000 / m_sliderFps.GetPos(), NULL);
 		}
-		else{ //½ÇÇà ¸øÇÏ´Â °æ¿ì segmentationÀ» ÁøÇàÇÏ¶ó°í Ãâ·Â
+		else{ //ì‹¤í–‰ ëª»í•˜ëŠ” ê²½ìš° segmentationì„ ì§„í–‰í•˜ë¼ê³  ì¶œë ¥
 			AfxMessageBox("You can't play without segmentation results");
 		}
 	}
@@ -1114,9 +1140,9 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 
 }
 
-// segmentationÀ» ÇÒ ‹š¿¡ ÀÔ·Â¹Ş´Â ¼öÀÇ ¹üÀ§¸¦ ÇÑÁ¤ÇØÁÖ´Â ÇÔ¼ö
+// segmentationì„ í•  Â‹Âšì— ì…ë ¥ë°›ëŠ” ìˆ˜ì˜ ë²”ìœ„ë¥¼ í•œì •í•´ì£¼ëŠ” í•¨ìˆ˜
 bool segmentationTimeInputException(CString str_h, CString str_m) {
-	// ½Ã :: 1~24, ºĞ :: 1~60
+	// ì‹œ :: 1~24, ë¶„ :: 1~60
 	if ((atoi(str_h) > 0 && atoi(str_h) <= 24)
 		&& (atoi(str_m) > 0 && atoi(str_m) <= 60)){
 		return true;
@@ -1125,7 +1151,7 @@ bool segmentationTimeInputException(CString str_h, CString str_m) {
 	else if ((str_h == "0" && atoi(str_h) == 0)
 		|| (str_m == "0" && atoi(str_m) == 0))
 		return true;
-	// To Do :: ÇÏ³ª´Â 0, ´Ù¸¥ ÇÏ³ª´Â ¹®ÀÚ¸¦ ¹Ş¾ÒÀ» ‹š ½ÇÇàµÇ´Â °æ¿ì°¡ ÀÖÀ½
+	// To Do :: í•˜ë‚˜ëŠ” 0, ë‹¤ë¥¸ í•˜ë‚˜ëŠ” ë¬¸ìë¥¼ ë°›ì•˜ì„ Â‹Âš ì‹¤í–‰ë˜ëŠ” ê²½ìš°ê°€ ìˆìŒ
 	else if ((str_h != "0" && atoi(str_h) == 0)
 		|| (str_m != "0" && atoi(str_m) == 0))
 		return false;
@@ -1134,7 +1160,7 @@ bool segmentationTimeInputException(CString str_h, CString str_m) {
 		return false;
 }
 
-//00:00:00 Çü½ÄÀ¸·Î timetag¸¦ º¯È¯
+//00:00:00 í˜•ì‹ìœ¼ë¡œ timetagë¥¼ ë³€í™˜
 stringstream timeConvertor(int t) {
 	int hour;
 	int min;
@@ -1163,7 +1189,7 @@ stringstream timeConvertor(int t) {
 	return s;
 }
 
-//load ¹öÆ°À» ´©¸£¸é ¹ß»ıÇÏ´Â Äİ¹é
+//load ë²„íŠ¼ì„ ëˆ„ë¥´ë©´ ë°œìƒí•˜ëŠ” ì½œë°±
 void CMFC_SyntheticDlg::OnBnClickedBtnMenuLoad(){
 	loadFile();
 }
@@ -1174,21 +1200,21 @@ void CMFC_SyntheticDlg::SetRadioStatus(UINT value) {
 	case 0:
 		radioChoice = 0;
 		SetTimer(LOGO_TIMER, 1, NULL);
-		printf("¿øº» ¿µ»ó ¶óµğ¿À ¹öÆ° ¼±ÅÃµÊ\n");
+		printf("ì›ë³¸ ì˜ìƒ ë¼ë””ì˜¤ ë²„íŠ¼ ì„ íƒë¨\n");
 		break;
 	case 1:
 		radioChoice = 1;
 		SetTimer(LOGO_TIMER, 1, NULL);
-		printf("ÇÕ¼º ¿µ»ó ¶óµğ¿À ¹öÆ° ¼±ÅÃµÊ\n");
+		printf("í•©ì„± ì˜ìƒ ë¼ë””ì˜¤ ë²„íŠ¼ ì„ íƒë¨\n");
 		break;
 	case 2:
 		radioChoice = 2;
 		SetTimer(LOGO_TIMER, 1, NULL);
-		printf("ÀÌÁø ¿µ»ó ¶óµğ¿À ¹öÆ° ¼±ÅÃµÊ\n");
+		printf("ì´ì§„ ì˜ìƒ ë¼ë””ì˜¤ ë²„íŠ¼ ì„ íƒë¨\n");
 		break;
 	default:
 		radioChoice = 0;
-		printf("¿øº» ¿µ»ó ¶óµğ¿À ¹öÆ° ¼±ÅÃµÊ\n");
+		printf("ì›ë³¸ ì˜ìƒ ë¼ë””ì˜¤ ë²„íŠ¼ ì„ íƒë¨\n");
 		break;
 	}
 }
@@ -1211,17 +1237,42 @@ void CMFC_SyntheticDlg::OnBnClickedBtnPause()
 Mat backgroundInit(VideoCapture *vc_Source, Mat bg) {
 	Mat frame(ROWS, COLS, CV_8UC3); // Mat(height, width, channel)
 	Mat bg_gray(ROWS, COLS, CV_8UC1);
-	// ¿µ»ó ½ÃÀÛÁ¡À¸·Î ÃÊ±âÈ­
+	// ì˜ìƒ ì‹œì‘ì ìœ¼ë¡œ ì´ˆê¸°í™”
 	vc_Source->set(CV_CAP_PROP_POS_MSEC, 0);
 	for (int i = 0; i < FRAMES_FOR_MAKE_BACKGROUND; i++) {
 		vc_Source->read(frame); //get single frame
 		BackgroundMaker(frame, bg, ROWS * 3, COLS);
 	}
-	// ºñµğ¿À ÆÄÀÏ ÀÌ¸§À» ÅëÇØ¼­ bg ÆÄÀÏÀÇ ÀÌ¸§ ¸¸µé¾î¼­ jpg ÆÄÀÏ·Î ÀúÀå
+	// ë¹„ë””ì˜¤ íŒŒì¼ ì´ë¦„ì„ í†µí•´ì„œ bg íŒŒì¼ì˜ ì´ë¦„ ë§Œë“¤ì–´ì„œ jpg íŒŒì¼ë¡œ ì €ì¥
 	int background_write_check = imwrite(getBackgroundFilePath(video_filename), bg);
 	if (background_write_check)	 printf("First background Making Complete!!\n");
 
-	// ¸¸µç ¹è°æÀ» ±×·¹ÀÌ º¯È¯ ÈÄ ¹İÈ¯
+	// ë§Œë“  ë°°ê²½ì„ ê·¸ë ˆì´ ë³€í™˜ í›„ ë°˜í™˜
 	cvtColor(bg, bg_gray, CV_RGB2GRAY);
 	return bg_gray;
+  }
+
+bool CMFC_SyntheticDlg::checkSegmentation()
+{
+	string path = "./";
+	path.append(getTextFileName(video_filename));
+
+	FILE *txtFile = fopen(path.c_str(), "r");
+
+	if (txtFile){	//íŒŒì¼ì„ ì œëŒ€ë¡œ ë¶ˆëŸ¬ì™”ì„ ê²½ìš°
+		//í¬ì¸í„° ëìœ¼ë¡œ ì´ë™í•˜ì—¬ íŒŒì¼ í¬ê¸° ì¸¡ì •
+		fseek(txtFile, 0, SEEK_END);
+		if (ftell(txtFile) != 0){	//íŒŒì¼ í¬ê¸°ê°€ 0 ì´ ì•„ë‹ ê²½ìš° ì‹¤í–‰
+			fclose(txtFile);
+			return true;
+		}
+		else{ //íŒŒì¼ í¬ê¸°ê°€ 0 ì¼ ê²½ìš°
+			fclose(txtFile);
+			return false;
+		}
+	}
+	else{	//íŒŒì¼ì„ ë¶ˆëŸ¬ì˜¤ì§€ ëª» í•  ê²½ìš°
+		printf("\nCan't find txt file");
+		return false;
+	}
 }
