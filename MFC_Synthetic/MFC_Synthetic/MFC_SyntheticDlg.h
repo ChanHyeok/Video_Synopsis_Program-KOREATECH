@@ -214,5 +214,6 @@ public:
 	CSliderCtrl m_SliderWMAX;
 	CSliderCtrl m_SliderHMIN;
 	CSliderCtrl m_SliderHMAX;
+	afx_msg void OnBnClickedBtnStop();
 };
 

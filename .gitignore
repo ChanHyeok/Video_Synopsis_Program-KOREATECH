@@ -128,3 +128,4 @@ Release
 *.exe
 *.dll
 *.lib
+MFC_Synthetic/MFC_Synthetic/_data/
