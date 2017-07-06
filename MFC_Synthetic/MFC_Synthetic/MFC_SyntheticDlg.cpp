@@ -1332,6 +1332,6 @@ void CMFC_SyntheticDlg::OnBnClickedBtnStop()
 void book(){
 	int index[3] = { 1, 3, 2 };
 	char* chapter1 = "우용";
-	char* chapter3 = "은혜";
+	char* chapter3 = "은혜:ㅁㄴ웋ㅁㄴ어ㅗㅁㄴ아ㅓ몬ㅇㅁㄴ";
 	char* chapter2 = "찬혁";
 }
