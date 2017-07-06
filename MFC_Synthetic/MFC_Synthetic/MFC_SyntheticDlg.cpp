@@ -1328,10 +1328,3 @@ void CMFC_SyntheticDlg::OnBnClickedBtnStop()
 
 	capture.set(CV_CAP_PROP_POS_FRAMES, 0);
 }
-
-void book(){
-	int index[3] = { 1, 3, 2 };
-	char* chapter1 = "우용";
-	char* chapter3 = "은혜:ㅁㄴ웋ㅁㄴ어ㅗㅁㄴ아ㅓ몬ㅇㅁㄴ";
-	char* chapter2 = "찬혁";
-}
