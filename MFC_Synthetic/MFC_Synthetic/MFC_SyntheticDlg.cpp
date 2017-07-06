@@ -1333,6 +1333,6 @@ void book(){
 	int index[3] = { 1, 2, 3 };
 	char* chapter1 = "우용";
 	char* chapter2 = "찬혁";
-	char* chapter3 = "은혜";
+	char* chapter3 = "은혜:알알알일일낭룬이ㅏㄹㄴ이ㅏㄹㄴㅇㄹㅇ나ㅣㅁㄴ아ㅓㅁㄴㅇ";
 
 }
