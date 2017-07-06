@@ -120,6 +120,7 @@ BEGIN_MESSAGE_MAP(CMFC_SyntheticDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_MENU_LOAD, &CMFC_SyntheticDlg::OnBnClickedBtnMenuLoad)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO_PLAY1, IDC_RADIO_PLAY3, &CMFC_SyntheticDlg::SetRadioStatus)
 	ON_BN_CLICKED(IDC_BTN_PAUSE, &CMFC_SyntheticDlg::OnBnClickedBtnPause)
+	ON_BN_CLICKED(IDC_BTN_STOP, &CMFC_SyntheticDlg::OnBnClickedBtnStop)
 END_MESSAGE_MAP()
 
 
@@ -189,13 +190,15 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	//Picture Control
 	CButton *pButtonPlay = (CButton *)GetDlgItem(IDC_BTN_PLAY);
 	CButton *pButtonPause = (CButton *)GetDlgItem(IDC_BTN_PAUSE);
+	CButton *pButtonStop = (CButton *)GetDlgItem(IDC_BTN_STOP);
 	int pictureContorlX = 2 * padding + box_MenuWidth;
 	int pictureContorlY = padding;
 	int pictureContorlWidth = (dialogWidth - 3 * padding) - box_MenuWidth - 15;
 	int pictureContorlHeight = (dialogHeight - 3 * padding)*0.7 - 40;
 	pResultImage->MoveWindow(pictureContorlX, pictureContorlY, pictureContorlWidth, pictureContorlHeight, TRUE);
-	pButtonPlay->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 - padding - 100, pictureContorlY + pictureContorlHeight + 10, 100, 20, TRUE);
-	pButtonPause->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 + padding, pictureContorlY + pictureContorlHeight + 10, 100, 20, TRUE);
+	pButtonPlay->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 - 120 - padding, pictureContorlY + pictureContorlHeight + 10, 80, 20, TRUE);
+	pButtonPause->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 - 40, pictureContorlY + pictureContorlHeight + 10, 80, 20, TRUE);
+	pButtonStop->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 + 40 + padding, pictureContorlY + pictureContorlHeight + 10, 80, 20, TRUE);
 
 	//group box - segmetation
 	CWnd *pGroupSegmentation = GetDlgItem(IDC_GROUP_SEG);
@@ -1308,4 +1311,20 @@ Mat backgroundInit(VideoCapture *vc_Source, Mat bg) {
 	// 만든 배경을 그레이 변환 후 반환
 	cvtColor(bg, bg_gray, CV_RGB2GRAY);
 	return bg_gray;
+}
+
+void CMFC_SyntheticDlg::OnBnClickedBtnStop()
+{
+	// TODO: Add your control notification handler code here
+	printf("정지 버튼 눌림\n");
+
+	isPlayBtnClicked = false;
+
+	KillTimer(VIDEO_TIMER);
+	KillTimer(BIN_VIDEO_TIMER);
+	KillTimer(SYN_RESULT_TIMER);
+
+	SetTimer(LOGO_TIMER, 1, NULL);
+
+	capture.set(CV_CAP_PROP_POS_FRAMES, 0);
 }
