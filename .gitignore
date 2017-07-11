@@ -1,4 +1,4 @@
-# Created by https://www.gitignore.io/api/visualstudiocode,c++,c,opencv
+﻿# Created by https://www.gitignore.io/api/visualstudiocode,c++,c,opencv
 
 ### C ###
 # Prerequisites
@@ -128,4 +128,4 @@ Release
 *.exe
 *.dll
 *.lib
-MFC_Synthetic/MFC_Synthetic/_data/
+MFC_Synthetic/MFC_Synthetic/data/
