@@ -23,7 +23,7 @@ static char THIS_FILE[] = __FILE__;
 #define MAX_STR_BUFFER_SIZE  128 // 문자열 출력에 사용하는 버퍼 길이
 // 배경 생성
 const int FRAMES_FOR_MAKE_BACKGROUND = 350;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
-const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 1500;	//다음 배경을 만들기 위한 시간간격(동적)
+const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 1000;	//다음 배경을 만들기 위한 시간간격(동적)
 // fps가 약 23-25 가량 나오는 영상에서 약 1분이 흐른 framecount 값은 1500
 
 /***  전역변수  ***/
@@ -580,7 +580,7 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 	Mat frame_g(ROWS, COLS, CV_8UC1);
 	Mat tmp_background(ROWS, COLS, CV_8UC3);
 	//frame 카운터와 현재 millisecond
-	int frameCount = 0;
+	int frameCount = 0, temp_frameCount = 0; // 배경을 생성하기 위한 임시 프레임 카운트 생성
 	unsigned int currentMsec;
 
 	// 배경 초기화
@@ -609,6 +609,19 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 			}
 
 			// FRAMES_FOR_MAKE_BACKGROUND 갯수 만큼의 프레임을 이용하여 배경 만들기
+			// 배경을 다시 만들 때 첫번쨰 임시배경을 프레임 중 하나로 선택함(연산을 시작하는 첫번쨰 프레임)
+			if (temp_frameCount >= FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND &&
+				temp_frameCount <= FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND + FRAMES_FOR_MAKE_BACKGROUND ) {
+				BackgroundMaker(frame, background, ROWS, COLS);
+
+				if (temp_frameCount == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND + FRAMES_FOR_MAKE_BACKGROUND) {
+					// 만든 background 적용
+					int check = imwrite(SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_filename
+						+ "/" + RESULT_BACKGROUND_FILENAME + video_filename + "_" + to_string(frameCount) + ".jpg", background);
+
+					// 원래 getBackgroundFilePath
+					cvtColor(background, background_gray, CV_RGB2GRAY);
+/*
 			if (frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND >= FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND
 				&& frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND < FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1) {
 				// 배경을 다시 만들 때 첫번쨰 임시배경을 프레임 중 하나로 선택함(연산을 시작하는 첫번쨰 프레임)
@@ -620,11 +633,13 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 					// 만든 background 적용
 					//	int check = imwrite(getBackgroundFilePath(video_filename), background);
 					cvtColor(tmp_background, background_gray, CV_RGB2GRAY);
+*/
 					printf("Background Changed, %d frame\n", frameCount);
 					tmp_background.release();
+
+					temp_frameCount = FRAMES_FOR_MAKE_BACKGROUND; // temp_frame count 초기화 (배경 생성을 진행한 후 부터로)
 				}
 			}
-
 			//printf("=====%5d 프레임=====\n", frameCount);
 			//그레이스케일 변환
 			cvtColor(frame, frame_g, CV_RGB2GRAY);
@@ -675,7 +690,7 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 			vclear.clear();
 			humanDetectedVector.clear();
 
-			frameCount++;	//increase frame count
+			frameCount++;	temp_frameCount++; //increase frame , temp_frame count
 		}
 	}
 
