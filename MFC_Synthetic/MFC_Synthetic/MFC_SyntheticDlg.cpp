@@ -608,20 +608,22 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 				break;
 			}
 
+			*****이게 너꺼(안돌아감)**************************************************
 			// FRAMES_FOR_MAKE_BACKGROUND 갯수 만큼의 프레임을 이용하여 배경 만들기
 			// 배경을 다시 만들 때 첫번쨰 임시배경을 프레임 중 하나로 선택함(연산을 시작하는 첫번쨰 프레임)
 			if (temp_frameCount >= FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND &&
 				temp_frameCount <= FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND + FRAMES_FOR_MAKE_BACKGROUND ) {
-				BackgroundMaker(frame, background, ROWS, COLS);
+				temporalMedianBG(frame, tmp_background, ROWS, COLS);
 
 				if (temp_frameCount == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND + FRAMES_FOR_MAKE_BACKGROUND) {
 					// 만든 background 적용
-					int check = imwrite(SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_filename
-						+ "/" + RESULT_BACKGROUND_FILENAME + video_filename + "_" + to_string(frameCount) + ".jpg", background);
+					int check = imwrite(SEGMENTATION_DATA_DIRECTORY_NAME + "/" + fileNameNoExtension
+						+ "/" + RESULT_BACKGROUND_FILENAME + fileNameNoExtension + "_" + to_string(frameCount) + ".jpg", tmp_background);
 
 					// 원래 getBackgroundFilePath
-					cvtColor(background, background_gray, CV_RGB2GRAY);
-/*
+					cvtColor(tmp_background, background_gray, CV_RGB2GRAY);
+			****************************************************************************
+				== == == == == == == == == == 이게 내꺼(돌아감) =========================
 			if (frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND >= FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND
 				&& frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND < FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1) {
 				// 배경을 다시 만들 때 첫번쨰 임시배경을 프레임 중 하나로 선택함(연산을 시작하는 첫번쨰 프레임)
@@ -633,7 +635,7 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 					// 만든 background 적용
 					//	int check = imwrite(getBackgroundFilePath(video_filename), background);
 					cvtColor(tmp_background, background_gray, CV_RGB2GRAY);
-*/
+====================================================================================================================================
 					printf("Background Changed, %d frame\n", frameCount);
 					tmp_background.release();
 
