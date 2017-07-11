@@ -16,11 +16,11 @@ using namespace cv;
 #define BUFFER 8096 // 객체 프레임 데이터를 저장할 버퍼의 크기 
 
 // fileName 상수 관련
-#define RESULT_TEXT_FILENAME  "frameInfo_"
+#define RESULT_TEXT_FILENAME  "obj_data_"
 #define RESULT_FOLDER_NAME "segment_"
 #define RESULT_BACKGROUND_FILENAME "background_"
 
-const string SEGMENTATION_DATA_DIRECTORY_NAME = "_data";
+const string SEGMENTATION_DATA_DIRECTORY_NAME = "data";
 // segmentation structure
 typedef struct _segment {
 	string fileName;
@@ -115,8 +115,8 @@ bool IsComparePrevDetection(vector<component> curr_detected, vector<component> p
 Mat morphologicalOperation(Mat);
 stringstream timeConvertor(int t);
 
-bool IsObjectOverlapingDetector(segment *m_segment, vector<int> preNodeIndex_data, int curIndex, int countOfObj_j);
-Mat backgroundInit(VideoCapture *vc_Source, Mat bg);
+bool IsObjectOverlapingDetector(segment, segment);
+Mat backgroundInit(VideoCapture *vc_Source);
 
 // connectecComponentLabelling.cpp
 vector<component> connectedComponentsLabelling(Mat frame, int rows, int cols, int, int, int, int);
@@ -125,10 +125,10 @@ bool labelSizeFiltering(int width, int height, int, int, int, int);
 // tool_background.cpp, tool_foreground.cpp
 Mat ExtractForegroundToMOG2(Mat frameimg);
 Mat ExtractFg(Mat, Mat, int, int);
-int BackgroundMaker(Mat frameimg, Mat bgimg, int rows, int cols);
+int temporalMedianBG(Mat frameimg, Mat bgimg, int rows, int cols);
 
 // FileProcessing.cpp
-String getFileName(CString f_path, char find_char);
+String getFileName(CString f_path, char find_char, BOOL);
 Mat loadJPGObjectFile(segment obj, string file_name);
 bool saveSegmentationData(string video_name, component object, Mat object_frame
 	, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp);
@@ -150,7 +150,7 @@ class CMFC_SyntheticDlg : public CDialogEx{
 // Construction
 public:
 	CMFC_SyntheticDlg(CWnd* pParent = NULL);	// standard constructor
-	~CMFC_SyntheticDlg();
+	//~CMFC_SyntheticDlg();
 // Dialog Data
 	enum { IDD = IDD_MFC_SYNTHETIC_DIALOG };
 
@@ -207,13 +207,14 @@ public:
 
 	afx_msg bool checkSegmentation();
 
-	void loadValueOfSlider(int captureCols, int captureRows, int startTime, int endTime); // 슬라이더의 값을 초기화하는 함수
-
 	// slider : range of detecting object
 	CSliderCtrl m_SliderWMIN;
 	CSliderCtrl m_SliderWMAX;
 	CSliderCtrl m_SliderHMIN;
 	CSliderCtrl m_SliderHMAX;
 	afx_msg void OnBnClickedBtnStop();
+	afx_msg void layoutInit(); 
+	afx_msg void setSliderRange(int,int,int,int);
+	afx_msg void updateUI(int, int, int, int);
 };
 

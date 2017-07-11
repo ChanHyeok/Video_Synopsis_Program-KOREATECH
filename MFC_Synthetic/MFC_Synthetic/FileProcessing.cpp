@@ -18,7 +18,7 @@ string allocatingComponentFilename(int timeTag, int currentMsec, int frameCount,
 Mat objectCutting(component object, Mat img, unsigned int ROWS, unsigned int COLS);
 
 // Video Path에서 file이름만 빼서 확장자를 제거하여 반환하는 함수
-String getFileName(CString f_path, char find_char) {
+String getFileName(CString f_path, char find_char, BOOL extension) {
 	// 마지막 \ 뒤의 문자열
 	// 검색대상 :: "Video (*.avi, *.MP4) | *.avi;*.mp4; | All Files(*.*)|*.*||",
 	string f_name;
@@ -30,17 +30,17 @@ String getFileName(CString f_path, char find_char) {
 
 	for (int i = final_index + 1; i < f_path.GetLength(); i++) {
 		if (f_path[final_index + 1] == NULL) break; // 예외처리
-		if (f_path[i] == '.') break; // 확장자 제거 (. 이후에 문자는 무시)
-		// 폴더를 만드는데 확장자가 붙으면 확장자에 맞는 파일이 생성되는 오류가 있어서 일단 뺌
-		// 혹시나 확장자가 필요할 경우 함수를 하나 더 생성하던지 해야할 듯
+		if (extension == false){
+			if (f_path[i] == '.') break; // 확장자 제거 (. 이후에 문자는 무시)
+			// 폴더를 만드는데 확장자가 붙으면 확장자에 맞는 파일이 생성되는 오류가 있어서 일단 뺌
+			// 혹시나 확장자가 필요할 경우 함수를 하나 더 생성하던지 해야할 듯
+		}
 		char c = f_path[i];
 		f_name += c;
 	}// 마지막에 나오는 '\' 이후의 문자열을 추출함
 
 	return f_name;
 }
-
-
 
 // 전체 segment 데이터의 파일들을 저장하는 모듈
 bool saveSegmentationData(string video_name, component object, Mat object_frame
@@ -140,10 +140,10 @@ bool isDirectory(string dir_name) {
 	return _access(ptr_name, 0) == 0;
 }
 
-// _data 폴더를 생성하는 함수
+// data 폴더를 생성하는 함수
 int makeDataRootDirectory() {
 	// 세그먼테이션 결과 데이터가 들어있는 폴더가 없는 경우 만들어 줌
-	return _mkdir("_data");
+	return _mkdir(SEGMENTATION_DATA_DIRECTORY_NAME.c_str());
 }
 
 // data 폴더 안에 해당 비디오의 이름을 갖는 디렉토리를 생성하는 함수
@@ -151,14 +151,9 @@ int makeDataSubDirectory(string video_name) {
 	// 해당 비디오의 세그먼테이션 결과가 들어갈 폴더경로
 	string data_dir_path = getDirectoryPath(video_name);
 
-	// string type을 const char* 로 바꾸는 연산
-	std::vector<char> writable(data_dir_path.begin(), data_dir_path.end());
-	writable.push_back('\0');
-	char *ptr_name = &writable[0];
-
-	// SEGMENTATION_DATA_DIRECTORY의 하위 폴더 생성(/_data/(video_name))
+	// SEGMENTATION_DATA_DIRECTORY의 하위 폴더 생성(/data/(video_name))
 	// 폴더를 생성하면 0, 생성하지 않으면 -1
-	return _mkdir(ptr_name);
+	return _mkdir(data_dir_path.c_str());
 }
 
 // 파일의 이름부분을 저장
