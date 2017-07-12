@@ -20,6 +20,7 @@ static char THIS_FILE[] = __FILE__;
 #define VIDEO_TIMER 1	//Picture Control에 원본 영상을 출력하는 타이머
 #define SYN_RESULT_TIMER 2	//Picture Control에 합성 영상을 출력하는 타이머
 #define BIN_VIDEO_TIMER 3	//Picture Control에 이진 영상을 출력하는 타이머
+#define PROGRESS_BAR_TIMER 4	//로딩바에 사용하는 타이머
 #define MAX_STR_BUFFER_SIZE  128 // 문자열 출력에 사용하는 버퍼 길이
 // 배경 생성
 const int FRAMES_FOR_MAKE_BACKGROUND = 350;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
@@ -29,7 +30,7 @@ const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 1000;	//다음 배경을 만�
 /***  전역변수  ***/
 segment *m_segmentArray;
 Queue segment_queue; // C++ STL의 queue 키워드와 겹치기 때문에 변수를 조정함
-int videoStartMsec, segmentCount, fps; // 시작 millisecond, 세그먼트 카운팅변수, 초당 프레임수
+int videoStartMsec, segmentCount, fps, totalFrameCount; // 시작 millisecond, 세그먼트 카운팅변수, 초당 프레임수, 전체 프레임 수
 unsigned int videoLength;	//비디오 길이(초)
 int radioChoice, preRadioChoice;	//라디오 버튼 선택 결과 저장 변수. 0 - 원본영상, 1 - 합성영상, 2 - 이진영상
 boolean isPlayBtnClicked, isPauseBtnClicked;
@@ -66,6 +67,7 @@ CAboutDlg::CAboutDlg() : CDialogEx(CAboutDlg::IDD)
 void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+
 }
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 END_MESSAGE_MAP()
@@ -102,6 +104,7 @@ void CMFC_SyntheticDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_SEG_SLIDER_WMAX, m_SliderWMAX);
 	DDX_Control(pDX, IDC_SEG_SLIDER_HMIN, m_SliderHMIN);
 	DDX_Control(pDX, IDC_SEG_SLIDER_HMAX, m_SliderHMAX);
+	DDX_Control(pDX, IDC_PROGRESS, m_LoadingProgressCtrl);
 }
 
 //message map을 정의하는 부분
@@ -117,6 +120,7 @@ BEGIN_MESSAGE_MAP(CMFC_SyntheticDlg, CDialogEx)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO_PLAY1, IDC_RADIO_PLAY3, &CMFC_SyntheticDlg::SetRadioStatus)
 	ON_BN_CLICKED(IDC_BTN_PAUSE, &CMFC_SyntheticDlg::OnBnClickedBtnPause)
 	ON_BN_CLICKED(IDC_BTN_STOP, &CMFC_SyntheticDlg::OnBnClickedBtnStop)
+	ON_BN_CLICKED(IDC_BTN_REWIND, &CMFC_SyntheticDlg::OnBnClickedBtnRewind)
 END_MESSAGE_MAP()
 
 
@@ -153,19 +157,27 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);			// Set big icon
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 
+	//프로그레스바 숨김
+	m_LoadingProgressCtrl.ShowWindow(false);
+
 	// 배경 변수 초기화
 	background_gray = Mat(ROWS, COLS, CV_8UC1);
 
-
 	//레이아웃 컨트롤들 초기화 및 위치 지정
 	layoutInit();
+	
+	//로딩
+	m_LoadingProgressCtrl.ShowWindow(true);
+	m_LoadingProgressCtrl.SetRange(0, 100);
+	m_LoadingProgressCtrl.SetPos(0);
+	SetTimer(PROGRESS_BAR_TIMER, 10, NULL);
 
 	//실행시 비디오 파일 불러옴
 	loadFile();
-
+	
 	//Slider Control 범위 지정
 	setSliderRange(videoLength, COLS, ROWS, 100);
-
+	
 	//UI 업데이트, control에 default 값 할당
 	updateUI(videoLength, COLS, ROWS, fps);
 
@@ -177,6 +189,8 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	CheckRadioButton(IDC_RADIO_PLAY1, IDC_RADIO_PLAY3, IDC_RADIO_PLAY1);
 	radioChoice = 0; preRadioChoice = 0; //라디오 버튼의 default는 맨 처음 버튼임
 
+	KillTimer(PROGRESS_BAR_TIMER);
+	m_LoadingProgressCtrl.ShowWindow(false);
 	SetTimer(LOGO_TIMER, 1, NULL);
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
@@ -187,19 +201,6 @@ void CMFC_SyntheticDlg::loadFile(){
 	char szFilter[] = "Video (*.avi, *.MP4) | *.avi;*.mp4; | All Files(*.*)|*.*||";	//검색 옵션
 	CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, szFilter, AfxGetMainWnd());	//파일 다이얼로그 생성
 	dlg.DoModal();	//다이얼로그 띄움
-
-	//TODO : progress bar로 교체
-	//다이얼로그 종료 시 로딩 창 띄움
-	//로딩바 hide하는 순간 메모리해제됨. 그때 그때 사용할 것
-	CSplashScreenEx *pSplash; //로딩창
-	pSplash = new CSplashScreenEx();
-	pSplash->Create(this, "Loading", 0, CSS_FADE | CSS_CENTERAPP | CSS_SHADOW);
-	pSplash->SetBitmap(IDB_LOADING, 0, 0, 0);
-	pSplash->SetTextFont("Arial", 140, CSS_TEXT_BOLD);
-	pSplash->SetTextRect(CRect(148, 38, 228, 70));
-	pSplash->SetTextColor(RGB(0, 0, 0));
-	pSplash->Show();
-	pSplash->SetText("Loading");
 
 	//load한 영상의 이름을 text control에 표시
 	CString cstrImgPath = dlg.GetPathName();	//path
@@ -242,10 +243,9 @@ void CMFC_SyntheticDlg::loadFile(){
 	COLS = (int)capture.get(CV_CAP_PROP_FRAME_WIDTH); //가로 길이
 	ROWS = (int)capture.get(CV_CAP_PROP_FRAME_HEIGHT); //세로 길이
 	fps = capture.get(CV_CAP_PROP_FPS); 
-	videoLength = (int)((capture.get(CV_CAP_PROP_FRAME_COUNT) / (float)fps));	//비디오의 길이를 초단위로 계산
+	totalFrameCount = (int)capture.get(CV_CAP_PROP_FRAME_COUNT);
+	videoLength = (int)((totalFrameCount / (float)fps));	//비디오의 길이를 초단위로 계산
 	
-	
-
 	// 배경생성부분
 	background_gray = backgroundInit(&capture_for_background);
 
@@ -259,9 +259,6 @@ void CMFC_SyntheticDlg::loadFile(){
 		GetDlgItem(IDC_RADIO_PLAY2)->EnableWindow(FALSE);
 	}
 
-
-	//로딩창 제거. 메모리 해제 자동
-	pSplash->Hide();
 }
 
 void CMFC_SyntheticDlg::OnSysCommand(UINT nID, LPARAM lParam)
@@ -490,7 +487,7 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 				int top = stats.at<int>(j, CC_STAT_TOP);
 				int width = stats.at<int>(j, CC_STAT_WIDTH);
 				int height = stats.at<int>(j, CC_STAT_HEIGHT);
-				if (labelSizeFiltering(width, height 
+				if (labelSizeFiltering(width, height
 					, m_SliderWMIN.GetPos(), m_SliderWMAX.GetPos(), m_SliderHMIN.GetPos(), m_SliderHMAX.GetPos())) {
 					rectangle(temp_frame, Point(left, top), Point(left + width, top + height),
 						Scalar(0, 0, 255), 1);
@@ -506,7 +503,14 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 			centroids.release();
 		}
 		break;
-
+	case PROGRESS_BAR_TIMER:
+		printf("ASD");
+		if (m_LoadingProgressCtrl.GetPos() == 100){
+			KillTimer(PROGRESS_BAR_TIMER);
+		}
+		else
+			m_LoadingProgressCtrl.OffsetPos(1);
+		break;
 	case SYN_RESULT_TIMER:
 		printf("#");
 		Mat bg_copy; background_loadedFromFile.copyTo(bg_copy);
@@ -539,15 +543,10 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 	// Edit box에 문자 입력, 또는 범위외 입력 시 예외처리
 	if (segmentationTimeInputException(str_startHour, str_startMinute)){
 		//로딩 창 띄움
-		CSplashScreenEx *pSplash; //로딩창
-		pSplash = new CSplashScreenEx();
-		pSplash->Create(this, "Loading", 0, CSS_FADE | CSS_CENTERAPP | CSS_SHADOW);
-		pSplash->SetBitmap(IDB_LOADING, 0, 0, 0);
-		pSplash->SetTextFont("Arial", 110, CSS_TEXT_BOLD);
-		pSplash->SetTextRect(CRect(148, 38, 228, 70));
-		pSplash->SetTextColor(RGB(0, 0, 0));
-		pSplash->Show();
-		pSplash->SetText("Pls wait...");
+		m_LoadingProgressCtrl.ShowWindow(true);
+		m_LoadingProgressCtrl.SetRange(0, totalFrameCount);
+		m_LoadingProgressCtrl.SetPos(0);
+
 		segmentationOperator(&capture, atoi(str_startHour), atoi(str_startMinute)
 			, m_SliderWMIN.GetPos(), m_SliderWMAX.GetPos(), m_SliderHMIN.GetPos(), m_SliderHMAX.GetPos());	//Object Segmentation
 
@@ -559,14 +558,15 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 			GetDlgItem(IDC_RADIO_PLAY2)->EnableWindow(FALSE);
 		}
 
-		pSplash->Hide();
+		//로딩 숨기기
+		m_LoadingProgressCtrl.ShowWindow(false);
 	}
 	else {	// 범위 외 입력시 예외처리
 	}
 }
 
 // segmentation 기능 수행, 물체 추적 및 파일로 저장
-void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int videoStartMin, int WMIN, int WMAX, int HMIN, int HMAX){
+void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int videoStartMin, int WMIN, int WMAX, int HMIN, int HMAX){
 	videoStartMsec = (videoStartHour * 60 + videoStartMin) * 60 * 1000;
 
 	unsigned int COLS = (int)vc_Source->get(CV_CAP_PROP_FRAME_WIDTH);	//가로 길이
@@ -677,17 +677,11 @@ void segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int video
 			humanDetectedVector.clear();
 
 			frameCount++;	temp_frameCount++; //increase frame , temp_frame count
+			m_LoadingProgressCtrl.OffsetPos(1);
 		}
 	}
 
 	printf("segmentation Operator 끝\n");
-
-	//HWND hWnd = ::FindWindow(NULL, "Dude, Wait");
-	//if (hWnd){ ::PostMessage(hWnd, WM_CLOSE, 0, 0); }
-
-	// To Do :: 세그먼테이션 완료하면서 에러가 남
-	MessageBox(0, "Done!!", "ding-dong", MB_OK);
-	Sleep(2500);
 
 	//메모리 해제
 	frame.release(); frame_g.release();
@@ -906,24 +900,11 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 
 		if (isSynPlayable){
 			char *txtBuffer = new char[100];	//텍스트파일 읽을 때 사용할 buffer
-			//=======
-			//		string path = "./";
-			//		path.append(getTextFilePath(video_filename));
-			//>>>>>>> merge_error_wooyo
 
 			string path = "./";
 			path.append(getTextFilePath(fileNameNoExtension));
 
 			fp = fopen(path.c_str(), "r");
-			//=======
-			//		if (fp){	//파일을 제대로 불러왔을 경우
-			//			//포인터 끝으로 이동하여 파일 크기 측정
-			//			fseek(fp, 0, SEEK_END);
-			//			//  디렉토리 체크하는 조건 수정(경로 재 부여) 
-			//			if ((isDirectory(getDirectoryPath(video_filename)) && ftell(fp) != 0))	//파일 크기가 0 이 아닐 경우 실행
-			//				isPlayable = true;
-			//		}
-			//>>>>>>> merge_error_wooyo
 
 			//*******************************************텍스트파일을 읽어서 정렬****************************************************************
 			m_segmentArray = new segment[BUFFER];  //(segment*)calloc(BUFFER, sizeof(segment));	//텍스트 파일에서 읽은 segment 정보를 저장할 배열 초기화
@@ -970,10 +951,10 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 			}
 
 			//정렬 확인 코드
-			//{
-			//for (int i = 0; i < segmentCount; i++)
-			//cout << m_segmentArray[i].fileName << endl;
-			//}
+		/*	{
+			for (int i = 0; i < segmentCount; i++)
+			cout << m_segmentArray[i].fileName << endl;
+			}*/
 
 			// 임시 버퍼 메모리 해제
 			delete tmp_segment;
@@ -1085,6 +1066,11 @@ stringstream timeConvertor(int t) {
 
 //load 버튼을 누르면 발생하는 콜백
 void CMFC_SyntheticDlg::OnBnClickedBtnMenuLoad(){
+	//로딩
+	m_LoadingProgressCtrl.ShowWindow(true);
+	m_LoadingProgressCtrl.SetRange(0, 100);
+	m_LoadingProgressCtrl.SetPos(0);
+	SetTimer(PROGRESS_BAR_TIMER, 10, NULL);
 	//실행시 비디오 파일 불러옴
 	loadFile();
 
@@ -1092,7 +1078,7 @@ void CMFC_SyntheticDlg::OnBnClickedBtnMenuLoad(){
 	setSliderRange(videoLength, COLS, ROWS, 100);
 
 	//UI 업데이트, control에 default 값 할당
-	updateUI(videoLength, COLS, ROWS, 100);
+	updateUI(videoLength, COLS, ROWS, fps);
 
 	// // Play, Pause버튼 상태 초기화
 	isPlayBtnClicked = false;
@@ -1102,6 +1088,8 @@ void CMFC_SyntheticDlg::OnBnClickedBtnMenuLoad(){
 	CheckRadioButton(IDC_RADIO_PLAY1, IDC_RADIO_PLAY3, IDC_RADIO_PLAY1);
 	radioChoice = 0; preRadioChoice = 0; //라디오 버튼의 default는 맨 처음 버튼임
 
+	KillTimer(PROGRESS_BAR_TIMER);
+	m_LoadingProgressCtrl.ShowWindow(false);
 	SetTimer(LOGO_TIMER, 1, NULL);
 }
 
@@ -1158,6 +1146,13 @@ void CMFC_SyntheticDlg::OnBnClickedBtnStop()
 	KillTimer(SYN_RESULT_TIMER);
 
 	SetTimer(LOGO_TIMER, 1, NULL);
+
+	capture.set(CV_CAP_PROP_POS_FRAMES, 0);
+}
+
+void CMFC_SyntheticDlg::OnBnClickedBtnRewind()
+{
+	printf("리와인드 버튼 눌림\n");
 
 	capture.set(CV_CAP_PROP_POS_FRAMES, 0);
 }
@@ -1246,18 +1241,28 @@ void CMFC_SyntheticDlg::layoutInit(){
 
 	//Picture Control
 	CWnd *pResultImage = GetDlgItem(IDC_RESULT_IMAGE);
-	CButton *pButtonPlay = (CButton *)GetDlgItem(IDC_BTN_PLAY);
-	CButton *pButtonPause = (CButton *)GetDlgItem(IDC_BTN_PAUSE);
-	CButton *pButtonStop = (CButton *)GetDlgItem(IDC_BTN_STOP);
+	CButton *pButtonPlay = (CButton  *)GetDlgItem(IDC_BTN_PLAY);
+	cImage.Load("res\\play.bmp");
+	pButtonPlay->SetBitmap(cImage);
+	CButton  *pButtonPause = (CButton  *)GetDlgItem(IDC_BTN_PAUSE);
+	cImage.Load("res\\pause.bmp");
+	pButtonPause->SetBitmap(cImage);
+	CButton  *pButtonStop = (CButton  *)GetDlgItem(IDC_BTN_STOP);
+	cImage.Load("res\\stop.bmp");
+	pButtonStop->SetBitmap(cImage);
+	CButton  *pButtonRewind = (CButton  *)GetDlgItem(IDC_BTN_REWIND);
+	cImage.Load("res\\rewind.bmp");
+	pButtonRewind->SetBitmap(cImage);
 	int pictureContorlX = 2 * padding + box_MenuWidth;
 	int pictureContorlY = padding;
 	int pictureContorlWidth = (dialogWidth - 3 * padding) - box_MenuWidth - 15;
 	int pictureContorlHeight = (dialogHeight - 3 * padding)*0.7 - 40;
 	pResultImage->MoveWindow(pictureContorlX, pictureContorlY, pictureContorlWidth, pictureContorlHeight, TRUE);
-	pButtonPlay->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 - 120 - padding, pictureContorlY + pictureContorlHeight + 10, 80, 20, TRUE);
-	pButtonPause->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 - 40, pictureContorlY + pictureContorlHeight + 10, 80, 20, TRUE);
-	pButtonStop->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 + 40 + padding, pictureContorlY + pictureContorlHeight + 10, 80, 20, TRUE);
-
+	pButtonRewind->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 -95, pictureContorlY + pictureContorlHeight + 10, 40, 40, TRUE);
+	pButtonPlay->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 -45, pictureContorlY + pictureContorlHeight + 10, 40, 40, TRUE);
+	pButtonPause->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 +5, pictureContorlY + pictureContorlHeight + 10, 40, 40, TRUE);
+	pButtonStop->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 + 55, pictureContorlY + pictureContorlHeight + 10, 40, 40, TRUE);
+	
 	//group box - segmetation
 	CWnd *pGroupSegmentation = GetDlgItem(IDC_GROUP_SEG);
 	CWnd *pStringStartTime = GetDlgItem(IDC_SEG_STRING_VIDEO_START_TIME);
@@ -1330,6 +1335,11 @@ void CMFC_SyntheticDlg::layoutInit(){
 	pStringFps->MoveWindow(box_syntheticX + padding + 300, box_syntheticY + box_syntheticHeight*0.3, 100, 20, TRUE);
 	m_sliderFps.MoveWindow(box_syntheticX + padding + 300, box_syntheticY + box_syntheticHeight*0.3 + 20 + padding, 140, 20, TRUE);
 	pStringFpsSlider->MoveWindow(box_syntheticX + padding + 60 + 300, box_syntheticY + box_syntheticHeight*0.3 + 40 + padding * 2, 30, 20, TRUE);
+
+
+
+	//로딩 바
+	m_LoadingProgressCtrl.MoveWindow(dialogWidth / 2 - 300, dialogHeight / 2 -80, 600, 80, TRUE);
 }
 
 //Slider Control의 범위 지정
