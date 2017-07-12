@@ -117,6 +117,7 @@ BEGIN_MESSAGE_MAP(CMFC_SyntheticDlg, CDialogEx)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO_PLAY1, IDC_RADIO_PLAY3, &CMFC_SyntheticDlg::SetRadioStatus)
 	ON_BN_CLICKED(IDC_BTN_PAUSE, &CMFC_SyntheticDlg::OnBnClickedBtnPause)
 	ON_BN_CLICKED(IDC_BTN_STOP, &CMFC_SyntheticDlg::OnBnClickedBtnStop)
+	ON_BN_CLICKED(IDC_BTN_REWIND, &CMFC_SyntheticDlg::OnBnClickedBtnRewind)
 END_MESSAGE_MAP()
 
 
@@ -906,24 +907,11 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 
 		if (isSynPlayable){
 			char *txtBuffer = new char[100];	//텍스트파일 읽을 때 사용할 buffer
-			//=======
-			//		string path = "./";
-			//		path.append(getTextFilePath(video_filename));
-			//>>>>>>> merge_error_wooyo
 
 			string path = "./";
 			path.append(getTextFilePath(fileNameNoExtension));
 
 			fp = fopen(path.c_str(), "r");
-			//=======
-			//		if (fp){	//파일을 제대로 불러왔을 경우
-			//			//포인터 끝으로 이동하여 파일 크기 측정
-			//			fseek(fp, 0, SEEK_END);
-			//			//  디렉토리 체크하는 조건 수정(경로 재 부여) 
-			//			if ((isDirectory(getDirectoryPath(video_filename)) && ftell(fp) != 0))	//파일 크기가 0 이 아닐 경우 실행
-			//				isPlayable = true;
-			//		}
-			//>>>>>>> merge_error_wooyo
 
 			//*******************************************텍스트파일을 읽어서 정렬****************************************************************
 			m_segmentArray = new segment[BUFFER];  //(segment*)calloc(BUFFER, sizeof(segment));	//텍스트 파일에서 읽은 segment 정보를 저장할 배열 초기화
@@ -970,10 +958,10 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 			}
 
 			//정렬 확인 코드
-			//{
-			//for (int i = 0; i < segmentCount; i++)
-			//cout << m_segmentArray[i].fileName << endl;
-			//}
+			{
+			for (int i = 0; i < segmentCount; i++)
+			cout << m_segmentArray[i].fileName << endl;
+			}
 
 			// 임시 버퍼 메모리 해제
 			delete tmp_segment;
@@ -1092,7 +1080,7 @@ void CMFC_SyntheticDlg::OnBnClickedBtnMenuLoad(){
 	setSliderRange(videoLength, COLS, ROWS, 100);
 
 	//UI 업데이트, control에 default 값 할당
-	updateUI(videoLength, COLS, ROWS, 100);
+	updateUI(videoLength, COLS, ROWS, fps);
 
 	// // Play, Pause버튼 상태 초기화
 	isPlayBtnClicked = false;
@@ -1158,6 +1146,13 @@ void CMFC_SyntheticDlg::OnBnClickedBtnStop()
 	KillTimer(SYN_RESULT_TIMER);
 
 	SetTimer(LOGO_TIMER, 1, NULL);
+
+	capture.set(CV_CAP_PROP_POS_FRAMES, 0);
+}
+
+void CMFC_SyntheticDlg::OnBnClickedBtnRewind()
+{
+	printf("리와인드 버튼 눌림\n");
 
 	capture.set(CV_CAP_PROP_POS_FRAMES, 0);
 }
@@ -1246,18 +1241,28 @@ void CMFC_SyntheticDlg::layoutInit(){
 
 	//Picture Control
 	CWnd *pResultImage = GetDlgItem(IDC_RESULT_IMAGE);
-	CButton *pButtonPlay = (CButton *)GetDlgItem(IDC_BTN_PLAY);
-	CButton *pButtonPause = (CButton *)GetDlgItem(IDC_BTN_PAUSE);
-	CButton *pButtonStop = (CButton *)GetDlgItem(IDC_BTN_STOP);
+	CButton *pButtonPlay = (CButton  *)GetDlgItem(IDC_BTN_PLAY);
+	cImage.Load("res\\play.bmp");
+	pButtonPlay->SetBitmap(cImage);
+	CButton  *pButtonPause = (CButton  *)GetDlgItem(IDC_BTN_PAUSE);
+	cImage.Load("res\\pause.bmp");
+	pButtonPause->SetBitmap(cImage);
+	CButton  *pButtonStop = (CButton  *)GetDlgItem(IDC_BTN_STOP);
+	cImage.Load("res\\stop.bmp");
+	pButtonStop->SetBitmap(cImage);
+	CButton  *pButtonRewind = (CButton  *)GetDlgItem(IDC_BTN_REWIND);
+	cImage.Load("res\\rewind.bmp");
+	pButtonRewind->SetBitmap(cImage);
 	int pictureContorlX = 2 * padding + box_MenuWidth;
 	int pictureContorlY = padding;
 	int pictureContorlWidth = (dialogWidth - 3 * padding) - box_MenuWidth - 15;
 	int pictureContorlHeight = (dialogHeight - 3 * padding)*0.7 - 40;
 	pResultImage->MoveWindow(pictureContorlX, pictureContorlY, pictureContorlWidth, pictureContorlHeight, TRUE);
-	pButtonPlay->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 - 120 - padding, pictureContorlY + pictureContorlHeight + 10, 80, 20, TRUE);
-	pButtonPause->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 - 40, pictureContorlY + pictureContorlHeight + 10, 80, 20, TRUE);
-	pButtonStop->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 + 40 + padding, pictureContorlY + pictureContorlHeight + 10, 80, 20, TRUE);
-
+	pButtonRewind->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 -95, pictureContorlY + pictureContorlHeight + 10, 40, 40, TRUE);
+	pButtonPlay->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 -45, pictureContorlY + pictureContorlHeight + 10, 40, 40, TRUE);
+	pButtonPause->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 +5, pictureContorlY + pictureContorlHeight + 10, 40, 40, TRUE);
+	pButtonStop->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 + 55, pictureContorlY + pictureContorlHeight + 10, 40, 40, TRUE);
+	
 	//group box - segmetation
 	CWnd *pGroupSegmentation = GetDlgItem(IDC_GROUP_SEG);
 	CWnd *pStringStartTime = GetDlgItem(IDC_SEG_STRING_VIDEO_START_TIME);

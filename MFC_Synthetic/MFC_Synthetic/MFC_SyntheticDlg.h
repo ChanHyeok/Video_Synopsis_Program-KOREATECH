@@ -184,7 +184,7 @@ protected:
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
-
+	CImage cImage;
 	// afx_msg void OnClose();
 	afx_msg void OnCancel();
 	afx_msg void OnDestroy();
@@ -216,5 +216,6 @@ public:
 	afx_msg void layoutInit(); 
 	afx_msg void setSliderRange(int,int,int,int);
 	afx_msg void updateUI(int, int, int, int);
+	afx_msg void OnBnClickedBtnRewind();
 };
 
