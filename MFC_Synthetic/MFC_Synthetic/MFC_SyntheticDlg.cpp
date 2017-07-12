@@ -73,7 +73,6 @@ BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 END_MESSAGE_MAP()
 
 
-
 /*
 Main Dialog
 	프로그램을 띄울 Single Dialog
@@ -84,13 +83,6 @@ CMFC_SyntheticDlg::CMFC_SyntheticDlg(CWnd* pParent /*=NULL*/)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);	//프로그램 아이콘 설정
 }
-//TODO : 필요없다면 제거
-//CMFC_SyntheticDlg::~CMFC_SyntheticDlg()
-//{
-//	background.release();
-//	background_gray.release();
-//	// MFC에서 소멸자에서의 메모리 해제는 의미가 없음
-//}
 
 //DDX, 자동으로 데이터를 주고받을 수 있도록 연결 해 줌. 이 프로젝트에서는 활용하지 않고 있음
 void CMFC_SyntheticDlg::DoDataExchange(CDataExchange* pDX)
@@ -105,6 +97,7 @@ void CMFC_SyntheticDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_SEG_SLIDER_HMIN, m_SliderHMIN);
 	DDX_Control(pDX, IDC_SEG_SLIDER_HMAX, m_SliderHMAX);
 	DDX_Control(pDX, IDC_PROGRESS, m_LoadingProgressCtrl);
+	DDX_Control(pDX, IDC_SLIDER_PLAYER, m_SliderPlayer);
 }
 
 //message map을 정의하는 부분
@@ -121,6 +114,7 @@ BEGIN_MESSAGE_MAP(CMFC_SyntheticDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_PAUSE, &CMFC_SyntheticDlg::OnBnClickedBtnPause)
 	ON_BN_CLICKED(IDC_BTN_STOP, &CMFC_SyntheticDlg::OnBnClickedBtnStop)
 	ON_BN_CLICKED(IDC_BTN_REWIND, &CMFC_SyntheticDlg::OnBnClickedBtnRewind)
+	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SLIDER_PLAYER, &CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer)
 END_MESSAGE_MAP()
 
 
@@ -434,6 +428,10 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 {
 	CDialogEx::OnTimer(nIDEvent);
 	Mat temp_frame;
+	int curFrameCount = (int)capture.get(CV_CAP_PROP_POS_FRAMES);//현재 프레임 카운트
+	m_SliderPlayer.SetPos(curFrameCount);	//슬라이더 위치를 조정
+	SetDlgItemText(IDC_STRING_CUR_TIME, timeConvertor((int)(videoLength * curFrameCount / (float)totalFrameCount)).str().c_str());	//현재 씬의 시간 출력
+	
 	switch (nIDEvent){
 	case LOGO_TIMER:	//로고 출력
 		if (true){
@@ -504,7 +502,6 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 		}
 		break;
 	case PROGRESS_BAR_TIMER:
-		printf("ASD");
 		if (m_LoadingProgressCtrl.GetPos() == 100){
 			KillTimer(PROGRESS_BAR_TIMER);
 		}
@@ -865,8 +862,24 @@ void CMFC_SyntheticDlg::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBa
 		SetDlgItemText(IDC_SEG_STRING_VAL_MIN_H, to_string(m_SliderHMIN.GetPos()).c_str());
 	else if (pScrollBar == (CScrollBar*)&m_SliderHMAX)
 		SetDlgItemText(IDC_SEG_STRING_VAL_MAX_H, to_string(m_SliderHMAX.GetPos()).c_str());
+	else if (pScrollBar == (CScrollBar*)&m_SliderPlayer){	//플레이어 타임 슬라이더
+		//슬라이딩 시 멈춤
+		KillTimer(LOGO_TIMER);
+		KillTimer(VIDEO_TIMER);
+		KillTimer(BIN_VIDEO_TIMER);
+		KillTimer(SYN_RESULT_TIMER);
+
+		//한 프레임 송출, 이진 영상 구별 안함.
+		capture.set(CV_CAP_PROP_POS_FRAMES, m_SliderPlayer.GetPos());
+		Mat temp_frame;
+		capture.read(temp_frame);
+		DisplayImage(IDC_RESULT_IMAGE, temp_frame, NULL);
+		temp_frame = NULL;
+		temp_frame.release();
 
 
+		SetDlgItemText(IDC_STRING_CUR_TIME, timeConvertor((int)(videoLength * m_SliderPlayer.GetPos() / (float)totalFrameCount)).str().c_str());
+	}
 	CDialogEx::OnHScroll(nSBCode, nPos, pScrollBar);
 }
 
@@ -1095,28 +1108,36 @@ void CMFC_SyntheticDlg::OnBnClickedBtnMenuLoad(){
 
 void CMFC_SyntheticDlg::SetRadioStatus(UINT value) {
 	UpdateData(TRUE);
-	switch (mRadioPlay) {
-	case 0:
-		radioChoice = 0;
-		SetTimer(LOGO_TIMER, 1, NULL);
-		printf("원본 영상 라디오 버튼 선택됨\n");
-		break;
-	case 1:
-		radioChoice = 1;
-		SetTimer(LOGO_TIMER, 1, NULL);
-		printf("합성 영상 라디오 버튼 선택됨\n");
-		background_loadedFromFile = imread(getBackgroundFilePath(fileNameNoExtension));//합성 영상을 출력할 때 바탕이 될 프레임. 영상합성 라디오 버튼 클릭 시 자동으로 파일로부터 로드 됨
-		printf("합성 기본 배경 로드 완료\n");
-		break;
-	case 2:
-		radioChoice = 2;
-		SetTimer(LOGO_TIMER, 1, NULL);
-		printf("이진 영상 라디오 버튼 선택됨\n");
-		break;
-	default:
-		radioChoice = 0;
-		printf("원본 영상 라디오 버튼 선택됨\n");
-		break;
+
+	if (radioChoice != mRadioPlay){	//현재 위치와 새로 누른 위치가 같을 경우 무시
+		m_SliderPlayer.EnableWindow(TRUE);
+		isPlayBtnClicked = false;
+		isPauseBtnClicked = true;
+		capture.set(CV_CAP_PROP_POS_FRAMES, 0);
+		switch (mRadioPlay) {
+		case 0:
+			radioChoice = 0;
+			SetTimer(LOGO_TIMER, 1, NULL);
+			printf("원본 영상 라디오 버튼 선택됨\n");
+			break;
+		case 1:
+			radioChoice = 1;
+			SetTimer(LOGO_TIMER, 1, NULL);
+			printf("합성 영상 라디오 버튼 선택됨\n");
+			m_SliderPlayer.EnableWindow(FALSE);	//합성영상일 경우 비활성화
+			background_loadedFromFile = imread(getBackgroundFilePath(fileNameNoExtension));//합성 영상을 출력할 때 바탕이 될 프레임. 영상합성 라디오 버튼 클릭 시 자동으로 파일로부터 로드 됨
+			printf("합성 기본 배경 로드 완료\n");
+			break;
+		case 2:
+			radioChoice = 2;
+			SetTimer(LOGO_TIMER, 1, NULL);
+			printf("이진 영상 라디오 버튼 선택됨\n");
+			break;
+		default:
+			radioChoice = 0;
+			printf("원본 영상 라디오 버튼 선택됨\n");
+			break;
+		}
 	}
 }
 
@@ -1230,7 +1251,7 @@ void CMFC_SyntheticDlg::layoutInit(){
 	int box_MenuX = padding;
 	int box_MenuY = padding;
 	int box_MenuWidth = (dialogWidth - 3 * padding)*0.2;
-	int box_MenuHeight = ((dialogHeight - 3 * padding)*0.7 - padding)*0.3;
+	int box_MenuHeight = ((dialogHeight - 3 * padding)*0.8 - padding)*0.3;
 
 	pGroupMenu->MoveWindow(box_MenuX, box_MenuY, box_MenuWidth, box_MenuHeight, TRUE);
 	pStringFileName->MoveWindow(box_MenuX + padding, box_MenuY + 2 * padding, 230, 20, TRUE);
@@ -1253,15 +1274,22 @@ void CMFC_SyntheticDlg::layoutInit(){
 	CButton  *pButtonRewind = (CButton  *)GetDlgItem(IDC_BTN_REWIND);
 	cImage.Load("res\\rewind.bmp");
 	pButtonRewind->SetBitmap(cImage);
+	CWnd *pStringCurTimeSlider = GetDlgItem(IDC_STRING_CUR_TIME);
+	CWnd *pStringTotalTimeSlider = GetDlgItem(IDC_STRING_TOTAL_TIME);
 	int pictureContorlX = 2 * padding + box_MenuWidth;
 	int pictureContorlY = padding;
 	int pictureContorlWidth = (dialogWidth - 3 * padding) - box_MenuWidth - 15;
-	int pictureContorlHeight = (dialogHeight - 3 * padding)*0.7 - 40;
+	int playerSliderWidth = pictureContorlWidth;
+	int playerSliderHeight = 40;
+	int pictureContorlHeight = (dialogHeight - 3 * padding)*0.8 - 40 - playerSliderHeight - padding;
 	pResultImage->MoveWindow(pictureContorlX, pictureContorlY, pictureContorlWidth, pictureContorlHeight, TRUE);
-	pButtonRewind->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 -95, pictureContorlY + pictureContorlHeight + 10, 40, 40, TRUE);
-	pButtonPlay->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 -45, pictureContorlY + pictureContorlHeight + 10, 40, 40, TRUE);
-	pButtonPause->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 +5, pictureContorlY + pictureContorlHeight + 10, 40, 40, TRUE);
-	pButtonStop->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 + 55, pictureContorlY + pictureContorlHeight + 10, 40, 40, TRUE);
+	m_SliderPlayer.MoveWindow(pictureContorlX, pictureContorlY + pictureContorlHeight+10, playerSliderWidth, playerSliderHeight, TRUE);
+	pStringCurTimeSlider->MoveWindow(pictureContorlX+padding, pictureContorlY + pictureContorlHeight + 10 + playerSliderHeight, 230, 20, TRUE);
+	pStringTotalTimeSlider->MoveWindow(pictureContorlX + pictureContorlWidth-80, pictureContorlY + pictureContorlHeight + 10 + playerSliderHeight, 230, 20, TRUE);
+	pButtonRewind->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 - 95, pictureContorlY + pictureContorlHeight + 10 + playerSliderHeight, 40, 40, TRUE);
+	pButtonPlay->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 - 45, pictureContorlY + pictureContorlHeight + 10 + playerSliderHeight, 40, 40, TRUE);
+	pButtonPause->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 + 5, pictureContorlY + pictureContorlHeight + 10 + playerSliderHeight, 40, 40, TRUE);
+	pButtonStop->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 + 55, pictureContorlY + pictureContorlHeight + 10 + playerSliderHeight, 40, 40, TRUE);
 	
 	//group box - segmetation
 	CWnd *pGroupSegmentation = GetDlgItem(IDC_GROUP_SEG);
@@ -1274,7 +1302,7 @@ void CMFC_SyntheticDlg::layoutInit(){
 	CWnd *pStringWMAX = GetDlgItem(IDC_SEG_STRING_MAX_W);
 	CWnd *pStringValWMIN = GetDlgItem(IDC_SEG_STRING_VAL_MIN_W);
 	CWnd *pStringValWMAX = GetDlgItem(IDC_SEG_STRING_VAL_MAX_W);
-	//CWnd *pSegSliderWMIN = GetDlgItem(IDC_SEG_SLIDER_WMIN);
+	CWnd *pSegSliderWMIN = GetDlgItem(IDC_SEG_SLIDER_WMIN);
 	CWnd *pSegSliderWMAX = GetDlgItem(IDC_SEG_SLIDER_WMAX);
 	CWnd *pGroupSegHeight = GetDlgItem(IDC_GROUP_SEG_HEIGHT);
 	CWnd *pStringHMIN = GetDlgItem(IDC_SEG_STRING_MIN_H);
@@ -1287,7 +1315,7 @@ void CMFC_SyntheticDlg::layoutInit(){
 	int box_segmentationX = padding;
 	int box_segmentationY = 2 * padding + box_MenuHeight;
 	int box_segmentationWidth = box_MenuWidth;
-	int box_segmentationHeight = ((dialogHeight - 3 * padding)*0.7 - padding) - box_MenuHeight;
+	int box_segmentationHeight = ((dialogHeight - 3 * padding)*0.8 - padding) - box_MenuHeight;
 	pGroupSegmentation->MoveWindow(box_segmentationX, box_segmentationY, box_segmentationWidth, box_segmentationHeight, TRUE);
 	pStringStartTime->MoveWindow(box_segmentationX + padding, box_segmentationY + 2 * padding, 230, 20, TRUE);
 	m_pEditBoxStartHour->MoveWindow(box_segmentationX + padding + box_segmentationWidth*0.5, box_segmentationY + 3 * padding + 20, 20, 20, TRUE);
@@ -1322,7 +1350,7 @@ void CMFC_SyntheticDlg::layoutInit(){
 	int box_syntheticX = padding;
 	int box_syntheticY = box_segmentationY + box_segmentationHeight + padding;
 	int box_syntheticWidth = dialogWidth - 3 * padding;
-	int box_syntheticHeight = (dialogHeight - 3 * padding)*0.3 - 40;
+	int box_syntheticHeight = (dialogHeight - 3 * padding)*0.2 - 40;
 	pGroupSynthetic->MoveWindow(box_syntheticX, box_syntheticY, box_syntheticWidth, box_syntheticHeight, TRUE);
 	pStringSearchStartTime->MoveWindow(box_syntheticX + padding, box_syntheticY + box_syntheticHeight*0.3, 100, 20, TRUE);
 	m_sliderSearchStartTime.MoveWindow(box_syntheticX + padding, box_syntheticY + box_syntheticHeight*0.3 + 20 + padding, 140, 20, TRUE);
@@ -1349,11 +1377,22 @@ void CMFC_SyntheticDlg::setSliderRange(int video_length,int video_cols, int vide
 	m_SliderWMAX.SetRange(0, video_cols);
 	m_SliderHMIN.SetRange(0, video_rows);
 	m_SliderHMAX.SetRange(0, video_rows);
+	m_SliderWMIN.SetPageSize(1);	//슬라이더 몸통 클릭 시 이동하는 눈금 수
+	m_SliderWMAX.SetPageSize(1);
+	m_SliderHMIN.SetPageSize(1);
+	m_SliderHMAX.SetPageSize(1);
 
 	//play settings slider
 	m_sliderSearchStartTime.SetRange(0, video_length);
 	m_sliderSearchEndTime.SetRange(0, video_length);
 	m_sliderFps.SetRange(0, MAX_Fps);
+	m_sliderSearchStartTime.SetPageSize(1);
+	m_sliderSearchEndTime.SetPageSize(1);
+	m_sliderFps.SetPageSize(1);
+
+	//비디오 플레이어 슬라이더
+	m_SliderPlayer.SetRange(0, totalFrameCount);
+	m_SliderPlayer.SetPageSize(1);
 }
 
 void CMFC_SyntheticDlg::updateUI(int video_length, int video_cols, int video_rows, int MAX_Fps){
@@ -1368,6 +1407,10 @@ void CMFC_SyntheticDlg::updateUI(int video_length, int video_cols, int video_row
 	m_sliderSearchStartTime.SetPos(0);
 	m_sliderSearchEndTime.SetPos(0);
 	m_sliderFps.SetPos(MAX_Fps);
+
+	//player slider default
+	SetDlgItemText(IDC_STRING_CUR_TIME, _T("00 : 00 : 00"));
+	SetDlgItemText(IDC_STRING_TOTAL_TIME, _T(timeConvertor(video_length).str().c_str()));
 
 	//SetDlgItemText(IDC_SEG_STRING_VAL_MIN_W, _T("0"));
 	//SetDlgItemText(IDC_SEG_STRING_VAL_MAX_W, _T("0"));
@@ -1389,4 +1432,85 @@ void CMFC_SyntheticDlg::updateUI(int video_length, int video_cols, int video_row
 	m_SliderWMAX.SetPos(video_cols / 2);
 	m_SliderHMIN.SetPos(video_rows / 5);
 	m_SliderHMAX.SetPos(video_rows / 2);
+}
+
+//동영상 플레이어 슬라이더를 마우스로 잡은 뒤, 놓았을 때 발생하는 콜백
+void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	*pResult = 0;
+	int releasedPoint = m_SliderPlayer.GetPos();
+	capture.set(CV_CAP_PROP_POS_FRAMES, releasedPoint);
+	if (isPauseBtnClicked == true){	//일시정지된 상황이라면 한 프레임만 출력해서 화면을 바꿔줌
+		Mat temp_frame;
+		if (radioChoice == 2){	//radio btn이 이진영상이면, 이진 영상을 출력
+			Mat img_labels, stats, centroids;
+			capture.read(temp_frame);
+			//그레이스케일 변환
+			cvtColor(temp_frame, temp_frame, CV_RGB2GRAY);
+			// 전경 추출
+			temp_frame = ExtractFg(temp_frame, background_gray, ROWS, COLS);
+
+			// 이진화
+			threshold(temp_frame, temp_frame, 5, 255, CV_THRESH_BINARY);
+
+			// 노이즈 제거
+			temp_frame = morphologicalOperation(temp_frame);
+			blur(temp_frame, temp_frame, Size(9, 9));
+			temp_frame = morphologicalOperation(temp_frame);
+
+			threshold(temp_frame, temp_frame, 5, 255, CV_THRESH_BINARY);
+
+			int numOfLables = connectedComponentsWithStats(temp_frame, img_labels,
+				stats, centroids, 8, CV_32S);
+
+			cvtColor(temp_frame, temp_frame, CV_GRAY2BGR);
+
+			//라벨링 된 이미지에 각각 직사각형으로 둘러싸기 
+			for (int j = 1; j < numOfLables; j++) {
+				//int area = stats.at<int>(j, CC_STAT_AREA);
+				int left = stats.at<int>(j, CC_STAT_LEFT);
+				int top = stats.at<int>(j, CC_STAT_TOP);
+				int width = stats.at<int>(j, CC_STAT_WIDTH);
+				int height = stats.at<int>(j, CC_STAT_HEIGHT);
+				if (labelSizeFiltering(width, height
+					, m_SliderWMIN.GetPos(), m_SliderWMAX.GetPos(), m_SliderHMIN.GetPos(), m_SliderHMAX.GetPos())) {
+					rectangle(temp_frame, Point(left, top), Point(left + width, top + height),
+						Scalar(0, 0, 255), 1);
+				}
+			}
+
+			DisplayImage(IDC_RESULT_IMAGE, temp_frame, BIN_VIDEO_TIMER);
+			img_labels = NULL;
+			stats = NULL;
+			centroids = NULL;
+			img_labels.release();
+			stats.release();
+			centroids.release();
+		}
+		else{
+			capture.read(temp_frame);
+			DisplayImage(IDC_RESULT_IMAGE, temp_frame, NULL);
+		}
+		temp_frame = NULL;
+		temp_frame.release();
+	}
+	else if (isPlayBtnClicked){	//실행 중이었던 경우 마저 실행한다.
+		printf("c");
+		switch (radioChoice){
+		case 0:	//원본영상 마저 출력
+			printf("a");
+			SetTimer(VIDEO_TIMER, 1000 / m_sliderFps.GetPos(), NULL);
+			break;
+		case 1:	//합성 영상
+			//미구현
+			break;
+		case 2:	//이진 영상 마저 출력
+			printf("b");
+			SetTimer(BIN_VIDEO_TIMER, 1000 / m_sliderFps.GetPos(), NULL);
+			break;
+		default:
+			break;
+		}
+	}
+	return;
 }

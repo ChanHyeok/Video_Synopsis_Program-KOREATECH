@@ -219,5 +219,7 @@ public:
 	afx_msg void OnBnClickedBtnRewind();
 	CProgressCtrl m_LoadingProgressCtrl;
 
+	CSliderCtrl m_SliderPlayer;
+	afx_msg void OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pResult);
 };
 
