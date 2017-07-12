@@ -106,7 +106,6 @@ node Dequeue(Queue *);
 
 // MAIN ****
 vector<component> humanDetectedProcess(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector, Mat, int, int, unsigned int, FILE *fp);
-void segmentationOperator(VideoCapture* vc_Source, int, int, int ,int ,int ,int);
 Mat getSyntheticFrame(Mat);
 
 // addition function of MAIN
@@ -216,6 +215,9 @@ public:
 	afx_msg void layoutInit(); 
 	afx_msg void setSliderRange(int,int,int,int);
 	afx_msg void updateUI(int, int, int, int);
+	afx_msg void segmentationOperator(VideoCapture* vc_Source, int, int, int, int, int, int);
 	afx_msg void OnBnClickedBtnRewind();
+	CProgressCtrl m_LoadingProgressCtrl;
+
 };
 
