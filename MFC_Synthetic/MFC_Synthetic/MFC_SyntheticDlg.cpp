@@ -34,6 +34,7 @@ int videoStartMsec, segmentCount, fps, totalFrameCount; // 시작 millisecond, �
 unsigned int videoLength;	//비디오 길이(초)
 int radioChoice, preRadioChoice;	//라디오 버튼 선택 결과 저장 변수. 0 - 원본영상, 1 - 합성영상, 2 - 이진영상
 boolean isPlayBtnClicked, isPauseBtnClicked;
+boolean isSliderMoved;
 Mat background_gray, background_loadedFromFile; // 배경 프레임 , 합성 라디오 버튼 클릭 시 로드되는 합성에 사용할 배경 이미지
 
 unsigned int COLS, ROWS;
@@ -175,9 +176,12 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	//UI 업데이트, control에 default 값 할당
 	updateUI(videoLength, COLS, ROWS, fps);
 
-	// // Play, Pause버튼 상태 초기화
+	// Play, Pause버튼 상태 초기화
 	isPlayBtnClicked = false;
 	isPauseBtnClicked = true;
+
+	// slider 상태 초기화
+	isSliderMoved = false;
 
 	// 라디오 버튼 초기화
 	CheckRadioButton(IDC_RADIO_PLAY1, IDC_RADIO_PLAY3, IDC_RADIO_PLAY1);
@@ -456,49 +460,7 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 		// 이진 영상 출력
 	case BIN_VIDEO_TIMER:
 		if (true) {
-			Mat img_labels, stats, centroids;
-			capture.read(temp_frame);
-			//그레이스케일 변환
-			cvtColor(temp_frame, temp_frame, CV_RGB2GRAY);
-			// 전경 추출
-			temp_frame = ExtractFg(temp_frame, background_gray, ROWS, COLS);
-
-			// 이진화
-			threshold(temp_frame, temp_frame, 5, 255, CV_THRESH_BINARY);
-
-			// 노이즈 제거
-			temp_frame = morphologicalOperation(temp_frame);
-			blur(temp_frame, temp_frame, Size(9, 9));
-			temp_frame = morphologicalOperation(temp_frame);
-
-			threshold(temp_frame, temp_frame, 5, 255, CV_THRESH_BINARY);
-
-			int numOfLables = connectedComponentsWithStats(temp_frame, img_labels,
-				stats, centroids, 8, CV_32S);
-
-			cvtColor(temp_frame, temp_frame, CV_GRAY2BGR);
-
-			//라벨링 된 이미지에 각각 직사각형으로 둘러싸기 
-			for (int j = 1; j < numOfLables; j++) {
-				//int area = stats.at<int>(j, CC_STAT_AREA);
-				int left = stats.at<int>(j, CC_STAT_LEFT);
-				int top = stats.at<int>(j, CC_STAT_TOP);
-				int width = stats.at<int>(j, CC_STAT_WIDTH);
-				int height = stats.at<int>(j, CC_STAT_HEIGHT);
-				if (labelSizeFiltering(width, height
-					, m_SliderWMIN.GetPos(), m_SliderWMAX.GetPos(), m_SliderHMIN.GetPos(), m_SliderHMAX.GetPos())) {
-					rectangle(temp_frame, Point(left, top), Point(left + width, top + height),
-						Scalar(0, 0, 255), 1);
-				}
-			}
-
-			DisplayImage(IDC_RESULT_IMAGE, temp_frame, BIN_VIDEO_TIMER);
-			img_labels = NULL;
-			stats = NULL;
-			centroids = NULL;
-			img_labels.release();
-			stats.release();
-			centroids.release();
+			binaryVideoProcess();
 		}
 		break;
 	case PROGRESS_BAR_TIMER:
@@ -609,19 +571,9 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 			// 배경을 다시 만들 때 첫번쨰 임시배경을 프레임 중 하나로 선택함(연산을 시작하는 첫번쨰 프레임)
 			if (temp_frameCount >= FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND &&
 				temp_frameCount <= FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND + FRAMES_FOR_MAKE_BACKGROUND) {
-				temporalMedianBG(frame, tmp_background, ROWS * 3, COLS);
-
-				if (temp_frameCount == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND + FRAMES_FOR_MAKE_BACKGROUND) {
-					// 만든 background 적용
-					// int check = imwrite(SEGMENTATION_DATA_DIRECTORY_NAME + "/" + fileNameNoExtension
-					//	+ "/" + RESULT_BACKGROUND_FILENAME + fileNameNoExtension + "_" + to_string(frameCount) + ".jpg", tmp_background);
-	
-					cvtColor(tmp_background, background_gray, CV_RGB2GRAY);
-
-					printf("Background Changed, %d frame\n", frameCount);
-
-					temp_frameCount = FRAMES_FOR_MAKE_BACKGROUND; // temp_frame count 초기화 (배경 생성을 진행한 후 부터로)
-				}
+				tmp_background = backgroundDynamic(frame, tmp_background, temp_frameCount);
+				if (temp_frameCount <= FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND + FRAMES_FOR_MAKE_BACKGROUND)
+					temp_frameCount = FRAMES_FOR_MAKE_BACKGROUND;
 			}
 			//printf("=====%5d 프레임=====\n", frameCount);
 			//그레이스케일 변환
@@ -673,7 +625,7 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 			vclear.clear();
 			humanDetectedVector.clear();
 
-			frameCount++;	temp_frameCount++; //increase frame , temp_frame count
+			frameCount++;	frameCount++; //increase frame count
 			m_LoadingProgressCtrl.OffsetPos(1);
 		}
 	}
@@ -1233,6 +1185,21 @@ Mat backgroundInit(VideoCapture *vc_Source) {
 	return bg_gray;
 }
 
+Mat backgroundDynamic(Mat frame, Mat background, int frameCount) {
+	temporalMedianBG(frame, background, ROWS * 3, COLS);
+
+	// 만든 background 적용
+	if (frameCount ==  FRAMES_FOR_MAKE_BACKGROUND) {
+		// 만든 background 적용
+		int background_file_check = imwrite(getBackgroundFilePath(fileNameNoExtension), background);
+
+		cvtColor(background, background_gray, CV_RGB2GRAY);
+
+		printf("Background Changed At %d frame\n", frameCount);
+	}
+	return background;
+}
+
 void CMFC_SyntheticDlg::layoutInit(){
 	//(http://gandus.tistory.com/530)
 	//현재 dialog 크기 얻어옴
@@ -1438,61 +1405,21 @@ void CMFC_SyntheticDlg::updateUI(int video_length, int video_cols, int video_row
 void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pResult)
 {
 	*pResult = 0;
+	isSliderMoved = true;
 	int releasedPoint = m_SliderPlayer.GetPos();
 	capture.set(CV_CAP_PROP_POS_FRAMES, releasedPoint);
 	if (isPauseBtnClicked == true){	//일시정지된 상황이라면 한 프레임만 출력해서 화면을 바꿔줌
-		Mat temp_frame;
 		if (radioChoice == 2){	//radio btn이 이진영상이면, 이진 영상을 출력
-			Mat img_labels, stats, centroids;
-			capture.read(temp_frame);
-			//그레이스케일 변환
-			cvtColor(temp_frame, temp_frame, CV_RGB2GRAY);
-			// 전경 추출
-			temp_frame = ExtractFg(temp_frame, background_gray, ROWS, COLS);
-
-			// 이진화
-			threshold(temp_frame, temp_frame, 5, 255, CV_THRESH_BINARY);
-
-			// 노이즈 제거
-			temp_frame = morphologicalOperation(temp_frame);
-			blur(temp_frame, temp_frame, Size(9, 9));
-			temp_frame = morphologicalOperation(temp_frame);
-
-			threshold(temp_frame, temp_frame, 5, 255, CV_THRESH_BINARY);
-
-			int numOfLables = connectedComponentsWithStats(temp_frame, img_labels,
-				stats, centroids, 8, CV_32S);
-
-			cvtColor(temp_frame, temp_frame, CV_GRAY2BGR);
-
-			//라벨링 된 이미지에 각각 직사각형으로 둘러싸기 
-			for (int j = 1; j < numOfLables; j++) {
-				//int area = stats.at<int>(j, CC_STAT_AREA);
-				int left = stats.at<int>(j, CC_STAT_LEFT);
-				int top = stats.at<int>(j, CC_STAT_TOP);
-				int width = stats.at<int>(j, CC_STAT_WIDTH);
-				int height = stats.at<int>(j, CC_STAT_HEIGHT);
-				if (labelSizeFiltering(width, height
-					, m_SliderWMIN.GetPos(), m_SliderWMAX.GetPos(), m_SliderHMIN.GetPos(), m_SliderHMAX.GetPos())) {
-					rectangle(temp_frame, Point(left, top), Point(left + width, top + height),
-						Scalar(0, 0, 255), 1);
-				}
-			}
-
-			DisplayImage(IDC_RESULT_IMAGE, temp_frame, BIN_VIDEO_TIMER);
-			img_labels = NULL;
-			stats = NULL;
-			centroids = NULL;
-			img_labels.release();
-			stats.release();
-			centroids.release();
+			binaryVideoProcess();
 		}
-		else{
+		else {
+			Mat temp_frame;
 			capture.read(temp_frame);
 			DisplayImage(IDC_RESULT_IMAGE, temp_frame, NULL);
+
+			temp_frame = NULL;
+			temp_frame.release();
 		}
-		temp_frame = NULL;
-		temp_frame.release();
 	}
 	else if (isPlayBtnClicked){	//실행 중이었던 경우 마저 실행한다.
 		printf("c");
@@ -1512,5 +1439,78 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 			break;
 		}
 	}
+	isSliderMoved = false;
 	return;
+}
+
+void CMFC_SyntheticDlg::binaryVideoProcess()
+{
+	// 영상에서 받아올 프레임을 저장하는 변수
+	Mat frame_input, tmp_background;
+	static int framecount_for_background = 0;
+	static bool first_flag = true;
+
+	// 비디오 읽어오기
+	capture.read(frame_input);
+
+	// pause 걸렸을 떄는 동적배경 생성 하지 않음, play버튼 눌렸을 경우에만
+	if (!first_flag && !isSliderMoved && isPlayBtnClicked) {
+		tmp_background = backgroundDynamic(frame_input, tmp_background, framecount_for_background);
+		framecount_for_background++;
+		// 배경 생성 연산 
+	}
+
+	// 슬라이더 버튼 이동했을 경우에는 framecount_for_background 및 배경 초기화
+	if (first_flag || isSliderMoved) {
+		printf("first or sliderMoved\n");
+		framecount_for_background = 0;
+		tmp_background = imread(getBackgroundFilePath(fileNameNoExtension));
+		first_flag = false;
+	}
+
+	//그레이스케일 변환
+	cvtColor(frame_input, frame_input, CV_RGB2GRAY);
+
+	// 전경 추출
+	frame_input = ExtractFg(frame_input, background_gray, ROWS, COLS);
+
+	// 이진화
+	threshold(frame_input, frame_input, 5, 255, CV_THRESH_BINARY);
+
+	// 노이즈 제거
+	frame_input = morphologicalOperation(frame_input);
+	blur(frame_input, frame_input, Size(9, 9));
+	threshold(frame_input, frame_input, 5, 255, CV_THRESH_BINARY);
+
+	// 레이블링을 위한 변수 정의
+	Mat img_labels, stats, centroids;
+
+	// 레이블링 진행
+	int numOfLables = connectedComponentsWithStats(frame_input, img_labels,
+		stats, centroids, 8, CV_32S);
+
+	cvtColor(frame_input, frame_input, CV_GRAY2BGR);
+
+	//라벨링 된 이미지에 각각 직사각형으로 둘러싸기 
+	for (int j = 1; j < numOfLables; j++) {
+		//int area = stats.at<int>(j, CC_STAT_AREA);
+		int left = stats.at<int>(j, CC_STAT_LEFT);
+		int top = stats.at<int>(j, CC_STAT_TOP);
+		int width = stats.at<int>(j, CC_STAT_WIDTH);
+		int height = stats.at<int>(j, CC_STAT_HEIGHT);
+		if (labelSizeFiltering(width, height
+			, m_SliderWMIN.GetPos(), m_SliderWMAX.GetPos(), m_SliderHMIN.GetPos(), m_SliderHMAX.GetPos())) {
+			rectangle(frame_input, Point(left, top), Point(left + width, top + height),
+				Scalar(0, 0, 255), 1);
+		}
+	}
+
+	// 화면에 보여주기
+	DisplayImage(IDC_RESULT_IMAGE, frame_input, BIN_VIDEO_TIMER);
+
+	// 값 초기화 및 메모리 해제
+	img_labels = NULL;		stats = NULL;		centroids = NULL;
+	img_labels.release();		stats.release();		centroids.release();
+
+	printf("framecount_for_background = %d\n", framecount_for_background);
 }

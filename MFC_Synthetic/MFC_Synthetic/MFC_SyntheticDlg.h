@@ -116,6 +116,7 @@ stringstream timeConvertor(int t);
 
 bool IsObjectOverlapingDetector(segment, segment);
 Mat backgroundInit(VideoCapture *vc_Source);
+Mat backgroundDynamic(Mat frame, Mat background, int frameCount);
 
 // connectecComponentLabelling.cpp
 vector<component> connectedComponentsLabelling(Mat frame, int rows, int cols, int, int, int, int);
@@ -221,5 +222,6 @@ public:
 
 	CSliderCtrl m_SliderPlayer;
 	afx_msg void OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pResult);
+	void binaryVideoProcess();
 };
 
