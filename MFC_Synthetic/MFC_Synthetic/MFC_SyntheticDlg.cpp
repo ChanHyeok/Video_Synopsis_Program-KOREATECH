@@ -581,7 +581,10 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 	unsigned int ROWS = (int)vc_Source->get(CV_CAP_PROP_FRAME_HEIGHT);	//세로 길이
 
 	// humanDetector Vector
+	// check point
 	vector<component> humanDetectedVector, prevHumanDetectedVector;
+	ComponentVectorQueue prevHumanDetectedVector_queue;
+	InitComponentVectorQueue(&prevHumanDetectedVector_queue);
 
 	/* Mat */
 	Mat frame(ROWS, COLS, CV_8UC3); // Mat(height, width, channel)
@@ -658,22 +661,25 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 			currentMsec = vc_Source->get(CV_CAP_PROP_POS_MSEC);
 
 			// 영상을 처리하여 파일로 저장하기
-			humanDetectedVector = humanDetectedProcess(humanDetectedVector, prevHumanDetectedVector,
-				frame, frameCount, videoStartMsec, currentMsec, fp);
+			//humanDetectedVector = humanDetectedProcess(humanDetectedVector, prevHumanDetectedVector,
+			//	frame, frameCount, videoStartMsec, currentMsec, fp);
+
 			// check point
 			// humanDetected가 있을 경우에만 연산(함수호출 오버헤드 감소를 위함)
 			// 영상을 처리하여 타임태그를 새로 부여하고 파일로 저장하기(2)
-			//if (humanDetectedVector.size() > 0) {
-			//	humanDetectedVector = humanDetectedProcess2(humanDetectedVector, prevHumanDetectedVector_queue,
-			//		frame, frameCount, videoStartMsec, currentMsec, fp);
-			//}
+			 if (humanDetectedVector.size() > 0)
+				humanDetectedVector = humanDetectedProcess2(humanDetectedVector, prevHumanDetectedVector_queue,
+					frame, frameCount, videoStartMsec, currentMsec, fp);
+			
 
 			// 큐가 full일 경우 한자리 비워주기
-			//if (IsComponentVectorQueueFull(&prevHumanDetectedVector_queue))
-			//	RemoveComponentVectorQueue(&prevHumanDetectedVector_queue);
+			if (IsComponentVectorQueueFull(&prevHumanDetectedVector_queue))
+				RemoveComponentVectorQueue(&prevHumanDetectedVector_queue);
+			else
+				printf("자리 남음\n");
 
 			// 큐에 매 수행마다 벡터를 무조건 넣어줘야함
-			//PutComponentVectorQueue(&prevHumanDetectedVector_queue, humanDetectedVector);
+			PutComponentVectorQueue(&prevHumanDetectedVector_queue, humanDetectedVector);
 
 			// 벡터 메모리 해제를 빈 벡터 생성(prevHumanDetectedVector 메모리 해제)
 			vector<component> vclear;
@@ -681,8 +687,6 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 
 			vclear.clear();
 			prevHumanDetectedVector.clear();
-
-
 
 			// 현재 검출한 데이터를 이전 데이터에 저장하기
 			prevHumanDetectedVector = humanDetectedVector;
@@ -787,165 +791,38 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, C
 			// 인덱스가 바뀌는 것을 판별할 가중치 변수 생성
 			int variableIndexWeight = 0;
 
-			// 큐에 있는 데이터들을 분석, 바로 이전의 객체부터 불러 올 수 있도록 인덱스 조정
-			for (int i = 0; i < MAXSIZE_OF_COMPONENT_VECTOR_QUEUE - 1; i++) {
-				// 큐에 데이터를 하나씩 빼 내어 분석하기 위한 임시변수 생성
-				// 현재를 기준으로 바로 이전 객체부터 불러오도록 함
-				vector<component> prevDetectedVector_i = GetComponentVectorQueue(&prevHumanDetectedVector_Queue
-					, (prevHumanDetectedVector_Queue.rear + i / MAXSIZE_OF_COMPONENT_VECTOR_QUEUE));
-				// i가 MAXSIZE_OF_COMPONENT_VECTOR_QUEUE-1(4) 일 때 현재, MAXSIZE_OF_COMPONENT_VECTOR_QUEUE-2 (3)일 떄 바로 이전
-
-				for (int prev_index = 0; prev_index < prevDetectedVector_i.size(); prev_index++) {
-					// 이전 객체의 timetag로 무조건 초기화 해 주어야 함					
-					timeTag = prevDetectedVector_i[prev_index].timeTag;
-
-					// 공통사항 :: 인덱스가 같고 겹치면 높은 weight값 부여 ( 확실한 이어진 객체 )
-					if (humanDetectedVector[curr_index].label == prevDetectedVector_i[prev_index].label &&
-						!IsComparePrevDetection2(humanDetectedVector, prevDetectedVector_i, curr_index, prev_index)) {
-						// 바로 이전이면 weight값 30
-						overlapWeight += i * 10;
-					}
-
-					// 현재 최대 인덱스의 크기가 클 경우 (분리되거나 새로생길 경우를 대비)
-					if (humanDetectedVector.size() > prevDetectedVector_i.size()) {
-
-						// To Do :: 인덱스가 같고 component가 겹치지 않을 경우
-						if (humanDetectedVector[curr_index].label == prevDetectedVector_i[prev_index].label &&
-							!IsComparePrevDetection2(humanDetectedVector, prevDetectedVector_i, curr_index, prev_index)) {
-							// 일단 인덱스가 다르면서 component가 겹칠 떄 까지 기다려 본다.
-							// 새로운 레이블이 일단 생성이 되면 바꾸어야 함
-
-							// 인덱스 조정이 필요하지만 새로운 객체가 나타났다고 판별할 수도 있으므로 
-							// 새로운 타임태그 부여 할 수 있게끔 weight 값을 낮춰줌
-							overlapWeight += i * 5;
-						}
-
-
-						// 인덱스가 다르고 component가 겹칠 경우
-						// 인덱스가 옮겨오는 경우로 생각 해 볼 수 있음
-						else if (humanDetectedVector[curr_index].label != prevDetectedVector_i[prev_index].label &&
-							!IsComparePrevDetection2(humanDetectedVector, prevDetectedVector_i, curr_index, prev_index)) {
-							// 바로 이전 component의 레이블 그대로 현재에 부여
-							humanDetectedVector[curr_index].label = prevDetectedVector_i[prev_index].label;
-
-							// 이전 객체와 같을 가능성 높으므로 weight값 높여줌
-							overlapWeight += i * 5;
-
-							// TO DO :: 여러개를 분석할 필요가 있을 경우
-							variableIndexWeight++;
-							if (variableIndexWeight >= 2)
-								break;
-						}
-
-						// 인덱스가 다르고 component가 겹치지 않을 경우
-						// 완전 새로운 객체가 나타났음을 생각 해 볼 수 있음.
-						else if (humanDetectedVector[curr_index].label != prevDetectedVector_i[prev_index].label &&
-							IsComparePrevDetection2(humanDetectedVector, prevDetectedVector_i, curr_index, prev_index)) {
-							// 새로운 타임태그 부여 할 수 있게끔 weight 값을 낮춰줌
-							overlapWeight -= i * 5;
-						}
-
-
-					} // end if (vector.size() compare '>')
-
-					  // 이전 최대 인덱스의 크기가 클 경우 ( 합쳐지거나 사라질 경우를 대비)
-					else if (humanDetectedVector.size() < prevDetectedVector_i.size()) {
-						// 인덱스가 다르고 component가 겹칠 경우
-						// 같은 객체인데 인덱스만 옮겨오는 경우로 생각 해 볼 수 있음
-						if (humanDetectedVector[curr_index].label != prevDetectedVector_i[prev_index].label &&
-							!IsComparePrevDetection2(humanDetectedVector, prevDetectedVector_i, curr_index, prev_index)) {
-							// 바로 이전 component의 레이블 그대로 현재에 부여
-							humanDetectedVector[curr_index].label = prevDetectedVector_i[prev_index].label;
-
-							// 이전 객체와 같을 가능성 높으므로 weight값 높여줌
-							overlapWeight += i * 5;
-
-							// TO DO :: 여러개를 분석할 필요가 있을 경우
-							variableIndexWeight++;
-							if (variableIndexWeight >= 2)
-								break;
-						}
-
-						// 인덱스가 같고 component가 겹치지 않을 경우
-						// 객체가 완전히 사라졌을 것이라 판정할 수 있음
-						else if (humanDetectedVector[curr_index].label == prevDetectedVector_i[prev_index].label &&
-							IsComparePrevDetection2(humanDetectedVector, prevDetectedVector_i, curr_index, prev_index)) {
-							// 별다른 처리 없음
-
-						}
-
-						// 인덱스가 다르고 component가 겹치지 않을 경우
-						// 이미 이전에  같은 객체인데 인덱스만 옮겨오는 경우에서 따로 처리를 할 수도 있음
-						else if (humanDetectedVector[curr_index].label != prevDetectedVector_i[prev_index].label &&
-							IsComparePrevDetection2(humanDetectedVector, prevDetectedVector_i, curr_index, prev_index)) {
-							// 별다른 처리 없음
-
-						}
-					} // end else if (vector.size() compare '<')
-
-					  // 두 현재, 이전 인덱스의 크기가 서로 같을 경우
-					else if (humanDetectedVector.size() == prevDetectedVector_i.size()) {
-						// 인덱스가 다르고 component가 겹칠 경우
-						// To Do :: 물체의 교차 가능성
-						if (humanDetectedVector[curr_index].label != prevDetectedVector_i[prev_index].label &&
-							!IsComparePrevDetection2(humanDetectedVector, prevDetectedVector_i, curr_index, prev_index)) {
-							// 바로 이전 component의 레이블 그대로 현재에 부여
-							// humanDetectedVector[curr_index].label = prevDetectedVector_i[prev_index].label;
-
-							// 이전 객체와 같을 가능성 높으므로 weight값 높여줌
-							overlapWeight += i * 5;
-
-						}
-
-						// 인덱스가 같고 component가 겹치지 않을 경우
-						// 너무나 빠른 움직임(이럴 경우 거의 없을듯)
-						else if (humanDetectedVector[curr_index].label == prevDetectedVector_i[prev_index].label &&
-							IsComparePrevDetection2(humanDetectedVector, prevDetectedVector_i, curr_index, prev_index)) {
-							// 별다른 처리 없음
-
-						}
-
-						// 인덱스가 다르고 component가 겹치지 않을 경우
-						// 이미 이전에  같은 객체인데 인덱스만 옮겨오는 경우에서 따로 처리를 할 수도 있음
-						else if (humanDetectedVector[curr_index].label != prevDetectedVector_i[prev_index].label &&
-							IsComparePrevDetection2(humanDetectedVector, prevDetectedVector_i, curr_index, prev_index)) {
-							// 별다른 처리 없음
-
-						}
-					} // end else if (vector.size() compare '==')
-
-					  // weight가 일정 수치 보다 크면 반복문을 일찍 종료해서 연산을 줄임
-					if (overlapWeight > 15)
-						break;
-
-					vector<component> vclear;
-					prevDetectedVector_i.swap(vclear);
-				} // end for
-				  // 가중치를 이용한 이전-현재객체 동일 여부는 마지막에 해도 됨
-
-				  // 가중치가 일정 수치보다 높으면 이전객체와 이어져 있다고 판단함(이전 타임태그 부여)
-				if (overlapWeight > 10) {
-					humanDetectedVector[curr_index].timeTag = timeTag;
-					printf("timetag %d 동결 (%d)\n", timeTag, overlapWeight);
+			// prevHumanDetectedVector_Queue의 rear-2(rear+3)은 따끈따끈한 이전 프레임
+			vector<component> prevDetectedVector_i = GetComponentVectorQueue(&prevHumanDetectedVector_Queue
+				, (prevHumanDetectedVector_Queue.rear + 3 / MAXSIZE_OF_COMPONENT_VECTOR_QUEUE));
+			
+			for (int prev_index = 0; prev_index < prevDetectedVector_i.size(); prev_index++) {
+				// 이전 객체의 timetag로 무조건 초기화 해 주어야 함					
+				timeTag = prevDetectedVector_i[prev_index].timeTag;
+				if (!IsComparePrevDetection2(humanDetectedVector, prevDetectedVector_i, curr_index, prev_index)) {
+					// 바로 이전이면 weight값 30
+					overlapWeight += 3 * 10;
 				}
+			}
 
-				// 그렇지 않는 경우 하여 새 객체로 판정(영상의 현재 시간을 타임태그로 부여)
-				else {
-					printf("새로운 timetag %d 부여 (%d)\n", timeTag, overlapWeight);
-					humanDetectedVector[curr_index].timeTag = currentMsec;
-					timeTag = currentMsec;
-				}
+			if (overlapWeight > 10) {
+				humanDetectedVector[curr_index].timeTag = timeTag;
+				printf("timetag %d 동결 (%d) framecount = %d, size = %d \n"
+					, timeTag, overlapWeight, frameCount, humanDetectedVector.size());
+			}
 
-			} // end for ( prev_index)
-		} // end else
+			// 그렇지 않는 경우 하여 새 객체로 판정(영상의 현재 시간을 타임태그로 부여)
+			else {
+				printf("새로운 timetag %d 부여 (%d) framecount = %d, size = %d\n"
+					, timeTag, overlapWeight, frameCount, humanDetectedVector.size());
+				humanDetectedVector[curr_index].timeTag = currentMsec;
+				timeTag = currentMsec;
+			}
+		} // end else (이전에 검출된 데이터가 하나라도 있는 경우)
 
 		  // 세그먼트 데이터 파일(jpg, txt)에 저장
 		saveSegmentationData(fileNameNoExtension, humanDetectedVector[curr_index], frame
 			, timeTag, currentMsec, frameCount, humanDetectedVector[curr_index].label, fp);
 	} // end for (curr_index) 
-
-	  // 참고사항 :: 
-	  // prevHumanDetectedVector_Queue의 rear-2(queue가 full일 때 front -1)이 따끈따끈한 이전 프레임
 
 	return humanDetectedVector;
 }
@@ -966,6 +843,7 @@ int IsComparePrevDetection2(vector<component> curr_detected, vector<component> p
 	// 인덱스가 아예 다른 경우에는 centerOfPoint를 이용하여 
 	// 객체가 독립되어있는 지를 판별할 수 있도록 하게끔 추가적인 테스트 하기
 	// (확실하지 않은 코드)
+	/*
 	if (curr_index != prev_index) {
 		int centerOfX_gap = abs(curr_detected[curr_index].centerOfX - prev_detected[prev_index].centerOfX);
 		int centerOfY_gap = abs(curr_detected[curr_index].centerOfY - prev_detected[prev_index].centerOfY);
@@ -974,7 +852,7 @@ int IsComparePrevDetection2(vector<component> curr_detected, vector<component> p
 		if ((centerOfX_gap >(COLS / CENTER_OF_XY_GAP_POINT)) || (centerOfY_gap > (ROWS / CENTER_OF_XY_GAP_POINT)))
 			weight = 1;
 	}
-
+	*/
 	// 객체의 위치 뿐 아니라 크기를 통해서도 판별할 수 있음
 	// 두 객체 크기차이가 얼마 나지 않을 경우에도 두개가 서로 같은 것일 수도 있겠다고 판단할 수도 있음
 	/*if (abs(curr_detected[curr_index].height - prev_detected[prev_index].height) < 20 &&
@@ -1760,3 +1638,160 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 	}
 	return;
 }
+
+
+//memo
+
+/*
+// 큐에 있는 데이터들을 분석, 바로 이전의 객체부터 불러 올 수 있도록 인덱스 조정
+for (int i = 0; i < MAXSIZE_OF_COMPONENT_VECTOR_QUEUE - 1; i++) {
+// 큐에 데이터를 하나씩 빼 내어 분석하기 위한 임시변수 생성
+// 현재를 기준으로 바로 이전 객체부터 불러오도록 함
+vector<component> prevDetectedVector_i = GetComponentVectorQueue(&prevHumanDetectedVector_Queue
+, (prevHumanDetectedVector_Queue.rear + i / MAXSIZE_OF_COMPONENT_VECTOR_QUEUE));
+// i가 MAXSIZE_OF_COMPONENT_VECTOR_QUEUE-1(4) 일 때 현재, MAXSIZE_OF_COMPONENT_VECTOR_QUEUE-2 (3)일 떄 바로 이전
+
+for (int prev_index = 0; prev_index < prevDetectedVector_i.size(); prev_index++) {
+// 이전 객체의 timetag로 무조건 초기화 해 주어야 함
+timeTag = prevDetectedVector_i[prev_index].timeTag;
+
+// 공통사항 :: 인덱스가 같고 겹치면 높은 weight값 부여 ( 확실한 이어진 객체 )
+if (humanDetectedVector[curr_index].label == prevDetectedVector_i[prev_index].label &&
+!IsComparePrevDetection2(humanDetectedVector, prevDetectedVector_i, curr_index, prev_index)) {
+// 바로 이전이면 weight값 30
+overlapWeight += i * 10;
+}
+
+// 현재 최대 인덱스의 크기가 클 경우 (분리되거나 새로생길 경우를 대비)
+if (humanDetectedVector.size() > prevDetectedVector_i.size()) {
+
+// To Do :: 인덱스가 같고 component가 겹치지 않을 경우
+if (humanDetectedVector[curr_index].label == prevDetectedVector_i[prev_index].label &&
+!IsComparePrevDetection2(humanDetectedVector, prevDetectedVector_i, curr_index, prev_index)) {
+// 일단 인덱스가 다르면서 component가 겹칠 떄 까지 기다려 본다.
+// 새로운 레이블이 일단 생성이 되면 바꾸어야 함
+
+// 인덱스 조정이 필요하지만 새로운 객체가 나타났다고 판별할 수도 있으므로
+// 새로운 타임태그 부여 할 수 있게끔 weight 값을 낮춰줌
+overlapWeight += i * 5;
+}
+
+
+// 인덱스가 다르고 component가 겹칠 경우
+// 인덱스가 옮겨오는 경우로 생각 해 볼 수 있음
+else if (humanDetectedVector[curr_index].label != prevDetectedVector_i[prev_index].label &&
+!IsComparePrevDetection2(humanDetectedVector, prevDetectedVector_i, curr_index, prev_index)) {
+// 바로 이전 component의 레이블 그대로 현재에 부여
+humanDetectedVector[curr_index].label = prevDetectedVector_i[prev_index].label;
+
+// 이전 객체와 같을 가능성 높으므로 weight값 높여줌
+overlapWeight += i * 5;
+
+// TO DO :: 여러개를 분석할 필요가 있을 경우
+variableIndexWeight++;
+if (variableIndexWeight >= 2)
+break;
+}
+
+// 인덱스가 다르고 component가 겹치지 않을 경우
+// 완전 새로운 객체가 나타났음을 생각 해 볼 수 있음.
+else if (humanDetectedVector[curr_index].label != prevDetectedVector_i[prev_index].label &&
+IsComparePrevDetection2(humanDetectedVector, prevDetectedVector_i, curr_index, prev_index)) {
+// 새로운 타임태그 부여 할 수 있게끔 weight 값을 낮춰줌
+overlapWeight -= i * 5;
+}
+
+
+} // end if (vector.size() compare '>')
+
+// 이전 최대 인덱스의 크기가 클 경우 ( 합쳐지거나 사라질 경우를 대비)
+else if (humanDetectedVector.size() < prevDetectedVector_i.size()) {
+// 인덱스가 다르고 component가 겹칠 경우
+// 같은 객체인데 인덱스만 옮겨오는 경우로 생각 해 볼 수 있음
+if (humanDetectedVector[curr_index].label != prevDetectedVector_i[prev_index].label &&
+!IsComparePrevDetection2(humanDetectedVector, prevDetectedVector_i, curr_index, prev_index)) {
+// 바로 이전 component의 레이블 그대로 현재에 부여
+humanDetectedVector[curr_index].label = prevDetectedVector_i[prev_index].label;
+
+// 이전 객체와 같을 가능성 높으므로 weight값 높여줌
+overlapWeight += i * 5;
+
+// TO DO :: 여러개를 분석할 필요가 있을 경우
+variableIndexWeight++;
+if (variableIndexWeight >= 2)
+break;
+}
+
+// 인덱스가 같고 component가 겹치지 않을 경우
+// 객체가 완전히 사라졌을 것이라 판정할 수 있음
+else if (humanDetectedVector[curr_index].label == prevDetectedVector_i[prev_index].label &&
+IsComparePrevDetection2(humanDetectedVector, prevDetectedVector_i, curr_index, prev_index)) {
+// 별다른 처리 없음
+
+}
+
+// 인덱스가 다르고 component가 겹치지 않을 경우
+// 이미 이전에  같은 객체인데 인덱스만 옮겨오는 경우에서 따로 처리를 할 수도 있음
+else if (humanDetectedVector[curr_index].label != prevDetectedVector_i[prev_index].label &&
+IsComparePrevDetection2(humanDetectedVector, prevDetectedVector_i, curr_index, prev_index)) {
+// 별다른 처리 없음
+
+}
+} // end else if (vector.size() compare '<')
+
+// 두 현재, 이전 인덱스의 크기가 서로 같을 경우
+else if (humanDetectedVector.size() == prevDetectedVector_i.size()) {
+// 인덱스가 다르고 component가 겹칠 경우
+// To Do :: 물체의 교차 가능성
+if (humanDetectedVector[curr_index].label != prevDetectedVector_i[prev_index].label &&
+!IsComparePrevDetection2(humanDetectedVector, prevDetectedVector_i, curr_index, prev_index)) {
+// 바로 이전 component의 레이블 그대로 현재에 부여
+// humanDetectedVector[curr_index].label = prevDetectedVector_i[prev_index].label;
+
+// 이전 객체와 같을 가능성 높으므로 weight값 높여줌
+overlapWeight += i * 5;
+
+}
+
+// 인덱스가 같고 component가 겹치지 않을 경우
+// 너무나 빠른 움직임(이럴 경우 거의 없을듯)
+else if (humanDetectedVector[curr_index].label == prevDetectedVector_i[prev_index].label &&
+IsComparePrevDetection2(humanDetectedVector, prevDetectedVector_i, curr_index, prev_index)) {
+// 별다른 처리 없음
+
+}
+
+// 인덱스가 다르고 component가 겹치지 않을 경우
+// 이미 이전에  같은 객체인데 인덱스만 옮겨오는 경우에서 따로 처리를 할 수도 있음
+else if (humanDetectedVector[curr_index].label != prevDetectedVector_i[prev_index].label &&
+IsComparePrevDetection2(humanDetectedVector, prevDetectedVector_i, curr_index, prev_index)) {
+// 별다른 처리 없음
+
+}
+} // end else if (vector.size() compare '==')
+
+// weight가 일정 수치 보다 크면 반복문을 일찍 종료해서 연산을 줄임
+if (overlapWeight > 15)
+break;
+
+vector<component> vclear;
+prevDetectedVector_i.swap(vclear);
+} // end for
+// 가중치를 이용한 이전-현재객체 동일 여부는 마지막에 해도 됨
+
+// 가중치가 일정 수치보다 높으면 이전객체와 이어져 있다고 판단함(이전 타임태그 부여)
+if (overlapWeight > 10) {
+humanDetectedVector[curr_index].timeTag = timeTag;
+printf("timetag %d 동결 (%d) framecount = %d, size = %d \n"
+, timeTag, overlapWeight, frameCount, humanDetectedVector.size());
+}
+
+// 그렇지 않는 경우 하여 새 객체로 판정(영상의 현재 시간을 타임태그로 부여)
+else {
+printf("새로운 timetag %d 부여 (%d) framecount = %d, size = %d\n", timeTag, overlapWeight, frameCount, humanDetectedVector.size());
+humanDetectedVector[curr_index].timeTag = currentMsec;
+timeTag = currentMsec;
+}
+
+} // end for ( prev_index)
+*/
