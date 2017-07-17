@@ -571,8 +571,9 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 			// 배경을 다시 만들 때 첫번쨰 임시배경을 프레임 중 하나로 선택함(연산을 시작하는 첫번쨰 프레임)
 			if (temp_frameCount >= FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND &&
 				temp_frameCount <= FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND + FRAMES_FOR_MAKE_BACKGROUND) {
-				tmp_background = backgroundDynamic(frame, tmp_background, temp_frameCount);
-				if (temp_frameCount <= FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND + FRAMES_FOR_MAKE_BACKGROUND)
+				tmp_background = backgroundDynamic(frame, tmp_background, temp_frameCount, FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND);
+				if (temp_frameCount == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND + FRAMES_FOR_MAKE_BACKGROUND)
+					printf("temp_frameCount Reset! \n");
 					temp_frameCount = FRAMES_FOR_MAKE_BACKGROUND;
 			}
 			//printf("=====%5d 프레임=====\n", frameCount);
@@ -625,7 +626,7 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 			vclear.clear();
 			humanDetectedVector.clear();
 
-			frameCount++;	frameCount++; //increase frame count
+			frameCount++;	temp_frameCount++; //increase frame count
 			m_LoadingProgressCtrl.OffsetPos(1);
 		}
 	}
@@ -1185,12 +1186,11 @@ Mat backgroundInit(VideoCapture *vc_Source) {
 	return bg_gray;
 }
 
-Mat backgroundDynamic(Mat frame, Mat background, int frameCount) {
+Mat backgroundDynamic(Mat frame, Mat background, int frameCount, int intervalCount) {
 	temporalMedianBG(frame, background, ROWS * 3, COLS);
 
 	// 만든 background 적용
-	if (frameCount ==  FRAMES_FOR_MAKE_BACKGROUND) {
-		// 만든 background 적용
+	if (frameCount == (FRAMES_FOR_MAKE_BACKGROUND + intervalCount)) {
 		int background_file_check = imwrite(getBackgroundFilePath(fileNameNoExtension), background);
 
 		cvtColor(background, background_gray, CV_RGB2GRAY);
@@ -1447,18 +1447,11 @@ void CMFC_SyntheticDlg::binaryVideoProcess()
 {
 	// 영상에서 받아올 프레임을 저장하는 변수
 	Mat frame_input, tmp_background;
-	static int framecount_for_background = 0;
+	int framecount_for_background;
 	static bool first_flag = true;
 
 	// 비디오 읽어오기
 	capture.read(frame_input);
-
-	// pause 걸렸을 떄는 동적배경 생성 하지 않음, play버튼 눌렸을 경우에만
-	if (!first_flag && !isSliderMoved && isPlayBtnClicked) {
-		tmp_background = backgroundDynamic(frame_input, tmp_background, framecount_for_background);
-		framecount_for_background++;
-		// 배경 생성 연산 
-	}
 
 	// 슬라이더 버튼 이동했을 경우에는 framecount_for_background 및 배경 초기화
 	if (first_flag || isSliderMoved) {
@@ -1467,6 +1460,14 @@ void CMFC_SyntheticDlg::binaryVideoProcess()
 		tmp_background = imread(getBackgroundFilePath(fileNameNoExtension));
 		first_flag = false;
 	}
+
+	// pause 걸렸을 떄는 동적배경 생성 하지 않음, play버튼 눌렸을 경우에만
+	if (isPlayBtnClicked)
+		tmp_background = backgroundDynamic(frame_input, tmp_background, framecount_for_background++, 0);
+	
+	// 배경을 만들기 위한 frameCount 초기화
+	if (framecount_for_background > FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND)
+		framecount_for_background = 0;
 
 	//그레이스케일 변환
 	cvtColor(frame_input, frame_input, CV_RGB2GRAY);
