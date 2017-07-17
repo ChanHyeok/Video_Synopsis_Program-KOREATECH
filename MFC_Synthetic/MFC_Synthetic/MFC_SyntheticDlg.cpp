@@ -33,8 +33,8 @@ Queue segment_queue; // C++ STL의 queue 키워드와 겹치기 때문에 변수
 int videoStartMsec, segmentCount, fps, totalFrameCount; // 시작 millisecond, 세그먼트 카운팅변수, 초당 프레임수, 전체 프레임 수
 unsigned int videoLength;	//비디오 길이(초)
 int radioChoice, preRadioChoice;	//라디오 버튼 선택 결과 저장 변수. 0 - 원본영상, 1 - 합성영상, 2 - 이진영상
-boolean isPlayBtnClicked, isPauseBtnClicked;
-Mat background_gray, background_loadedFromFile; // 배경 프레임 , 합성 라디오 버튼 클릭 시 로드되는 합성에 사용할 배경 이미지
+boolean isPlayBtnClicked, isPauseBtnClicked, isSliderMoved;
+Mat background_gray, background_loadedFromFile, background_bin; // 배경 프레임 , 합성 라디오 버튼 클릭 시 로드되는 합성에 사용할 배경 이미지 , 이진영상에 사용될 배경 이미지
 
 unsigned int COLS, ROWS;
 
@@ -178,6 +178,7 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	// // Play, Pause버튼 상태 초기화
 	isPlayBtnClicked = false;
 	isPauseBtnClicked = true;
+	isSliderMoved = false;
 
 	// 라디오 버튼 초기화
 	CheckRadioButton(IDC_RADIO_PLAY1, IDC_RADIO_PLAY3, IDC_RADIO_PLAY1);
@@ -460,9 +461,38 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 			capture.read(temp_frame);
 			//그레이스케일 변환
 			cvtColor(temp_frame, temp_frame, CV_RGB2GRAY);
-			// 전경 추출
-			temp_frame = ExtractFg(temp_frame, background_gray, ROWS, COLS);
 
+			int curFrame = (int)capture.get(CV_CAP_PROP_POS_FRAMES);
+			if (curFrame <= FRAMES_FOR_MAKE_BACKGROUND){	//350 프레임 이하일 때에는 이미 만들어 놓은 배경 사용
+				// 전경 추출
+				temp_frame = ExtractFg(temp_frame, background_gray, ROWS, COLS);
+			}
+			else{
+				if (isSliderMoved == true){	//기본 재생성
+					Mat frame(ROWS, COLS, CV_8UC3); // Mat(height, width, channel)
+					Mat bg(ROWS, COLS, CV_8UC3);
+					// 영상 시작점으로 초기화
+					/*background_gray*/
+					capture_for_background.set(CV_CAP_PROP_POS_MSEC, curFrame - FRAMES_FOR_MAKE_BACKGROUND);
+					capture_for_background.read(bg);	//첫 프레임 저장
+					for (int i = 0; i < FRAMES_FOR_MAKE_BACKGROUND; i++) {
+						capture_for_background.read(frame); //get single frame
+						temporalMedianBG(frame, bg, ROWS * 3, COLS);
+					}
+
+					cvtColor(bg, background_gray, CV_RGB2GRAY);
+					temp_frame = ExtractFg(temp_frame, background_gray, ROWS, COLS);
+					frame = NULL;
+					bg = NULL;
+					frame.release();
+					bg.release();
+					isSliderMoved = false;
+				}
+				else{
+					temporalMedianBG(temp_frame, background_gray, ROWS, COLS);
+					temp_frame = ExtractFg(temp_frame, background_gray, ROWS, COLS);
+				}
+			}
 			// 이진화
 			threshold(temp_frame, temp_frame, 5, 255, CV_THRESH_BINARY);
 
@@ -1437,7 +1467,7 @@ void CMFC_SyntheticDlg::updateUI(int video_length, int video_cols, int video_row
 //동영상 플레이어 슬라이더를 마우스로 잡은 뒤, 놓았을 때 발생하는 콜백
 void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pResult)
 {
-	*pResult = 0;
+	isSliderMoved = true;
 	int releasedPoint = m_SliderPlayer.GetPos();
 	capture.set(CV_CAP_PROP_POS_FRAMES, releasedPoint);
 	if (isPauseBtnClicked == true){	//일시정지된 상황이라면 한 프레임만 출력해서 화면을 바꿔줌
@@ -1447,9 +1477,38 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 			capture.read(temp_frame);
 			//그레이스케일 변환
 			cvtColor(temp_frame, temp_frame, CV_RGB2GRAY);
-			// 전경 추출
-			temp_frame = ExtractFg(temp_frame, background_gray, ROWS, COLS);
+			
+			int curFrame = (int)capture.get(CV_CAP_PROP_POS_FRAMES);
+			if (curFrame <= FRAMES_FOR_MAKE_BACKGROUND){	//350 프레임 이하일 때에는 이미 만들어 놓은 배경 사용
+				// 전경 추출
+				temp_frame = ExtractFg(temp_frame, background_gray, ROWS, COLS);
+			}
+			else{
+				if (isSliderMoved == true){	//기본 재생성
+					Mat frame(ROWS, COLS, CV_8UC3); // Mat(height, width, channel)
+					Mat bg(ROWS, COLS, CV_8UC3);
+					// 영상 시작점으로 초기화
+					/*background_gray*/
+					capture_for_background.set(CV_CAP_PROP_POS_MSEC, curFrame - FRAMES_FOR_MAKE_BACKGROUND);
+					capture_for_background.read(bg);	//첫 프레임 저장
+					for (int i = 0; i < FRAMES_FOR_MAKE_BACKGROUND; i++) {
+						capture_for_background.read(frame); //get single frame
+						temporalMedianBG(frame, bg, ROWS * 3, COLS);
+					}
 
+					cvtColor(bg, background_gray, CV_RGB2GRAY);
+					temp_frame = ExtractFg(temp_frame, background_gray, ROWS, COLS);
+					frame = NULL;
+					bg = NULL;
+					frame.release();
+					bg.release();
+					isSliderMoved = false;
+				}
+				else{
+					temporalMedianBG(temp_frame, background_gray, ROWS, COLS);
+					temp_frame = ExtractFg(temp_frame, background_gray, ROWS, COLS);
+				}
+			}
 			// 이진화
 			threshold(temp_frame, temp_frame, 5, 255, CV_THRESH_BINARY);
 
