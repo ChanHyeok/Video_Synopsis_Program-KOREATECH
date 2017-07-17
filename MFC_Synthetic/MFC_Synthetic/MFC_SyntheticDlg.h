@@ -17,10 +17,14 @@ using namespace cv;
 
 // fileName 상수 관련
 #define RESULT_TEXT_FILENAME  "obj_data_"
-#define RESULT_FOLDER_NAME "segment_"
 #define RESULT_BACKGROUND_FILENAME "background_"
-
 const string SEGMENTATION_DATA_DIRECTORY_NAME = "data";
+
+// check point
+// component vector Queue 관련
+const int MAXSIZE_OF_COMPONENT_VECTOR_QUEUE = 5;
+#define NEXT(index) ((index+1)%MAXSIZE_OF_COMPONENT_VECTOR_QUEUE)
+
 // segmentation structure
 typedef struct _segment {
 	string fileName;
@@ -104,10 +108,29 @@ int IsEmpty(Queue *);
 void Enqueue(Queue *, int, int);
 node Dequeue(Queue *);
 
-// MAIN ****
-vector<component> humanDetectedProcess(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector, Mat, int, int, unsigned int, FILE *fp);
-Mat getSyntheticFrame(Mat);
+// check point
+typedef struct ComponentVectorQueue // Component Vector을 위한 크기 5인 원형 Queue 구조체 정의
+{
+	vector<component> buf[MAXSIZE_OF_COMPONENT_VECTOR_QUEUE]; // 배열 요소요소를 담당하는 벡터
+	int front; // 앞쪽 (다음 데이터가 나갈 위치)
+	int rear; // 뒤쪽 (다음 데이터가 들어올 위치)
+}_ComponentVectorQueue;
 
+void InitComponentVectorQueue(ComponentVectorQueue *componentVectorQueue);
+bool IsComponentVectorQueueEmpty(ComponentVectorQueue *componentVectorQueue);
+bool IsComponentVectorQueueFull(ComponentVectorQueue *componentVectorQueue);
+void PutComponentVectorQueue(ComponentVectorQueue *componentVectorQueue, vector<component> componentVector);
+void RemoveComponentVectorQueue(ComponentVectorQueue *componentVectorQueue);
+vector<component> GetComponentVectorQueue(ComponentVectorQueue *componentVectorQueue, int point);
+
+// MAIN ****
+vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, ComponentVectorQueue prevHumanDetectedVector_Queue
+	, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp);
+int IsComparePrevDetection2(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index);
+
+vector<component> humanDetectedProcess(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector, Mat, int, int, unsigned int, FILE *fp);
+void segmentationOperator(VideoCapture* vc_Source, int, int, int, int, int, int);
+Mat getSyntheticFrame(Mat);
 // addition function of MAIN
 bool segmentationTimeInputException(CString str_h, CString str_m);
 bool IsComparePrevDetection(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index);
@@ -135,6 +158,7 @@ bool saveSegmentationData(string video_name, component object, Mat object_frame
 string getTextFilePath(string video_name);
 string getBackgroundFilePath(string video_name);
 string getDirectoryPath(string video_name);
+string getObjDirectoryPath(string video_name);
 
 bool isDirectory(string dir_name);
 int makeDataRootDirectory();
