@@ -17,10 +17,9 @@ using namespace cv;
 
 // fileName 상수 관련
 #define RESULT_TEXT_FILENAME  "obj_data_"
-#define RESULT_FOLDER_NAME "segment_"
 #define RESULT_BACKGROUND_FILENAME "background_"
-
 const string SEGMENTATION_DATA_DIRECTORY_NAME = "data";
+
 // segmentation structure
 typedef struct _segment {
 	string fileName;
@@ -135,6 +134,7 @@ bool saveSegmentationData(string video_name, component object, Mat object_frame
 string getTextFilePath(string video_name);
 string getBackgroundFilePath(string video_name);
 string getDirectoryPath(string video_name);
+string getObjDirectoryPath(string video_name);
 
 bool isDirectory(string dir_name);
 int makeDataRootDirectory();

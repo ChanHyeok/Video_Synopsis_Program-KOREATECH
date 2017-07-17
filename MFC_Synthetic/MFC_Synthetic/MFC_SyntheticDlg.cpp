@@ -208,10 +208,6 @@ void CMFC_SyntheticDlg::loadFile(){
 	strcat(video_filename_cstr, fileNameExtension.c_str());
 	pStringFileName->SetWindowTextA(video_filename_cstr);
 
-	//TODO : video_filename_cstr 메모리 해제
-	// 다시 영상 파일을 불러올 때 cstr 포인터가 메모리 해제가 
-	// 재대로 안된 상태이기 때문에 에러가 발생하는 경우가 있음
-
 	video_filename_cstr = NULL;
 	free(video_filename_cstr);
 
@@ -221,9 +217,24 @@ void CMFC_SyntheticDlg::loadFile(){
 	txt_filename = txt_filename.append(fileNameNoExtension).append(".txt");
 
 	// 세그먼테이션 데이터(txt, jpg들)를 저장할 디렉토리 유무확인, 없으면 만들어줌
-	int tmp = makeDataRootDirectory();
-	int tmp2 = makeDataSubDirectory(fileNameNoExtension);
+	
+	// root 디렉토리 생성(폴더명 data)
+	if (!isDirectory(SEGMENTATION_DATA_DIRECTORY_NAME.c_str())) {
+		int rootDirectory_check = makeDataRootDirectory();
+		printf("root 생성");
+	}
+	
+	// video 이름 별 디렉토리 생성(폴더명 확장자 없는 파일 이름)
+	if (!isDirectory(getDirectoryPath(fileNameNoExtension.c_str()))) {
+		int subDirectory_check = makeDataSubDirectory(getDirectoryPath(fileNameNoExtension));
+		printf("sub 생성");
+	}
 
+	// obj 디렉토리 생성
+	if (!isDirectory(getObjDirectoryPath(fileNameNoExtension.c_str()))) {
+		int subObjDirectory_check = makeDataSubDirectory(getObjDirectoryPath(fileNameNoExtension));
+		printf("sub-obj 생성");
+	}
 
 	capture.open((string)cstrImgPath);
 	capture_for_background.open((string)cstrImgPath);

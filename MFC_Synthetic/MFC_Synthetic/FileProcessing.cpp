@@ -46,14 +46,11 @@ String getFileName(CString f_path, char find_char, BOOL extension) {
 bool saveSegmentationData(string video_name, component object, Mat object_frame
 	, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp) {
 
-	// 비디오 파일이 저장 될 경로 설정
-	string save_path = getDirectoryPath(video_name);
-
 	// object의 파일이름 할당
 	object.fileName = allocatingComponentFilename(timeTag, currentMsec, frameCount, indexOfhumanDetectedVector);
 
 	// jpg파일로 저장
-	saveSegmentation_JPG(object, object_frame, save_path);
+	saveSegmentation_JPG(object, object_frame, getObjDirectoryPath(video_name));
 
 	// txt파일로 저장
 	saveSegmentation_TXT(object, txt_fp);
@@ -98,7 +95,7 @@ Mat loadJPGObjectFile(segment obj, string file_name) {
 	String fullPath;
 
 	// segment_파일이름 폴더 내에 파일 객체 이름 포맷으로 stringstream에 저장함
-	ss << getDirectoryPath(file_name) << "/" << obj.fileName.c_str();
+	ss << getObjDirectoryPath(file_name) << "/" << obj.fileName.c_str();
 	fullPath = ss.str();
 	ss.str("");
 	Mat frame = imread(fullPath);
@@ -112,7 +109,6 @@ Mat objectCutting(component object, Mat img, unsigned int ROWS, unsigned int COL
 }
 
 // 텍스트 파일(세그먼트 정보가 저장된) 이름을 반환하는 함수
-// 깔끔하게 매개변수를 삭제할 수도 있음
 string getTextFilePath(string video_name) {
 	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name 
 		+ "/" + RESULT_TEXT_FILENAME + video_name + (".txt");
@@ -124,9 +120,14 @@ string getBackgroundFilePath(string video_name) {
 		+ "/" + RESULT_BACKGROUND_FILENAME + video_name + (".jpg");
 }
 
-// 세그먼트들이 저장된 폴더이름을 반환하는 함수 , 폴더 및 경로 :: /data/(비디오 이름)
+// 세그먼트들이 통합적인 정보들이 저장된 폴더이름을 반환하는 함수 , 폴더 및 경로 :: /data/(비디오 이름)
 string getDirectoryPath(string video_name) {
 	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name;
+}
+
+// 세그먼트(object)들이 저장된 폴더이름을 반환하는 함수 , 폴더 및 경로 :: /data/(비디오 이름)/obj
+string getObjDirectoryPath(string video_name) {
+	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name + "/" + "obj";
 }
 
 // 프로젝트 내에 해당 디렉토리가 있는 지 체크하는 함수
@@ -146,14 +147,10 @@ int makeDataRootDirectory() {
 	return _mkdir(SEGMENTATION_DATA_DIRECTORY_NAME.c_str());
 }
 
-// data 폴더 안에 해당 비디오의 이름을 갖는 디렉토리를 생성하는 함수
-int makeDataSubDirectory(string video_name) {
-	// 해당 비디오의 세그먼테이션 결과가 들어갈 폴더경로
-	string data_dir_path = getDirectoryPath(video_name);
-
-	// SEGMENTATION_DATA_DIRECTORY의 하위 폴더 생성(/data/(video_name))
-	// 폴더를 생성하면 0, 생성하지 않으면 -1
-	return _mkdir(data_dir_path.c_str());
+// data 폴더 안에 해당 비디오의 경로 및 이름을 갖는 디렉토리를 생성하는 함수
+int makeDataSubDirectory(string video_path) {
+	// 해당 비디오의 세그먼테이션 결과가 들어갈 폴더경로에 하위 폴더 생성(/data/(video_name))
+	return _mkdir(video_path.c_str());
 }
 
 // 파일의 이름부분을 저장
