@@ -112,5 +112,4 @@ void RemoveComponentVectorQueue(ComponentVectorQueue *componentVectorQueue) {
 // point번째 component 데이터를 반환 
 vector<component> GetComponentVectorQueue(ComponentVectorQueue *componentVectorQueue, int point) {
 	return componentVectorQueue->buf[point];
-
 }
