@@ -124,8 +124,8 @@ void RemoveComponentVectorQueue(ComponentVectorQueue *componentVectorQueue);
 vector<component> GetComponentVectorQueue(ComponentVectorQueue *componentVectorQueue, int point);
 
 // MAIN ****
-vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, ComponentVectorQueue prevHumanDetectedVector_Queue
-	, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp);
+vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector_Array[MAXSIZE_OF_COMPONENT_VECTOR_QUEUE]
+	, ComponentVectorQueue prevHumanDetectedVector_Queue , Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp);
 int IsComparePrevDetection2(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index);
 
 vector<component> humanDetectedProcess(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector, Mat, int, int, unsigned int, FILE *fp);
