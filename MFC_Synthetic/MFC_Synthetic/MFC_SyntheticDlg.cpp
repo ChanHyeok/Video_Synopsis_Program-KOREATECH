@@ -38,6 +38,13 @@ Mat background_gray, background_loadedFromFile; // 배경 프레임 , 합성 라
 
 unsigned int COLS, ROWS;
 
+
+
+// 합성 영상 저장을 위한 변수
+VideoWriter *outputVideo;
+int saveCount = 0;
+
+
 // File 관련
 FILE *fp; // frameInfo를 작성할 File Pointer
 std::string fileNameExtension(""); // 입력받은 비디오파일 이름
@@ -115,6 +122,7 @@ BEGIN_MESSAGE_MAP(CMFC_SyntheticDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_STOP, &CMFC_SyntheticDlg::OnBnClickedBtnStop)
 	ON_BN_CLICKED(IDC_BTN_REWIND, &CMFC_SyntheticDlg::OnBnClickedBtnRewind)
 	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SLIDER_PLAYER, &CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer)
+	ON_BN_CLICKED(IDC_BTN_SAVE, &CMFC_SyntheticDlg::OnBnClickedBtnSave)
 END_MESSAGE_MAP()
 
 
@@ -840,6 +848,12 @@ Mat getSyntheticFrame(Mat bgFrame) {
 	labelMap = NULL;
 	free(labelMap);
 	vector<int>().swap(vectorPreNodeIndex);
+
+
+	// 동영상 파일로 저장하는 부분
+	//*outputVideo << bgFrame;
+
+
 	return bgFrame;
 }
 // 객체들 끼리 겹침을 판별하는 함수, 하나라도 성립하면 겹치지 않음
@@ -1180,6 +1194,14 @@ void CMFC_SyntheticDlg::OnBnClickedBtnStop()
 	SetTimer(LOGO_TIMER, 1, NULL);
 
 	capture.set(CV_CAP_PROP_POS_FRAMES, 0);
+
+	/*
+	if (radioChoice == 1) {
+		delete outputVideo;
+	}
+
+	*/
+
 }
 
 void CMFC_SyntheticDlg::OnBnClickedBtnRewind()
@@ -1525,3 +1547,46 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 	}
 	return;
 }
+
+
+void CMFC_SyntheticDlg::OnBnClickedBtnSave()
+{
+	KillTimer(SYN_RESULT_TIMER);
+
+	Mat bg_copy; background_loadedFromFile.copyTo(bg_copy);
+	*outputVideo << getSyntheticFrame(bg_copy);
+	bg_copy = NULL;
+	bg_copy.release();
+
+	if (radioChoice == 1) {
+		// delete outputVideo;
+		outputVideo = new VideoWriter;
+
+		// 이미지 크기 지정
+		Size size = Size(COLS, ROWS);
+
+		// fps 지정
+		int fps_save = 25;
+
+		// 파일로 동영상을 저장하기 위한 준비, 동영상 파일 이름 설정
+		int getStartTime_save = m_sliderSearchStartTime.GetPos();
+		int getEndTime_save = m_sliderSearchEndTime.GetPos();
+
+		// 저장된 video 경로 및 이름 :: data/내에 output[시작시간-끝시간](저장횟수).avi로 저장됨
+		String videoname_save = SEGMENTATION_DATA_DIRECTORY_NAME + "/" + "output"
+			+ "[" + to_string(getStartTime_save) + " - " + to_string(getEndTime_save) + "]"
+			+ "(" + to_string(saveCount++) + ").avi";
+		outputVideo->open(videoname_save, VideoWriter::fourcc('X', 'V', 'I', 'D'), fps, size, true);
+
+		// 예외처리 및 동적해제
+		if (!outputVideo->isOpened()) {
+			perror("동영상 저장 에러");
+			delete outputVideo;
+		}
+	}
+
+	if (radioChoice == 1) {
+		delete outputVideo;
+	}
+}
+
