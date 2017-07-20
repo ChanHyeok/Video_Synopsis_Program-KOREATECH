@@ -469,6 +469,13 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 		if (true) {
 			Mat img_labels, stats, centroids;
 			capture.read(temp_frame);
+
+			if (temp_frame.empty()) {	//예외처리. 프레임이 없음
+				perror("Empty Frame");
+				KillTimer(BIN_VIDEO_TIMER);
+				break;
+			}
+
 			//그레이스케일 변환
 			cvtColor(temp_frame, temp_frame, CV_RGB2GRAY);
 			// 전경 추출
