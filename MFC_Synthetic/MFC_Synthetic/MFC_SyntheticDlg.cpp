@@ -727,15 +727,13 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 // component vector 큐를 이용한 추가된 함수
 vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector
 	, ComponentVectorQueue prevHumanDetectedVector_Queue, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp) {
+	// 현재에서 바로 이전 component 저장
+	vector<component> prevDetectedVector_i = prevHumanDetectedVector;
 
 	// 임시 타임태그 변수 선언
 	int prevTimeTag;
 
-	// 현재에서 바로 이전 component 저장
-	vector<component> prevDetectedVector_i = prevHumanDetectedVector;
-	// GetComponentVectorQueue(&prevHumanDetectedVector_Queue, (prevHumanDetectedVector_Queue.rear + 3) % MAXSIZE_OF_COMPONENT_VECTOR_QUEUE);
-
-	// 사람을 검출한 양 많큼 반복 (보통 1, 2개 나옴)
+	// 사람을 검출한 양 많큼 반복 (보통 index 갯수 1, 2개 나옴)
 	for (int curr_index = 0; curr_index < humanDetectedVector.size(); curr_index++) {
 		if (!prevDetectedVector_i.empty()) {	//이전 프레임의 검출된 객체가 있을 경우
 			bool findFlag = false;
@@ -748,10 +746,10 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 
 					findFlag = true;
 				}
-			}
+			} // end for
 
 			if (findFlag == false) { // 새 객체의 출현
-				for (int i = 2; i >= 0; i--) {
+				for (int i = MAXSIZE_OF_COMPONENT_VECTOR_QUEUE - 3; i >= 0; i--) {
 					prevDetectedVector_i = GetComponentVectorQueue(&prevHumanDetectedVector_Queue,
 						(prevHumanDetectedVector_Queue.rear + i) % MAXSIZE_OF_COMPONENT_VECTOR_QUEUE);
 					for (int j = 0; j < prevDetectedVector_i.size(); j++) {
@@ -769,16 +767,18 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 					}
 				}
 				if (findFlag == false) { // 새 객체의 출현
+					prevTimeTag = currentMsec;
 					humanDetectedVector[curr_index].timeTag = currentMsec;
 					saveSegmentationData(fileNameNoExtension, humanDetectedVector[curr_index], frame
-						, currentMsec, currentMsec, frameCount, humanDetectedVector[curr_index].label, fp);
+						, prevTimeTag, currentMsec, frameCount, humanDetectedVector[curr_index].label, fp);
 				}
 			}
-		}
+		} // end if ((!prevDetectedVector_i.empty())
 
 		else {	// 첫 시행이거나 이전 프레임에 검출된 객체가 없을 경우
 				// 새로운 이름 할당
-			for (int i = 2; i >= 0; i--) {
+			bool findFlag = false;
+			for (int i = MAXSIZE_OF_COMPONENT_VECTOR_QUEUE - 3; i >= 0; i--) {
 				prevDetectedVector_i = GetComponentVectorQueue(&prevHumanDetectedVector_Queue,
 					(prevHumanDetectedVector_Queue.rear + i) % MAXSIZE_OF_COMPONENT_VECTOR_QUEUE);
 				for (int j = 0; j < prevDetectedVector_i.size(); j++) {
@@ -790,14 +790,17 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 
 						printf("%d번 거르기(@@@)\n", 4 - i);
 						printf("data :: %d %d %d\n", prevTimeTag, currentMsec, frameCount);
+						findFlag = true;
 						break;
 					}
 				}
 			}
+			if (findFlag == false) {
 			humanDetectedVector[curr_index].timeTag = currentMsec;
 			saveSegmentationData(fileNameNoExtension, humanDetectedVector[curr_index], frame
-				, currentMsec, currentMsec, frameCount, humanDetectedVector[curr_index].label, fp);
-		}
+				, prevTimeTag, currentMsec, frameCount, humanDetectedVector[curr_index].label, fp);
+			}
+		} // end else
 	} // end for (curr_index) 
 
 	vector<component> vclear;
