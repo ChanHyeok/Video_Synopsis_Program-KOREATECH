@@ -20,14 +20,10 @@ using namespace cv;
 #define RESULT_BACKGROUND_FILENAME "background_"
 const string SEGMENTATION_DATA_DIRECTORY_NAME = "data";
 
-<<<<<<< HEAD
-// check point
 // component vector Queue 관련
 const int MAXSIZE_OF_COMPONENT_VECTOR_QUEUE = 5;
 #define NEXT(index) ((index+1)%MAXSIZE_OF_COMPONENT_VECTOR_QUEUE)
 
-=======
->>>>>>> master
 // segmentation structure
 typedef struct _segment {
 	string fileName;
@@ -111,7 +107,6 @@ int IsEmpty(Queue *);
 void Enqueue(Queue *, int, int);
 node Dequeue(Queue *);
 
-// check point
 typedef struct ComponentVectorQueue // Component Vector을 위한 크기 5인 원형 Queue 구조체 정의
 {
 	vector<component> buf[MAXSIZE_OF_COMPONENT_VECTOR_QUEUE]; // 배열 요소요소를 담당하는 벡터
@@ -127,13 +122,13 @@ void RemoveComponentVectorQueue(ComponentVectorQueue *componentVectorQueue);
 vector<component> GetComponentVectorQueue(ComponentVectorQueue *componentVectorQueue, int point);
 
 // MAIN ****
-vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector_Array[MAXSIZE_OF_COMPONENT_VECTOR_QUEUE]
-	, ComponentVectorQueue prevHumanDetectedVector_Queue , Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp);
+vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector_Array
+	, ComponentVectorQueue prevHumanDetectedVector_Queue, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp);
 int IsComparePrevDetection2(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index);
 
 vector<component> humanDetectedProcess(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector, Mat, int, int, unsigned int, FILE *fp);
-void segmentationOperator(VideoCapture* vc_Source, int, int, int, int, int, int);
 Mat getSyntheticFrame(Mat);
+
 // addition function of MAIN
 bool segmentationTimeInputException(CString str_h, CString str_m);
 bool IsComparePrevDetection(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index);
