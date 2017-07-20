@@ -114,6 +114,12 @@ string getTextFilePath(string video_name) {
 		+ "/" + RESULT_TEXT_FILENAME + video_name + (".txt");
 }
 
+// 텍스트 파일(위치 정보가 저장되는) 이름을 반환하는 함수
+string getDetailTextFilePath(string video_name) {
+	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name
+		+ "/" + RESULT_TEXT_DETAIL_FILENAME + video_name + (".txt");
+}
+
 // 배경 파일 이름을 반환하는 함수
 string getBackgroundFilePath(string video_name) {
 	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name 

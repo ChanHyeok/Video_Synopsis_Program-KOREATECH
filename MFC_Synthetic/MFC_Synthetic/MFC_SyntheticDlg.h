@@ -17,6 +17,7 @@ using namespace cv;
 
 // fileName 상수 관련
 #define RESULT_TEXT_FILENAME  "obj_data_"
+#define RESULT_TEXT_DETAIL_FILENAME  "obj_detail_"
 #define RESULT_BACKGROUND_FILENAME "background_"
 const string SEGMENTATION_DATA_DIRECTORY_NAME = "data";
 
@@ -132,6 +133,7 @@ bool saveSegmentationData(string video_name, component object, Mat object_frame
 	, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp);
 
 string getTextFilePath(string video_name);
+string getDetailTextFilePath(string video_name);
 string getBackgroundFilePath(string video_name);
 string getDirectoryPath(string video_name);
 string getObjDirectoryPath(string video_name);

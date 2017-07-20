@@ -40,6 +40,7 @@ unsigned int COLS, ROWS;
 
 // File 관련
 FILE *fp; // frameInfo를 작성할 File Pointer
+FILE *fp_detail; // obj_detail_<>를 작성할 File Pointer. 위치 및 색상 정보 저장
 std::string fileNameExtension(""); // 입력받은 비디오파일 이름
 std::string fileNameNoExtension("");// 확장자가 없는 파일 이름
 std::string txt_filename = RESULT_TEXT_FILENAME; //txt 파일 이름
@@ -615,6 +616,7 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 
 	// 얻어낸 객체 프레임의 정보를 써 낼 텍스트 파일 정의s
 	fp = fopen(getTextFilePath(fileNameNoExtension).c_str(), "w");	// 쓰기모드
+	fp_detail = fopen(getDetailTextFilePath(fileNameNoExtension).c_str(), "w");	// 쓰기모드
 	fprintf(fp, to_string(videoStartMsec).append("\n").c_str());	//첫줄에 영상시작시간 적어줌
 
 	// vc_source의 시작시간 0으로 초기화
@@ -708,7 +710,9 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 	vector<component>().swap(humanDetectedVector);
 	vector<component>().swap(prevHumanDetectedVector);
 
-	fclose(fp);	// 텍스트 파일 닫기
+	// 텍스트 파일 닫기
+	fclose(fp);
+	fclose(fp_detail);
 }
 
 // 현재와 이전에 검출한 결과를 비교, true 면 겹칠 수 없음
