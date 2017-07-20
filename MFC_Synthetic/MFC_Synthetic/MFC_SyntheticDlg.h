@@ -20,11 +20,14 @@ using namespace cv;
 #define RESULT_BACKGROUND_FILENAME "background_"
 const string SEGMENTATION_DATA_DIRECTORY_NAME = "data";
 
+<<<<<<< HEAD
 // check point
 // component vector Queue ฐüทร
 const int MAXSIZE_OF_COMPONENT_VECTOR_QUEUE = 5;
 #define NEXT(index) ((index+1)%MAXSIZE_OF_COMPONENT_VECTOR_QUEUE)
 
+=======
+>>>>>>> master
 // segmentation structure
 typedef struct _segment {
 	string fileName;

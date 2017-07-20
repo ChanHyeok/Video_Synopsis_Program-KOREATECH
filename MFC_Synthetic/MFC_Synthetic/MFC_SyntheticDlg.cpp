@@ -174,7 +174,11 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	//UI 업데이트, control에 default 값 할당
 	updateUI(videoLength, COLS, ROWS, fps);
 
-	// // Play, Pause버튼 상태 초기화
+	//Slider Control
+	m_sliderSearchStartTime.EnableWindow(FALSE);	//비활성화
+	m_sliderSearchEndTime.EnableWindow(FALSE);
+
+	// Play, Pause버튼 상태 초기화
 	isPlayBtnClicked = false;
 	isPauseBtnClicked = true;
 
@@ -468,6 +472,13 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 		if (true) {
 			Mat img_labels, stats, centroids;
 			capture.read(temp_frame);
+
+			if (temp_frame.empty()) {	//예외처리. 프레임이 없음
+				perror("Empty Frame");
+				KillTimer(BIN_VIDEO_TIMER);
+				break;
+			}
+
 			//그레이스케일 변환
 			cvtColor(temp_frame, temp_frame, CV_RGB2GRAY);
 			// 전경 추출
@@ -1243,7 +1254,11 @@ void CMFC_SyntheticDlg::SetRadioStatus(UINT value) {
 	UpdateData(TRUE);
 
 	if (radioChoice != mRadioPlay){	//현재 위치와 새로 누른 위치가 같을 경우 무시
+		//슬라이더 활성 및 비활성
 		m_SliderPlayer.EnableWindow(TRUE);
+		m_sliderSearchStartTime.EnableWindow(FALSE);
+		m_sliderSearchEndTime.EnableWindow(FALSE);
+		//UI 플래그 초기화
 		isPlayBtnClicked = false;
 		isPauseBtnClicked = true;
 		capture.set(CV_CAP_PROP_POS_FRAMES, 0);
@@ -1258,6 +1273,8 @@ void CMFC_SyntheticDlg::SetRadioStatus(UINT value) {
 			SetTimer(LOGO_TIMER, 1, NULL);
 			printf("합성 영상 라디오 버튼 선택됨\n");
 			m_SliderPlayer.EnableWindow(FALSE);	//합성영상일 경우 비활성화
+			m_sliderSearchStartTime.EnableWindow(TRUE);	//활성화
+			m_sliderSearchEndTime.EnableWindow(TRUE);
 			background_loadedFromFile = imread(getBackgroundFilePath(fileNameNoExtension));//합성 영상을 출력할 때 바탕이 될 프레임. 영상합성 라디오 버튼 클릭 시 자동으로 파일로부터 로드 됨
 			printf("합성 기본 배경 로드 완료\n");
 			break;
