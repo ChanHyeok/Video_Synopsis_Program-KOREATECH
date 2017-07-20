@@ -730,8 +730,8 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 	// 현재에서 바로 이전 component 저장
 	vector<component> prevDetectedVector_i = prevHumanDetectedVector;
 
-	// 임시 타임태그 변수 선언
-	int prevTimeTag;
+	// 임시 타임태그 변수 선언, 일단 초기값은 currentMsec으로 지정
+	int prevTimeTag = currentMsec;
 
 	// 사람을 검출한 양 많큼 반복 (보통 index 갯수 1, 2개 나옴)
 	for (int curr_index = 0; curr_index < humanDetectedVector.size(); curr_index++) {
@@ -748,7 +748,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 				}
 			} // end for
 
-			if (findFlag == false) { // 새 객체의 출현
+			if (findFlag == false) { // 이전 객체를 통해서 발견하지 못했음
 				for (int i = MAXSIZE_OF_COMPONENT_VECTOR_QUEUE - 3; i >= 0; i--) {
 					prevDetectedVector_i = GetComponentVectorQueue(&prevHumanDetectedVector_Queue,
 						(prevHumanDetectedVector_Queue.rear + i) % MAXSIZE_OF_COMPONENT_VECTOR_QUEUE);
