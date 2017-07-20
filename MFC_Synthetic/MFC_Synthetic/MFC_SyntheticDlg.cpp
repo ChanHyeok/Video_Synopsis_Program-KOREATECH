@@ -674,10 +674,6 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 			humanDetectedVector = humanDetectedProcess(humanDetectedVector, prevHumanDetectedVector,
 				frame, frameCount, videoStartMsec, currentMsec, fp);
 
-			if (frameCount % 100 == 10) {
-				//	printf(" size = %d %d\n", sizeof(prevHumanDetectedVector), sizeof(component) );
-
-			}
 
 			// 벡터 메모리 해제를 빈 벡터 생성(prevHumanDetectedVector 메모리 해제)
 			vector<component> vclear;
@@ -706,7 +702,6 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 
 	//메모리 해제
 	frame.release(); frame_g.release();
-
 	vector<component>().swap(humanDetectedVector);
 	vector<component>().swap(prevHumanDetectedVector);
 
@@ -740,7 +735,7 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 					//printf("%d가 겹침\n", prevTimeTag);
 					humanDetectedVector[index].timeTag = prevTimeTag;
 					saveSegmentationData(fileNameNoExtension, humanDetectedVector[index], frame
-						, prevTimeTag, currentMsec, frameCount, index, fp);
+						, prevTimeTag, currentMsec, frameCount, index, fp, ROWS, COLS);
 
 					findFlag = true;
 					//break;
@@ -750,7 +745,7 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 			if (findFlag == false) { // 새 객체의 출현
 				humanDetectedVector[index].timeTag = currentMsec;
 				saveSegmentationData(fileNameNoExtension, humanDetectedVector[index], frame
-					, currentMsec, currentMsec, frameCount, index, fp);
+					, currentMsec, currentMsec, frameCount, index, fp, ROWS, COLS);
 
 				//printf("새로운 객체 : %s\n", humanDetectedVector[i].fileName);
 			}
@@ -759,7 +754,7 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 			// 새로운 이름 할당
 			humanDetectedVector[index].timeTag = currentMsec;
 			saveSegmentationData(fileNameNoExtension, humanDetectedVector[index], frame
-				, currentMsec, currentMsec, frameCount, index, fp);
+				, currentMsec, currentMsec, frameCount, index, fp,  ROWS, COLS);
 			//printf("***이전프레임 검출 객체 없음\n새로운 객체 : %s\n", humanDetectedVector[i].fileName);
 		}
 	}

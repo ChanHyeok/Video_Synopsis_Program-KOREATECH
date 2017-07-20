@@ -130,7 +130,7 @@ int temporalMedianBG(Mat frameimg, Mat bgimg, int rows, int cols);
 String getFileName(CString f_path, char find_char, BOOL);
 Mat loadJPGObjectFile(segment obj, string file_name);
 bool saveSegmentationData(string video_name, component object, Mat object_frame
-	, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp);
+	, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp,int ,int);
 
 string getTextFilePath(string video_name);
 string getDetailTextFilePath(string video_name);

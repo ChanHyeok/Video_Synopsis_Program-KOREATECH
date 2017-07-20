@@ -44,7 +44,7 @@ String getFileName(CString f_path, char find_char, BOOL extension) {
 
 // 전체 segment 데이터의 파일들을 저장하는 모듈
 bool saveSegmentationData(string video_name, component object, Mat object_frame
-	, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp) {
+	, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp, int ROWS, int COLS) {
 
 	// object의 파일이름 할당
 	object.fileName = allocatingComponentFilename(timeTag, currentMsec, frameCount, indexOfhumanDetectedVector);
@@ -54,7 +54,7 @@ bool saveSegmentationData(string video_name, component object, Mat object_frame
 
 	// txt파일로 저장
 	saveSegmentation_TXT(object, txt_fp);
-
+	saveSegmentation_TXT_detail(object, txt_fp, ROWS, COLS);
 	return true;
 }
 
@@ -87,6 +87,51 @@ void saveSegmentation_TXT(component object, FILE *fp) {
 		<< " " << object.right - object.left << " " << object.bottom - object.top << '\n';
 	info = ss.str();
 	fprintf(fp, info.c_str());
+
+	return;
+}
+
+// Segmentation된 Obj의 Data의 방향정보를 txt파일로 저장하는 함수
+// format : FILE_NAME first(입장) last(퇴장)
+void saveSegmentation_TXT_detail(component object, FILE *fp, int ROWS, int COLS) {
+	string info;
+	stringstream ss;
+	ss << object.fileName << " " << object.left << " " << object.top << " " << object.right << " " << object.bottom
+		<< " " << object.right - object.left << " " << object.bottom - object.top << '\n';
+	info = ss.str();
+	fprintf(fp, info.c_str());
+
+	return;
+}
+asd
+int directionChecker(component object, int ROWS, int COLS){
+	int result = 0;
+	int padding = 10;	//가장자리라고 허용할 위치 오차 픽셀값
+	//좌
+	if (object.left<padding){
+		result += 1;
+	}
+	//우
+	else if (object.right>COLS-padding-1){
+		result += 5;
+	}
+	else{	//가운데
+
+	}
+
+	//상
+	if (object.top<padding){
+		result += 3;
+	}
+	//하
+	else if (object.bottom>ROWS-padding-1){
+		result += 9;
+	}
+	else{	//가운데
+
+	}
+
+	return result;
 }
 
 // jpg로 저장된 object를 반환해 주는 함수
@@ -110,7 +155,7 @@ Mat objectCutting(component object, Mat img, unsigned int ROWS, unsigned int COL
 
 // 텍스트 파일(세그먼트 정보가 저장된) 이름을 반환하는 함수
 string getTextFilePath(string video_name) {
-	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name 
+	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name
 		+ "/" + RESULT_TEXT_FILENAME + video_name + (".txt");
 }
 
@@ -122,7 +167,7 @@ string getDetailTextFilePath(string video_name) {
 
 // 배경 파일 이름을 반환하는 함수
 string getBackgroundFilePath(string video_name) {
-	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name 
+	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name
 		+ "/" + RESULT_BACKGROUND_FILENAME + video_name + (".jpg");
 }
 
