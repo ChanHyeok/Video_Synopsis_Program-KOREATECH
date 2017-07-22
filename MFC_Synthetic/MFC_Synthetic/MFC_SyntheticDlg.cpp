@@ -21,6 +21,7 @@ static char THIS_FILE[] = __FILE__;
 #define SYN_RESULT_TIMER 2	//Picture Control에 합성 영상을 출력하는 타이머
 #define BIN_VIDEO_TIMER 3	//Picture Control에 이진 영상을 출력하는 타이머
 #define PROGRESS_BAR_TIMER 4	//로딩바에 사용하는 타이머
+
 #define MAX_STR_BUFFER_SIZE  128 // 문자열 출력에 사용하는 버퍼 길이
 // 배경 생성
 const int FRAMES_FOR_MAKE_BACKGROUND = 350;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
@@ -85,8 +86,8 @@ Main Dialog
 	프로그램을 띄울 Single Dialog
 */
 CMFC_SyntheticDlg::CMFC_SyntheticDlg(CWnd* pParent /*=NULL*/)
-: CDialogEx(CMFC_SyntheticDlg::IDD, pParent)
-, mRadioPlay(0)
+	: CDialogEx(CMFC_SyntheticDlg::IDD, pParent)
+	, mRadioPlay(0)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);	//프로그램 아이콘 설정
 }
@@ -167,7 +168,7 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 
 	//레이아웃 컨트롤들 초기화 및 위치 지정
 	layoutInit();
-	
+
 	//로딩
 	m_LoadingProgressCtrl.ShowWindow(true);
 	m_LoadingProgressCtrl.SetRange(0, 100);
@@ -176,10 +177,10 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 
 	//실행시 비디오 파일 불러옴
 	loadFile();
-	
+
 	//Slider Control 범위 지정
 	setSliderRange(videoLength, COLS, ROWS, 100);
-	
+
 	//UI 업데이트, control에 default 값 할당
 	updateUI(videoLength, COLS, ROWS, fps);
 
@@ -198,7 +199,7 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
-void CMFC_SyntheticDlg::loadFile(){
+void CMFC_SyntheticDlg::loadFile() {
 	//파일 다이얼로그 호출해서 segmentation 할 영상 선택	
 	char szFilter[] = "Video (*.avi, *.MP4) | *.avi;*.mp4; | All Files(*.*)|*.*||";	//검색 옵션
 	CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, szFilter, AfxGetMainWnd());	//파일 다이얼로그 생성
@@ -225,13 +226,13 @@ void CMFC_SyntheticDlg::loadFile(){
 	txt_filename = txt_filename.append(fileNameNoExtension).append(".txt");
 
 	// 세그먼테이션 데이터(txt, jpg들)를 저장할 디렉토리 유무확인, 없으면 만들어줌
-	
+
 	// root 디렉토리 생성(폴더명 data)
 	if (!isDirectory(SEGMENTATION_DATA_DIRECTORY_NAME.c_str())) {
 		int rootDirectory_check = makeDataRootDirectory();
 		printf("root 생성");
 	}
-	
+
 	// video 이름 별 디렉토리 생성(폴더명 확장자 없는 파일 이름)
 	if (!isDirectory(getDirectoryPath(fileNameNoExtension.c_str()))) {
 		int subDirectory_check = makeDataSubDirectory(getDirectoryPath(fileNameNoExtension));
@@ -255,20 +256,20 @@ void CMFC_SyntheticDlg::loadFile(){
 	//영상 정보 - COLS,ROWS,FPS,비디오 길이(초)
 	COLS = (int)capture.get(CV_CAP_PROP_FRAME_WIDTH); //가로 길이
 	ROWS = (int)capture.get(CV_CAP_PROP_FRAME_HEIGHT); //세로 길이
-	fps = capture.get(CV_CAP_PROP_FPS); 
+	fps = capture.get(CV_CAP_PROP_FPS);
 	totalFrameCount = (int)capture.get(CV_CAP_PROP_FRAME_COUNT);
 	videoLength = (int)((totalFrameCount / (float)fps));	//비디오의 길이를 초단위로 계산
-	
+
 	// 배경생성부분
 	background_gray = backgroundInit(&capture_for_background);
 
 	SetTimer(LOGO_TIMER, 1, NULL);
 
 	//라디오버튼 - 합성영상 활성화 / 비활성화
-	if (checkSegmentation()){
+	if (checkSegmentation()) {
 		GetDlgItem(IDC_RADIO_PLAY2)->EnableWindow(TRUE);
 	}
-	else{
+	else {
 		GetDlgItem(IDC_RADIO_PLAY2)->EnableWindow(FALSE);
 	}
 
@@ -376,7 +377,7 @@ HCURSOR CMFC_SyntheticDlg::OnQueryDragIcon()
 }
 
 // Picture Contorl Display 함수
-void CMFC_SyntheticDlg::DisplayImage(int IDC_PICTURE_TARGET, Mat targetMat, int TIMER_ID){
+void CMFC_SyntheticDlg::DisplayImage(int IDC_PICTURE_TARGET, Mat targetMat, int TIMER_ID) {
 	if (targetMat.empty()) {	//예외처리. 프레임이 없음
 		perror("Empty Frame");
 		KillTimer(TIMER_ID);
@@ -419,14 +420,14 @@ void CMFC_SyntheticDlg::DisplayImage(int IDC_PICTURE_TARGET, Mat targetMat, int 
 	float fImageRatio = float(tempImage->width) / float(tempImage->height);
 	float fRectRatio = float(rect.right) / float(rect.bottom);
 	float fScaleFactor;
-	if (fImageRatio < fRectRatio){
+	if (fImageRatio < fRectRatio) {
 		fScaleFactor = float(rect.bottom) / float(tempImage->height);	//TRACE("%f",fScaleFactor);
 		int rightWithRatio = tempImage->width * fScaleFactor;
 		float halfOfDif = ((float)rect.right - (float)rightWithRatio) / (float)2;
 		rect.left = halfOfDif;
 		rect.right = rightWithRatio;
 	}
-	else{
+	else {
 		fScaleFactor = float(rect.right) / float(tempImage->width);	//TRACE("%f",fScaleFactor);
 		int bottomWithRatio = tempImage->height * fScaleFactor;
 		float halfOfDif = ((float)rect.bottom - (float)bottomWithRatio) / (float)2;
@@ -450,10 +451,10 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 	int curFrameCount = (int)capture.get(CV_CAP_PROP_POS_FRAMES);//현재 프레임 카운트
 	m_SliderPlayer.SetPos(curFrameCount);	//슬라이더 위치를 조정
 	SetDlgItemText(IDC_STRING_CUR_TIME, timeConvertor((int)(videoLength * curFrameCount / (float)totalFrameCount)).str().c_str());	//현재 씬의 시간 출력
-	
-	switch (nIDEvent){
+
+	switch (nIDEvent) {
 	case LOGO_TIMER:	//로고 출력
-		if (true){
+		if (true) {
 			string logoFileName = "logo.jpg";
 			Mat logo = imread(logoFileName);
 			DisplayImage(IDC_RESULT_IMAGE, logo, LOGO_TIMER);
@@ -521,7 +522,7 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 		}
 		break;
 	case PROGRESS_BAR_TIMER:
-		if (m_LoadingProgressCtrl.GetPos() == 100){
+		if (m_LoadingProgressCtrl.GetPos() == 100) {
 			KillTimer(PROGRESS_BAR_TIMER);
 		}
 		else
@@ -557,7 +558,7 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 	m_pEditBoxStartMinute->GetWindowTextA(str_startMinute);
 
 	// Edit box에 문자 입력, 또는 범위외 입력 시 예외처리
-	if (segmentationTimeInputException(str_startHour, str_startMinute)){
+	if (segmentationTimeInputException(str_startHour, str_startMinute)) {
 		//로딩 창 띄움
 		m_LoadingProgressCtrl.ShowWindow(true);
 		m_LoadingProgressCtrl.SetRange(0, totalFrameCount);
@@ -567,10 +568,10 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 			, m_SliderWMIN.GetPos(), m_SliderWMAX.GetPos(), m_SliderHMIN.GetPos(), m_SliderHMAX.GetPos());	//Object Segmentation
 
 		//라디오버튼 - 합성영상 활성화 / 비활성화
-		if (checkSegmentation()){
+		if (checkSegmentation()) {
 			GetDlgItem(IDC_RADIO_PLAY2)->EnableWindow(TRUE);
 		}
-		else{
+		else {
 			GetDlgItem(IDC_RADIO_PLAY2)->EnableWindow(FALSE);
 		}
 
@@ -582,7 +583,7 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 }
 
 // segmentation 기능 수행, 물체 추적 및 파일로 저장
-void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int videoStartMin, int WMIN, int WMAX, int HMIN, int HMAX){
+void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int videoStartMin, int WMIN, int WMAX, int HMIN, int HMAX) {
 	videoStartMsec = (videoStartHour * 60 + videoStartMin) * 60 * 1000;
 
 	unsigned int COLS = (int)vc_Source->get(CV_CAP_PROP_FRAME_WIDTH);	//가로 길이
@@ -634,7 +635,7 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 					// 만든 background 적용
 					// int check = imwrite(SEGMENTATION_DATA_DIRECTORY_NAME + "/" + fileNameNoExtension
 					//	+ "/" + RESULT_BACKGROUND_FILENAME + fileNameNoExtension + "_" + to_string(frameCount) + ".jpg", tmp_background);
-	
+
 					cvtColor(tmp_background, background_gray, CV_RGB2GRAY);
 
 					printf("Background Changed, %d frame\n", frameCount);
@@ -768,7 +769,7 @@ Mat getSyntheticFrame(Mat bgFrame) {
 	stringstream ss;
 
 	//큐가 비었는지 확인한다. 비었으면 더 이상 출력 할 것이 없는 것 이므로 종료
-	if (IsEmpty(&segment_queue)){
+	if (IsEmpty(&segment_queue)) {
 		labelMap = NULL;
 		free(labelMap);
 		return bgFrame;
@@ -776,7 +777,7 @@ Mat getSyntheticFrame(Mat bgFrame) {
 
 	vector<int> vectorPreNodeIndex; // 객체들 인덱스 정보를 저장하기 위한 벡터
 
-	for (int k = 0; k < countOfObj; k++){
+	for (int k = 0; k < countOfObj; k++) {
 		tempnode = Dequeue(&segment_queue);
 		vectorPreNodeIndex.push_back(tempnode.indexOfSegmentArray);	//큐에 있는 객체들의 인덱스 정보 저장
 		Enqueue(&segment_queue, tempnode.timeTag, tempnode.indexOfSegmentArray);
@@ -791,12 +792,12 @@ Mat getSyntheticFrame(Mat bgFrame) {
 
 		//printf("\n%d : %s", i + 1, m_segmentArray[curIndex].fileName);
 		//객체가 이전 객체와 겹치는지 비교
-		if (i != 0 && m_segmentArray[curIndex].timeTag == m_segmentArray[curIndex].msec){	//처음이 아니고 현재 출력할 객체가 timetag의 첫 프레임 일 때
-			for (int j = 0; j < i; j++){	//이전에 그린 객체 모두와 겹치는지 판별
-				if (IsObjectOverlapingDetector(m_segmentArray[curIndex], m_segmentArray[vectorPreNodeIndex.at(j)])){
+		if (i != 0 && m_segmentArray[curIndex].timeTag == m_segmentArray[curIndex].msec) {	//처음이 아니고 현재 출력할 객체가 timetag의 첫 프레임 일 때
+			for (int j = 0; j < i; j++) {	//이전에 그린 객체 모두와 겹치는지 판별
+				if (IsObjectOverlapingDetector(m_segmentArray[curIndex], m_segmentArray[vectorPreNodeIndex.at(j)])) {
 					isCross = false; // 겹치지 않음
 				}
-				else{ //겹침
+				else { //겹침
 					isCross = true;
 					Enqueue(&segment_queue, tempnode.timeTag, tempnode.indexOfSegmentArray);	//출력하지 않고 다시 큐에 삽입
 					break;
@@ -805,7 +806,7 @@ Mat getSyntheticFrame(Mat bgFrame) {
 		}
 
 
-		if (isCross == false){	//출력된 객체가 없거나 이전 객체와 겹치지 않는 경우
+		if (isCross == false) {	//출력된 객체가 없거나 이전 객체와 겹치지 않는 경우
 			// 아래 삭제 이후 synthetic으로 옮기기
 			//배경에 객체를 올리는 함수
 			bgFrame = printObjOnBG(bgFrame, m_segmentArray[tempnode.indexOfSegmentArray], labelMap, fileNameNoExtension);
@@ -822,13 +823,13 @@ Mat getSyntheticFrame(Mat bgFrame) {
 
 			//다음 프레임에 같은 타임태그를 가진 객체가 있는지 확인한다. 있으면 EnQueue
 			int frameIndex = 1;
-			while (1){
+			while (1) {
 				//다음 프레임에 도달할 때 까지 아무것도 하지 않는다.
-				if (m_segmentArray[tempnode.indexOfSegmentArray].frameCount == m_segmentArray[tempnode.indexOfSegmentArray + frameIndex].frameCount){
+				if (m_segmentArray[tempnode.indexOfSegmentArray].frameCount == m_segmentArray[tempnode.indexOfSegmentArray + frameIndex].frameCount) {
 					frameIndex++;
 				}
-				else{//프레임 번호가 넘어 갔을 경우
-					if ((m_segmentArray[tempnode.indexOfSegmentArray].frameCount + 1) == m_segmentArray[tempnode.indexOfSegmentArray + frameIndex].frameCount){//다음 객체가 검출된 프레임이 이전 프레임과 1 차이가 날 때
+				else {//프레임 번호가 넘어 갔을 경우
+					if ((m_segmentArray[tempnode.indexOfSegmentArray].frameCount + 1) == m_segmentArray[tempnode.indexOfSegmentArray + frameIndex].frameCount) {//다음 객체가 검출된 프레임이 이전 프레임과 1 차이가 날 때
 						//타임태그가 같고 인덱스가 같은 경우에만 큐에 넣어서 다음에 이어 출력될 수 있도록 한다.
 						if (m_segmentArray[tempnode.indexOfSegmentArray].timeTag == m_segmentArray[tempnode.indexOfSegmentArray + frameIndex].timeTag
 							&& m_segmentArray[tempnode.indexOfSegmentArray].index == m_segmentArray[tempnode.indexOfSegmentArray + frameIndex].index) {
@@ -849,16 +850,11 @@ Mat getSyntheticFrame(Mat bgFrame) {
 	free(labelMap);
 	vector<int>().swap(vectorPreNodeIndex);
 
-
-	// 동영상 파일로 저장하는 부분
-	//*outputVideo << bgFrame;
-
-
 	return bgFrame;
 }
 // 객체들 끼리 겹침을 판별하는 함수, 하나라도 성립하면 겹치지 않음
 bool IsObjectOverlapingDetector(segment m_segment, segment pre_segment) {
-	
+
 	/*if (m_segment.left <= pre_segment.right
 		&& m_segment.right >= pre_segment.left
 		&& m_segment.top <= pre_segment.bottom
@@ -887,7 +883,7 @@ void CMFC_SyntheticDlg::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBa
 		SetDlgItemText(IDC_SEG_STRING_VAL_MIN_H, to_string(m_SliderHMIN.GetPos()).c_str());
 	else if (pScrollBar == (CScrollBar*)&m_SliderHMAX)
 		SetDlgItemText(IDC_SEG_STRING_VAL_MAX_H, to_string(m_SliderHMAX.GetPos()).c_str());
-	else if (pScrollBar == (CScrollBar*)&m_SliderPlayer){	//플레이어 타임 슬라이더
+	else if (pScrollBar == (CScrollBar*)&m_SliderPlayer) {	//플레이어 타임 슬라이더
 		//슬라이딩 시 멈춤
 		KillTimer(LOGO_TIMER);
 		KillTimer(VIDEO_TIMER);
@@ -911,7 +907,7 @@ void CMFC_SyntheticDlg::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBa
 // Play Button을 눌렀을 경우에 실행되는 콜백
 void CMFC_SyntheticDlg::OnClickedBtnPlay()
 {
-	if (radioChoice == 0 && isPlayBtnClicked == false){//라디오버튼이 원본영상일 경우 - 그냥 재생
+	if (radioChoice == 0 && isPlayBtnClicked == false) {//라디오버튼이 원본영상일 경우 - 그냥 재생
 		printf("원본영상 재생 버튼 눌림\n");
 		KillTimer(BIN_VIDEO_TIMER);
 		KillTimer(SYN_RESULT_TIMER);
@@ -919,7 +915,7 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 		isPlayBtnClicked = true;
 		isPauseBtnClicked = false;
 	}
-	else if (radioChoice == 2 && isPlayBtnClicked == false){//라디오버튼이 이진영상일 경우 - 이진 및 객체 검출 바운더리가 그려진 영상 재생
+	else if (radioChoice == 2 && isPlayBtnClicked == false) {//라디오버튼이 이진영상일 경우 - 이진 및 객체 검출 바운더리가 그려진 영상 재생
 		printf("이진영상 재생 버튼 눌림\n");
 		KillTimer(SYN_RESULT_TIMER);
 		KillTimer(VIDEO_TIMER);
@@ -929,14 +925,14 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 
 	}
 
-	else if (radioChoice == 1 && isPlayBtnClicked == false){ //라디오버튼이 합성영상일 경우 - 설정에 따라 합성된 영상 재생
+	else if (radioChoice == 1 && isPlayBtnClicked == false) { //라디오버튼이 합성영상일 경우 - 설정에 따라 합성된 영상 재생
 		printf("합성영상 재생 버튼 눌림\n");
 		isPlayBtnClicked = true;
 		isPauseBtnClicked = false;
 
 		boolean isSynPlayable = checkSegmentation();
 
-		if (isSynPlayable){
+		if (isSynPlayable) {
 			char *txtBuffer = new char[100];	//텍스트파일 읽을 때 사용할 buffer
 
 			string path = "./";
@@ -1010,7 +1006,7 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 			unsigned int obj1_TimeTag = m_sliderSearchStartTime.GetPos() * 1000;	//검색할 TimeTag1
 			unsigned int obj2_TimeTag = m_sliderSearchEndTime.GetPos() * 1000;	//검색할 TimeTag2
 
-			if (obj1_TimeTag > obj2_TimeTag){ 
+			if (obj1_TimeTag > obj2_TimeTag) {
 				AfxMessageBox("Search start time can't larger than end time");
 				return;
 			}
@@ -1025,7 +1021,7 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 			for (int i = 0; i < segmentCount; i++) {
 				//start timetag와 end timetag 사이면 enqueue
 				if (m_segmentArray[i].timeTag >= obj1_TimeTag && m_segmentArray[i].timeTag <= obj2_TimeTag) {	//아직 찾지 못했고 일치하는 타임태그를 찾았을 경우
-					if (m_segmentArray[i].timeTag == m_segmentArray[i].msec){
+					if (m_segmentArray[i].timeTag == m_segmentArray[i].msec) {
 						printf("%s\n", m_segmentArray[i].fileName);
 						Enqueue(&segment_queue, m_segmentArray[i].timeTag, i);	//출력해야할 객체의 첫 프레임의 타임태그와 위치를 큐에 삽입
 						prevTimetag = m_segmentArray[i].timeTag;
@@ -1044,11 +1040,11 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 			//타이머 시작	params = timerID, ms, callback함수 명(NULL이면 OnTimer)
 			SetTimer(SYN_RESULT_TIMER, 1000 / m_sliderFps.GetPos(), NULL);
 		}
-		else{ //실행 못하는 경우 segmentation을 진행하라고 출력
+		else { //실행 못하는 경우 segmentation을 진행하라고 출력
 			AfxMessageBox("You can't play without segmentation results");
 		}
 	}
-	else{}
+	else {}
 
 
 }
@@ -1057,7 +1053,7 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 bool segmentationTimeInputException(CString str_h, CString str_m) {
 	// 시 :: 1~24, 분 :: 1~60
 	if ((atoi(str_h) > 0 && atoi(str_h) <= 24)
-		&& (atoi(str_m) > 0 && atoi(str_m) <= 60)){
+		&& (atoi(str_m) > 0 && atoi(str_m) <= 60)) {
 		return true;
 	}
 
@@ -1103,7 +1099,7 @@ stringstream timeConvertor(int t) {
 }
 
 //load 버튼을 누르면 발생하는 콜백
-void CMFC_SyntheticDlg::OnBnClickedBtnMenuLoad(){
+void CMFC_SyntheticDlg::OnBnClickedBtnMenuLoad() {
 	//로딩
 	m_LoadingProgressCtrl.ShowWindow(true);
 	m_LoadingProgressCtrl.SetRange(0, 100);
@@ -1134,7 +1130,7 @@ void CMFC_SyntheticDlg::OnBnClickedBtnMenuLoad(){
 void CMFC_SyntheticDlg::SetRadioStatus(UINT value) {
 	UpdateData(TRUE);
 
-	if (radioChoice != mRadioPlay){	//현재 위치와 새로 누른 위치가 같을 경우 무시
+	if (radioChoice != mRadioPlay) {	//현재 위치와 새로 누른 위치가 같을 경우 무시
 		m_SliderPlayer.EnableWindow(TRUE);
 		isPlayBtnClicked = false;
 		isPauseBtnClicked = true;
@@ -1169,7 +1165,7 @@ void CMFC_SyntheticDlg::SetRadioStatus(UINT value) {
 //일시 정지 버튼
 void CMFC_SyntheticDlg::OnBnClickedBtnPause()
 {
-	if (isPauseBtnClicked == false){
+	if (isPauseBtnClicked == false) {
 		isPlayBtnClicked = false;
 		isPauseBtnClicked = true;
 
@@ -1195,13 +1191,6 @@ void CMFC_SyntheticDlg::OnBnClickedBtnStop()
 
 	capture.set(CV_CAP_PROP_POS_FRAMES, 0);
 
-	/*
-	if (radioChoice == 1) {
-		delete outputVideo;
-	}
-
-	*/
-
 }
 
 void CMFC_SyntheticDlg::OnBnClickedBtnRewind()
@@ -1219,20 +1208,20 @@ bool CMFC_SyntheticDlg::checkSegmentation()
 
 	FILE *txtFile = fopen(path.c_str(), "r");
 
-	if (txtFile){	//파일을 제대로 불러왔을 경우
+	if (txtFile) {	//파일을 제대로 불러왔을 경우
 		//포인터 끝으로 이동하여 파일 크기 측정
 		fseek(txtFile, 0, SEEK_END);
-		if (ftell(txtFile) != 0){	//텍스트 파일이 크기가 0 이 아닐 경우 true 반환
+		if (ftell(txtFile) != 0) {	//텍스트 파일이 크기가 0 이 아닐 경우 true 반환
 			fclose(txtFile);
 			return true;
 		}
-		else{ //파일 크기가 0 일 경우 false 반환
+		else { //파일 크기가 0 일 경우 false 반환
 			printf("Empty txt file\n");
 			fclose(txtFile);
 			return false;
 		}
 	}
-	else{	//파일을 불러오지 못 할 경우 false 반환
+	else {	//파일을 불러오지 못 할 경우 false 반환
 		printf("Can't find txt file\n");
 		return false;
 	}
@@ -1246,14 +1235,14 @@ Mat backgroundInit(VideoCapture *vc_Source) {
 	vc_Source->set(CV_CAP_PROP_POS_MSEC, 0);
 
 	vc_Source->read(bg);	//첫 프레임 저장
-	for (int i = 0; i < FRAMES_FOR_MAKE_BACKGROUND-1; i++) {
+	for (int i = 0; i < FRAMES_FOR_MAKE_BACKGROUND - 1; i++) {
 		vc_Source->read(frame); //get single frame
 		temporalMedianBG(frame, bg, ROWS * 3, COLS);
 	}
 	// 비디오 파일 이름을 통해서 bg 파일의 이름 만들어서 jpg 파일로 저장
-	if (imwrite(getBackgroundFilePath(fileNameNoExtension), bg))	
+	if (imwrite(getBackgroundFilePath(fileNameNoExtension), bg))
 		printf("Background Init Completed\n");
-	else 
+	else
 		printf("!!Background Init Failed!!\n");
 
 	// 만든 배경을 그레이 변환 후 반환
@@ -1266,7 +1255,7 @@ Mat backgroundInit(VideoCapture *vc_Source) {
 	return bg_gray;
 }
 
-void CMFC_SyntheticDlg::layoutInit(){
+void CMFC_SyntheticDlg::layoutInit() {
 	//(http://gandus.tistory.com/530)
 	//현재 dialog 크기 얻어옴
 	int dialogWidth = m_rectCurHist.right;
@@ -1316,14 +1305,14 @@ void CMFC_SyntheticDlg::layoutInit(){
 	int playerSliderHeight = 40;
 	int pictureContorlHeight = (dialogHeight - 3 * padding)*0.8 - 40 - playerSliderHeight - padding;
 	pResultImage->MoveWindow(pictureContorlX, pictureContorlY, pictureContorlWidth, pictureContorlHeight, TRUE);
-	m_SliderPlayer.MoveWindow(pictureContorlX, pictureContorlY + pictureContorlHeight+10, playerSliderWidth, playerSliderHeight, TRUE);
-	pStringCurTimeSlider->MoveWindow(pictureContorlX+padding, pictureContorlY + pictureContorlHeight + 10 + playerSliderHeight, 230, 20, TRUE);
-	pStringTotalTimeSlider->MoveWindow(pictureContorlX + pictureContorlWidth-80, pictureContorlY + pictureContorlHeight + 10 + playerSliderHeight, 230, 20, TRUE);
+	m_SliderPlayer.MoveWindow(pictureContorlX, pictureContorlY + pictureContorlHeight + 10, playerSliderWidth, playerSliderHeight, TRUE);
+	pStringCurTimeSlider->MoveWindow(pictureContorlX + padding, pictureContorlY + pictureContorlHeight + 10 + playerSliderHeight, 230, 20, TRUE);
+	pStringTotalTimeSlider->MoveWindow(pictureContorlX + pictureContorlWidth - 80, pictureContorlY + pictureContorlHeight + 10 + playerSliderHeight, 230, 20, TRUE);
 	pButtonRewind->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 - 95, pictureContorlY + pictureContorlHeight + 10 + playerSliderHeight, 40, 40, TRUE);
 	pButtonPlay->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 - 45, pictureContorlY + pictureContorlHeight + 10 + playerSliderHeight, 40, 40, TRUE);
 	pButtonPause->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 + 5, pictureContorlY + pictureContorlHeight + 10 + playerSliderHeight, 40, 40, TRUE);
 	pButtonStop->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 + 55, pictureContorlY + pictureContorlHeight + 10 + playerSliderHeight, 40, 40, TRUE);
-	
+
 	//group box - segmetation
 	CWnd *pGroupSegmentation = GetDlgItem(IDC_GROUP_SEG);
 	CWnd *pStringStartTime = GetDlgItem(IDC_SEG_STRING_VIDEO_START_TIME);
@@ -1400,11 +1389,11 @@ void CMFC_SyntheticDlg::layoutInit(){
 
 
 	//로딩 바
-	m_LoadingProgressCtrl.MoveWindow(dialogWidth / 2 - 300, dialogHeight / 2 -80, 600, 80, TRUE);
+	m_LoadingProgressCtrl.MoveWindow(dialogWidth / 2 - 300, dialogHeight / 2 - 80, 600, 80, TRUE);
 }
 
 //Slider Control의 범위 지정
-void CMFC_SyntheticDlg::setSliderRange(int video_length,int video_cols, int video_rows, int MAX_Fps){
+void CMFC_SyntheticDlg::setSliderRange(int video_length, int video_cols, int video_rows, int MAX_Fps) {
 	//segmentation slider
 	m_SliderWMIN.SetRange(0, video_cols);
 	m_SliderWMAX.SetRange(0, video_cols);
@@ -1428,7 +1417,7 @@ void CMFC_SyntheticDlg::setSliderRange(int video_length,int video_cols, int vide
 	m_SliderPlayer.SetPageSize(1);
 }
 
-void CMFC_SyntheticDlg::updateUI(int video_length, int video_cols, int video_rows, int MAX_Fps){
+void CMFC_SyntheticDlg::updateUI(int video_length, int video_cols, int video_rows, int MAX_Fps) {
 	//edit box default
 	m_pEditBoxStartHour->SetWindowTextA("0");
 	m_pEditBoxStartMinute->SetWindowTextA("0");
@@ -1473,9 +1462,9 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 	*pResult = 0;
 	int releasedPoint = m_SliderPlayer.GetPos();
 	capture.set(CV_CAP_PROP_POS_FRAMES, releasedPoint);
-	if (isPauseBtnClicked == true){	//일시정지된 상황이라면 한 프레임만 출력해서 화면을 바꿔줌
+	if (isPauseBtnClicked == true) {	//일시정지된 상황이라면 한 프레임만 출력해서 화면을 바꿔줌
 		Mat temp_frame;
-		if (radioChoice == 2){	//radio btn이 이진영상이면, 이진 영상을 출력
+		if (radioChoice == 2) {	//radio btn이 이진영상이면, 이진 영상을 출력
 			Mat img_labels, stats, centroids;
 			capture.read(temp_frame);
 			//그레이스케일 변환
@@ -1520,16 +1509,16 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 			stats.release();
 			centroids.release();
 		}
-		else{
+		else {
 			capture.read(temp_frame);
 			DisplayImage(IDC_RESULT_IMAGE, temp_frame, NULL);
 		}
 		temp_frame = NULL;
 		temp_frame.release();
 	}
-	else if (isPlayBtnClicked){	//실행 중이었던 경우 마저 실행한다.
+	else if (isPlayBtnClicked) {	//실행 중이었던 경우 마저 실행한다.
 		printf("c");
-		switch (radioChoice){
+		switch (radioChoice) {
 		case 0:	//원본영상 마저 출력
 			printf("a");
 			SetTimer(VIDEO_TIMER, 1000 / m_sliderFps.GetPos(), NULL);
@@ -1551,12 +1540,13 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 
 void CMFC_SyntheticDlg::OnBnClickedBtnSave()
 {
+	printf("저장 시작\n");
+
+	KillTimer(VIDEO_TIMER);
+	KillTimer(BIN_VIDEO_TIMER);
 	KillTimer(SYN_RESULT_TIMER);
 
-	Mat bg_copy; background_loadedFromFile.copyTo(bg_copy);
-	*outputVideo << getSyntheticFrame(bg_copy);
-	bg_copy = NULL;
-	bg_copy.release();
+	capture.set(CV_CAP_PROP_POS_FRAMES, 0);
 
 	if (radioChoice == 1) {
 		// delete outputVideo;
@@ -1566,7 +1556,7 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSave()
 		Size size = Size(COLS, ROWS);
 
 		// fps 지정
-		int fps_save = 25;
+		//int fps_save = m_sliderFps.GetPos();
 
 		// 파일로 동영상을 저장하기 위한 준비, 동영상 파일 이름 설정
 		int getStartTime_save = m_sliderSearchStartTime.GetPos();
@@ -1576,17 +1566,62 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSave()
 		String videoname_save = SEGMENTATION_DATA_DIRECTORY_NAME + "/" + "output"
 			+ "[" + to_string(getStartTime_save) + " - " + to_string(getEndTime_save) + "]"
 			+ "(" + to_string(saveCount++) + ").avi";
-		outputVideo->open(videoname_save, VideoWriter::fourcc('X', 'V', 'I', 'D'), fps, size, true);
+		outputVideo->open(videoname_save, VideoWriter::fourcc('X', 'V', 'I', 'D'), 30, size, true);
+
+		////////////////////////////////////////////
+
+		InitQueue(&segment_queue);
+
+		/************************************/
+		//TimeTag를 Edit box로부터 입력받음
+		unsigned int obj1_TimeTag = m_sliderSearchStartTime.GetPos() * 1000;	//검색할 TimeTag1
+		unsigned int obj2_TimeTag = m_sliderSearchEndTime.GetPos() * 1000;	//검색할 TimeTag2
+
+		if (obj1_TimeTag > obj2_TimeTag) {
+			AfxMessageBox("Search start time can't larger than end time");
+			return;
+		}
+
+		bool find1 = false;
+		bool find2 = false;
+
+		int prevTimetag = 0;
+		int prevIndex = -1;
+
+		//출력할 객체를 큐에 삽입하는 부분
+		for (int i = 0; i < segmentCount; i++) {
+			//start timetag와 end timetag 사이면 enqueue
+			if (m_segmentArray[i].timeTag >= obj1_TimeTag && m_segmentArray[i].timeTag <= obj2_TimeTag) {	//아직 찾지 못했고 일치하는 타임태그를 찾았을 경우
+				if (m_segmentArray[i].timeTag == m_segmentArray[i].msec) {
+					printf("%s\n", m_segmentArray[i].fileName);
+					Enqueue(&segment_queue, m_segmentArray[i].timeTag, i);	//출력해야할 객체의 첫 프레임의 타임태그와 위치를 큐에 삽입
+					prevTimetag = m_segmentArray[i].timeTag;
+					prevIndex = m_segmentArray[i].index;
+				}
+			}
+			else if (m_segmentArray[i].timeTag > obj2_TimeTag)	//탐색 중, obj2_TimeTag을 넘으면  break;
+				break;
+		}
+		/***********/
+
+		Mat bg_copy;
+		while (IsEmpty(&segment_queue)) {
+			background_loadedFromFile.copyTo(bg_copy);
+			*outputVideo << getSyntheticFrame(bg_copy);
+			printf("저장중\n");
+		}
+		bg_copy = NULL;
+		bg_copy.release();
 
 		// 예외처리 및 동적해제
 		if (!outputVideo->isOpened()) {
 			perror("동영상 저장 에러");
 			delete outputVideo;
 		}
-	}
 
-	if (radioChoice == 1) {
 		delete outputVideo;
 	}
+
+	printf("저장 끝\n");
 }
 
