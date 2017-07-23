@@ -763,7 +763,7 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 }
 
 // 합성된 프레임을 가져오는 연산
-Mat getSyntheticFrame(Mat bgFrame) {
+Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 	int *labelMap = (int*)calloc(bgFrame.cols * bgFrame.rows, sizeof(int));	//겹침을 판단하는 용도
 
 	node tempnode;	//DeQueue한 결과를 받을 node
@@ -772,6 +772,7 @@ Mat getSyntheticFrame(Mat bgFrame) {
 
 	//큐가 비었는지 확인한다. 비었으면 더 이상 출력 할 것이 없는 것 이므로 종료
 	if (IsEmpty(&segment_queue)){
+		KillTimer(SYN_RESULT_TIMER);
 		labelMap = NULL;
 		free(labelMap);
 		return bgFrame;

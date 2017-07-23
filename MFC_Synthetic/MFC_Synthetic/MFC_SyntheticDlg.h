@@ -105,7 +105,7 @@ node Dequeue(Queue *);
 
 // MAIN ****
 vector<component> humanDetectedProcess(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector, Mat, int, int, unsigned int, FILE *fp);
-Mat getSyntheticFrame(Mat);
+
 
 // addition function of MAIN
 bool segmentationTimeInputException(CString str_h, CString str_m);
@@ -221,5 +221,6 @@ public:
 
 	CSliderCtrl m_SliderPlayer;
 	afx_msg void OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg Mat getSyntheticFrame(Mat);
 };
 
