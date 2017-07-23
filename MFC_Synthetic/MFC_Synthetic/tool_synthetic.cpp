@@ -25,16 +25,16 @@ Mat Syn_Background_Foreground(Mat background, Mat firstForegroundImage, Mat seco
 
 Mat printObjOnBG(Mat background, segment obj, int* labelMap, string loadedFrameFileName) {
 	Mat frame = loadJPGObjectFile(obj, loadedFrameFileName);
+
 	// To do ;: loadJPGObjectFile 다시 옮기기
-	for (int i = obj.top; i < obj.bottom; i++) {
-		for (int j = obj.left + 1; j < obj.right; j++) {
+	for (int i = obj.top; i < obj.top + obj.height; i++) {
+		for (int j = obj.left; j < obj.left + obj.width; j++) {
 			Vec3b colorB = background.at<Vec3b>(Point(j, i));
 			Vec3b colorO = frame.at<Vec3b>(Point(j - obj.left, i - obj.top));
-
 			if (labelMap[i * background.cols + j] == 1) {	//이전 객체가 이미 있을 경우
-				colorB[0] = (colorB[0] + colorO[0]) / 2;
-				colorB[1] = (colorB[1] + colorO[1]) / 2;
-				colorB[2] = (colorB[2] + colorO[2]) / 2;
+				colorB[0] = (int)((colorB[0] + colorO[0]) *0.5);
+				colorB[1] = (int)((colorB[1] + colorO[1]) *0.5);
+				colorB[2] = (int)((colorB[2] + colorO[2]) *0.5);
 				background.at<Vec3b>(Point(j, i)) = colorB;
 			} //Blending
 			else {
@@ -47,5 +47,7 @@ Mat printObjOnBG(Mat background, segment obj, int* labelMap, string loadedFrameF
 			}
 		}
 	}
+
+	frame.release();
 	return background;
 }

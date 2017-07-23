@@ -764,8 +764,7 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 
 // 합성된 프레임을 가져오는 연산
 Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
-	int *labelMap = (int*)calloc(bgFrame.cols * bgFrame.rows, sizeof(int));	//겹침을 판단하는 용도
-
+	int *labelMap = new int[bgFrame.cols * bgFrame.rows]();//겹침을 판단하는 용도
 	node tempnode;	//DeQueue한 결과를 받을 node
 	int countOfObj = segment_queue.count;	//큐 인스턴스의 노드 갯수
 	stringstream ss;
@@ -774,7 +773,7 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 	if (IsEmpty(&segment_queue)){
 		KillTimer(SYN_RESULT_TIMER);
 		labelMap = NULL;
-		free(labelMap);
+		delete[] labelMap;
 		return bgFrame;
 	}
 
@@ -850,7 +849,7 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 
 	}
 	labelMap = NULL;
-	free(labelMap);
+	delete[] labelMap;
 	vector<int>().swap(vectorPreNodeIndex);
 	return bgFrame;
 }
@@ -935,7 +934,7 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 		boolean isSynPlayable = checkSegmentation();
 
 		if (isSynPlayable){
-			char *txtBuffer = new char[100];	//텍스트파일 읽을 때 사용할 buffer
+			char *txtBuffer = new char[100]();	//텍스트파일 읽을 때 사용할 buffer
 
 			string path = "./";
 			path.append(getTextFilePath(fileNameNoExtension));
@@ -1469,7 +1468,7 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 	*pResult = 0;
 	int releasedPoint = m_SliderPlayer.GetPos();
 	capture.set(CV_CAP_PROP_POS_FRAMES, releasedPoint);
-	if (isPauseBtnClicked == true){	//일시정지된 상황이라면 한 프레임만 출력해서 화면을 바꿔줌
+	if (isPauseBtnClicked == TRUE){	//일시정지된 상황이라면 한 프레임만 출력해서 화면을 바꿔줌
 		Mat temp_frame;
 		if (radioChoice == 2){	//radio btn이 이진영상이면, 이진 영상을 출력
 			Mat img_labels, stats, centroids;
