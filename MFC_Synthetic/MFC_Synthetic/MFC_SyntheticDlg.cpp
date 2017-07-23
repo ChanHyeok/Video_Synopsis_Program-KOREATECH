@@ -114,6 +114,8 @@ BEGIN_MESSAGE_MAP(CMFC_SyntheticDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_STOP, &CMFC_SyntheticDlg::OnBnClickedBtnStop)
 	ON_BN_CLICKED(IDC_BTN_REWIND, &CMFC_SyntheticDlg::OnBnClickedBtnRewind)
 	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SLIDER_PLAYER, &CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer)
+	ON_BN_CLICKED(IDOK, &CMFC_SyntheticDlg::OnBnClickedOk)
+	ON_BN_CLICKED(IDCANCEL, &CMFC_SyntheticDlg::OnBnClickedCancel)
 END_MESSAGE_MAP()
 
 
@@ -733,16 +735,17 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 	// 임시 타임태그 변수 선언, 일단 초기값은 currentMsec으로 지정
 	int prevTimeTag = currentMsec;
 
-	// 사람을 검출한 양 많큼 반복 (보통 index 갯수 1, 2개 나옴)
-	for (int curr_index = 0; curr_index < humanDetectedVector.size(); curr_index++) {
+	// 사람을 검출한 양 많큼 반복 (보통 humanCount 갯수 1, 2개 나옴)
+	for (int humanCount = 0; humanCount < humanDetectedVector.size(); humanCount++) {
 		if (!prevDetectedVector_i.empty()) {	//이전 프레임의 검출된 객체가 있을 경우
 			bool findFlag = false;
 			for (int j = 0; j < prevDetectedVector_i.size(); j++) {
-				if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, curr_index, j)) {	// 두 ROI가 겹칠 경우																										// 이전 TimeTag를 할당
+				if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, humanCount, j)) {	// 두 ROI가 겹칠 경우																										
+					// 이전 TimeTag를 할당
 					prevTimeTag = prevDetectedVector_i[j].timeTag;
-					humanDetectedVector[curr_index].timeTag = prevTimeTag;
-					saveSegmentationData(fileNameNoExtension, humanDetectedVector[curr_index], frame
-						, prevTimeTag, currentMsec, frameCount, humanDetectedVector[curr_index].label, fp);
+					humanDetectedVector[humanCount].timeTag = prevTimeTag;
+					saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
+						, prevTimeTag, currentMsec, frameCount, humanDetectedVector[humanCount].label, fp);
 
 					findFlag = true;
 				}
@@ -753,14 +756,15 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 					prevDetectedVector_i = GetComponentVectorQueue(&prevHumanDetectedVector_Queue,
 						(prevHumanDetectedVector_Queue.rear + i) % MAXSIZE_OF_COMPONENT_VECTOR_QUEUE);
 					for (int j = 0; j < prevDetectedVector_i.size(); j++) {
-						if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, curr_index, j)) {	// 두 ROI가 겹칠 경우																										// 이전 TimeTag를 할당
+						if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, humanCount, j)) {	// 두 ROI가 겹칠 경우																										
+							// 이전 TimeTag를 할당
 							prevTimeTag = prevDetectedVector_i[j].timeTag;
-							humanDetectedVector[curr_index].timeTag = prevTimeTag;
-							saveSegmentationData(fileNameNoExtension, humanDetectedVector[curr_index], frame
-								, prevTimeTag, currentMsec, frameCount, humanDetectedVector[curr_index].label, fp);
+							humanDetectedVector[humanCount].timeTag = prevTimeTag;
+							saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
+								, prevTimeTag, currentMsec, frameCount, humanDetectedVector[humanCount].label, fp);
 
-							printf("%d번 거르기(!!!)\n", 4 - i);
-							printf("data :: %d %d %d\n", prevTimeTag, currentMsec, frameCount);
+							//printf("%d번 거르기(!!!)\n", 4 - i);
+							//printf("data :: %d %d %d\n", prevTimeTag, currentMsec, frameCount);
 							findFlag = true;
 							break;
 						}
@@ -768,13 +772,12 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 				}
 				if (findFlag == false) { // 새 객체의 출현
 					prevTimeTag = currentMsec;
-					humanDetectedVector[curr_index].timeTag = currentMsec;
-					saveSegmentationData(fileNameNoExtension, humanDetectedVector[curr_index], frame
-						, prevTimeTag, currentMsec, frameCount, humanDetectedVector[curr_index].label, fp);
+					humanDetectedVector[humanCount].timeTag = currentMsec;
+					saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
+						, prevTimeTag, currentMsec, frameCount, humanDetectedVector[humanCount].label, fp);
 				}
 			}
 		} // end if ((!prevDetectedVector_i.empty())
-
 		else {	// 첫 시행이거나 이전 프레임에 검출된 객체가 없을 경우
 				// 새로운 이름 할당
 			bool findFlag = false;
@@ -782,46 +785,32 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 				prevDetectedVector_i = GetComponentVectorQueue(&prevHumanDetectedVector_Queue,
 					(prevHumanDetectedVector_Queue.rear + i) % MAXSIZE_OF_COMPONENT_VECTOR_QUEUE);
 				for (int j = 0; j < prevDetectedVector_i.size(); j++) {
-					if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, curr_index, j)) {	// 두 ROI가 겹칠 경우																										// 이전 TimeTag를 할당
+					if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, humanCount, j)) {	// 두 ROI가 겹칠 경우																										
+						// 이전 TimeTag를 할당
 						prevTimeTag = prevDetectedVector_i[j].timeTag;
-						humanDetectedVector[curr_index].timeTag = prevTimeTag;
-						saveSegmentationData(fileNameNoExtension, humanDetectedVector[curr_index], frame
-							, prevTimeTag, currentMsec, frameCount, humanDetectedVector[curr_index].label, fp);
+						humanDetectedVector[humanCount].timeTag = prevTimeTag;
+						saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
+							, prevTimeTag, currentMsec, frameCount, humanDetectedVector[humanCount].label, fp);
 
-						printf("%d번 거르기(@@@)\n", 4 - i);
-						printf("data :: %d %d %d\n", prevTimeTag, currentMsec, frameCount);
+						/*printf("%d번 거르기(@@@)\n", 4 - i);
+						printf("data :: %d %d %d\n", prevTimeTag, currentMsec, frameCount);*/
 						findFlag = true;
 						break;
 					}
 				}
 			}
 			if (findFlag == false) {
-			humanDetectedVector[curr_index].timeTag = currentMsec;
-			saveSegmentationData(fileNameNoExtension, humanDetectedVector[curr_index], frame
-				, prevTimeTag, currentMsec, frameCount, humanDetectedVector[curr_index].label, fp);
+			humanDetectedVector[humanCount].timeTag = currentMsec;
+			saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
+				, prevTimeTag, currentMsec, frameCount, humanDetectedVector[humanCount].label, fp);
 			}
 		} // end else
-	} // end for (curr_index) 
+	} // end for (humanCount) 
 
 	vector<component> vclear;
 	prevDetectedVector_i.swap(vclear);
 
 	return humanDetectedVector;
-}
-
-// 두 객체가 같은 것이라 판단하면 0을 반환, 그렇지 않으면 1이라고 함
-int IsComparePrevDetection2(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index) {
-	const int OVERLAPING_SPARE_POINT = 0;
-	int weight = 0;
-	// 두 detected 된 객체가 겹치지 않는 조건이다. 겹친다는 것은 두 객체가 같을 가능성이 매우 높다는 것이다.
-	// OVERLAPING_SPARE_POINT만큼의 차이를 두어 한 객체가 다른 객체의 ROI에 넘어와도 겹침이 아니라고 어느정도 인식할 수 있도록 함
-	// 두 물체가 한 부분이라도 겹치면 weight는 false, 0이 된다.
-	weight = curr_detected[curr_index].left > prev_detected[prev_index].right + OVERLAPING_SPARE_POINT
-		|| curr_detected[curr_index].right < prev_detected[prev_index].left - OVERLAPING_SPARE_POINT
-		|| curr_detected[curr_index].top > prev_detected[prev_index].bottom + OVERLAPING_SPARE_POINT
-		|| curr_detected[curr_index].bottom < prev_detected[prev_index].top - OVERLAPING_SPARE_POINT;
-
-	return weight;
 }
 
 // 현재와 이전에 검출한 결과를 비교, true 면 겹칠 수 없음
@@ -1654,4 +1643,18 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 		}
 	}
 	return;
+}
+
+
+void CMFC_SyntheticDlg::OnBnClickedOk()
+{
+	// TODO: Add your control notification handler code here
+	//CDialogEx::OnOK();
+}
+
+
+void CMFC_SyntheticDlg::OnBnClickedCancel()
+{
+	// TODO: Add your control notification handler code here
+	CDialogEx::OnCancel();
 }

@@ -243,5 +243,7 @@ public:
 
 	CSliderCtrl m_SliderPlayer;
 	afx_msg void OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnBnClickedOk();
+	afx_msg void OnBnClickedCancel();
 };
 
