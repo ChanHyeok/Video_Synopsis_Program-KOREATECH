@@ -4,7 +4,6 @@
 #include "MFC_Synthetic.h"
 #include "MFC_SyntheticDlg.h"
 #include "afxdialogex.h"
-#include "SplashScreenEx.h"	//splash 화면
 
 // 메모리 누수를 점검하는 키워드 (http://codes.xenotech.net/38)
 // 점검하기 위해 디버깅 모드로 실행 후, 디버그 로그를 보면 됨
@@ -764,7 +763,7 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 
 // 합성된 프레임을 가져오는 연산
 Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
-	int *labelMap = new int[bgFrame.cols * bgFrame.rows]();//겹침을 판단하는 용도
+	int *labelMap = new int[bgFrame.cols * bgFrame.rows];//겹침을 판단하는 용도
 	node tempnode;	//DeQueue한 결과를 받을 node
 	int countOfObj = segment_queue.count;	//큐 인스턴스의 노드 갯수
 	stringstream ss;
@@ -772,9 +771,15 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 	//큐가 비었는지 확인한다. 비었으면 더 이상 출력 할 것이 없는 것 이므로 종료
 	if (IsEmpty(&segment_queue)){
 		KillTimer(SYN_RESULT_TIMER);
+		
 		labelMap = NULL;
-		delete[] labelMap;
-		return bgFrame;
+		delete labelMap;
+
+		delete m_segmentArray;
+
+		Mat nullframe(ROWS, COLS, CV_8UC1);
+		nullframe.setTo(Scalar(0));
+		return nullframe;
 	}
 
 	vector<int> vectorPreNodeIndex; // 객체들 인덱스 정보를 저장하기 위한 벡터
@@ -849,7 +854,7 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 
 	}
 	labelMap = NULL;
-	delete[] labelMap;
+	delete labelMap;
 	vector<int>().swap(vectorPreNodeIndex);
 	return bgFrame;
 }
@@ -992,8 +997,8 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 			}*/
 
 			// 임시 버퍼 메모리 해제
-			delete tmp_segment;
-			delete[] txtBuffer;
+			free(tmp_segment);
+			free(txtBuffer);
 
 			// 텍스트 파일 닫기
 			fclose(fp);
