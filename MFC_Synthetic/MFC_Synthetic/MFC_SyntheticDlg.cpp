@@ -4,7 +4,6 @@
 #include "MFC_Synthetic.h"
 #include "MFC_SyntheticDlg.h"
 #include "afxdialogex.h"
-#include "SplashScreenEx.h"	//splash 화면
 
 // 메모리 누수를 점검하는 키워드 (http://codes.xenotech.net/38)
 // 점검하기 위해 디버깅 모드로 실행 후, 디버그 로그를 보면 됨
@@ -34,7 +33,12 @@ Queue segment_queue; // C++ STL의 queue 키워드와 겹치기 때문에 변수
 int videoStartMsec, segmentCount, fps, totalFrameCount; // 시작 millisecond, 세그먼트 카운팅변수, 초당 프레임수, 전체 프레임 수
 unsigned int videoLength;	//비디오 길이(초)
 int radioChoice, preRadioChoice;	//라디오 버튼 선택 결과 저장 변수. 0 - 원본영상, 1 - 합성영상, 2 - 이진영상
-boolean isPlayBtnClicked, isPauseBtnClicked;
+boolean isPlayBtnClicked, isPauseBtnClicked, isSaveBtnFlag;
+// check point(1)
+// isSaveBtnFlag 버튼을 체크버튼 체크 여부 변수로 만들기
+// initDialog에서 이 버튼을 false로 초기화 하고, 버튼 리스너(OnBnClicked ~~~) 함수에서는 이진영상이 클릭되었을때 true로 설정하도록 하기
+// 또한 synthesis 연산이 모두 끝난 후(큐가 공백인 경우에, check point 위치에) false로 만들어 주기
+
 Mat background_gray, background_loadedFromFile; // 배경 프레임 , 합성 라디오 버튼 클릭 시 로드되는 합성에 사용할 배경 이미지
 
 unsigned int COLS, ROWS;
@@ -187,6 +191,7 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	// // Play, Pause버튼 상태 초기화
 	isPlayBtnClicked = false;
 	isPauseBtnClicked = true;
+	isSaveBtnFlag = false;
 
 	// 라디오 버튼 초기화
 	CheckRadioButton(IDC_RADIO_PLAY1, IDC_RADIO_PLAY3, IDC_RADIO_PLAY1);
@@ -772,7 +777,16 @@ Mat getSyntheticFrame(Mat bgFrame) {
 	if (IsEmpty(&segment_queue)) {
 		labelMap = NULL;
 		free(labelMap);
-		return bgFrame;
+
+		// check point(2)
+		isSaveBtnFlag = false;
+		free(outputVideo);
+		// save 버튼 플래기를 false로 만들어주고, videoWriter 포인터 메모리를 해제시켜줌
+
+		Mat nullframe(ROWS, COLS, CV_8UC1);
+		nullframe.setTo(Scalar(0));
+		return nullframe;
+		// 또한 nullframe을 반환하게끔 하도록 만듦
 	}
 
 	vector<int> vectorPreNodeIndex; // 객체들 인덱스 정보를 저장하기 위한 벡터
@@ -849,7 +863,10 @@ Mat getSyntheticFrame(Mat bgFrame) {
 	labelMap = NULL;
 	free(labelMap);
 	vector<int>().swap(vectorPreNodeIndex);
-
+	// check point(3)
+	if (isSaveBtnFlag == true)
+		*outputVideo << bgFrame;
+	// save 플래그가 true로 설정 되었을 경우에만 비디오파일에 저장할 수 있도록 하였음
 	return bgFrame;
 }
 // 객체들 끼리 겹침을 판별하는 함수, 하나라도 성립하면 겹치지 않음
@@ -1540,15 +1557,17 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 
 void CMFC_SyntheticDlg::OnBnClickedBtnSave()
 {
-	printf("저장 시작\n");
+	//	KillTimer(VIDEO_TIMER);
+	//	KillTimer(BIN_VIDEO_TIMER);
+	//	KillTimer(SYN_RESULT_TIMER);
 
-	KillTimer(VIDEO_TIMER);
-	KillTimer(BIN_VIDEO_TIMER);
-	KillTimer(SYN_RESULT_TIMER);
-
-	capture.set(CV_CAP_PROP_POS_FRAMES, 0);
-
+	//	capture.set(CV_CAP_PROP_POS_FRAMES, 0);
+	// check point(4)
 	if (radioChoice == 1) {
+		isSaveBtnFlag = true;
+		// flag를 true로 만들어 주기
+		printf("저장 시작\n");
+
 		// delete outputVideo;
 		outputVideo = new VideoWriter;
 
@@ -1561,67 +1580,20 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSave()
 		// 파일로 동영상을 저장하기 위한 준비, 동영상 파일 이름 설정
 		int getStartTime_save = m_sliderSearchStartTime.GetPos();
 		int getEndTime_save = m_sliderSearchEndTime.GetPos();
-
+		
+		String start = timeConvertor(getStartTime_save).str();
+		String end = timeConvertor(getEndTime_save).str();
+		
 		// 저장된 video 경로 및 이름 :: data/내에 output[시작시간-끝시간](저장횟수).avi로 저장됨
 		String videoname_save = SEGMENTATION_DATA_DIRECTORY_NAME + "/" + "output"
 			+ "[" + to_string(getStartTime_save) + " - " + to_string(getEndTime_save) + "]"
 			+ "(" + to_string(saveCount++) + ").avi";
-		outputVideo->open(videoname_save, VideoWriter::fourcc('X', 'V', 'I', 'D'), 30, size, true);
-
-		////////////////////////////////////////////
-
-		InitQueue(&segment_queue);
-
-		/************************************/
-		//TimeTag를 Edit box로부터 입력받음
-		unsigned int obj1_TimeTag = m_sliderSearchStartTime.GetPos() * 1000;	//검색할 TimeTag1
-		unsigned int obj2_TimeTag = m_sliderSearchEndTime.GetPos() * 1000;	//검색할 TimeTag2
-
-		if (obj1_TimeTag > obj2_TimeTag) {
-			AfxMessageBox("Search start time can't larger than end time");
-			return;
-		}
-
-		bool find1 = false;
-		bool find2 = false;
-
-		int prevTimetag = 0;
-		int prevIndex = -1;
-
-		//출력할 객체를 큐에 삽입하는 부분
-		for (int i = 0; i < segmentCount; i++) {
-			//start timetag와 end timetag 사이면 enqueue
-			if (m_segmentArray[i].timeTag >= obj1_TimeTag && m_segmentArray[i].timeTag <= obj2_TimeTag) {	//아직 찾지 못했고 일치하는 타임태그를 찾았을 경우
-				if (m_segmentArray[i].timeTag == m_segmentArray[i].msec) {
-					printf("%s\n", m_segmentArray[i].fileName);
-					Enqueue(&segment_queue, m_segmentArray[i].timeTag, i);	//출력해야할 객체의 첫 프레임의 타임태그와 위치를 큐에 삽입
-					prevTimetag = m_segmentArray[i].timeTag;
-					prevIndex = m_segmentArray[i].index;
-				}
-			}
-			else if (m_segmentArray[i].timeTag > obj2_TimeTag)	//탐색 중, obj2_TimeTag을 넘으면  break;
-				break;
-		}
-		/***********/
-
-		Mat bg_copy;
-		while (IsEmpty(&segment_queue)) {
-			background_loadedFromFile.copyTo(bg_copy);
-			*outputVideo << getSyntheticFrame(bg_copy);
-			printf("저장중\n");
-		}
-		bg_copy = NULL;
-		bg_copy.release();
+		outputVideo->open(videoname_save, VideoWriter::fourcc('X', 'V', 'I', 'D'), 25, size, true);
 
 		// 예외처리 및 동적해제
 		if (!outputVideo->isOpened()) {
 			perror("동영상 저장 에러");
 			delete outputVideo;
 		}
-
-		delete outputVideo;
 	}
-
-	printf("저장 끝\n");
 }
-
