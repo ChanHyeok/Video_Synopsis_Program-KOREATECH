@@ -21,7 +21,7 @@ using namespace cv;
 const string SEGMENTATION_DATA_DIRECTORY_NAME = "data";
 
 // component vector Queue ฐüทร
-const int MAXSIZE_OF_COMPONENT_VECTOR_QUEUE = 5;
+const int MAXSIZE_OF_COMPONENT_VECTOR_QUEUE = 8;
 #define NEXT(index) ((index+1)%MAXSIZE_OF_COMPONENT_VECTOR_QUEUE)
 
 // segmentation structure
