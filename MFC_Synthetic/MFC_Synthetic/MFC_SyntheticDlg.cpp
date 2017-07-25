@@ -735,21 +735,21 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 	// 파일 저장할 시 frameCount를 매기는 데에 오류가 생김(오류 발생 원인은 아직까지도 불명)
 	vector<component> prevDetectedVector_i = prevHumanDetectedVector;
 
-	// 임시 타임태그 변수 선언, 일단 초기값은 currentMsec으로 지정
-	int prevTimeTag = currentMsec;
+	// 현재 label의 마지막 수를 저장함
+	int maxLabel = humanDetectedVector.size() - 1;
 
 	// 사람을 검출한 양 많큼 반복 (보통 humanCount 갯수 1, 2개 나옴)
 	for (int humanCount = 0; humanCount < humanDetectedVector.size(); humanCount++) {
 		//이전 프레임의 검출된 객체가 있을 경우
 		if (!prevDetectedVector_i.empty()) {
-			bool findFlag = false;
+			static bool findFlag = false;
 			for (int j = 0; j < prevDetectedVector_i.size(); j++) {
 				// 두 프레임이 겹칠 경우에 대한 연산
 				if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, humanCount, j)) {
-					prevTimeTag = prevDetectedVector_i[j].timeTag;
-					humanDetectedVector[humanCount].timeTag = prevTimeTag;
+					humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
+					humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
 					saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
-						, prevTimeTag, currentMsec, frameCount, humanDetectedVector[humanCount].label, fp);
+						, humanDetectedVector[humanCount].timeTag, currentMsec, frameCount, humanDetectedVector[humanCount].label, fp);
 
 					findFlag = true;
 				}
@@ -764,24 +764,23 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 					for (int j = 0; j < prevDetectedVector_i.size(); j++) {
 						// 두 프레임이 겹칠 경우에 대한 연산
 						if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, humanCount, j)) {
-							prevTimeTag = prevDetectedVector_i[j].timeTag;
-							humanDetectedVector[humanCount].timeTag = prevTimeTag;
+							humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
+							humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
 							saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
-								, prevTimeTag, currentMsec, frameCount, humanDetectedVector[humanCount].label, fp);
+								, humanDetectedVector[humanCount].timeTag, currentMsec, frameCount, humanDetectedVector[humanCount].label, fp);
 
 							findFlag = true;
-							break;
 						}
 					}
+					if (findFlag == true)
+						break;
 				}
 				// 새 객체가 출현 되었다고 판정함
 				if (findFlag == false) {
-					prevTimeTag = currentMsec;
 					humanDetectedVector[humanCount].timeTag = currentMsec;
-					// label을 어떻게 부여할 것인지?? (위와 중복)
-
+					humanDetectedVector[humanCount].label = ++maxLabel;
 					saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
-						, prevTimeTag, currentMsec, frameCount, humanDetectedVector[humanCount].label, fp);
+						, humanDetectedVector[humanCount].timeTag, currentMsec, frameCount, humanDetectedVector[humanCount].label, fp);
 				}
 			}
 		} // end if ((!prevDetectedVector_i.empty())
@@ -796,41 +795,26 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 				for (int j = 0; j < prevDetectedVector_i.size(); j++) {
 					// 두 프레임이 겹칠 경우에 대한 연산
 					if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, humanCount, j)) {
-						prevTimeTag = prevDetectedVector_i[j].timeTag;
-						humanDetectedVector[humanCount].timeTag = prevTimeTag;
+						humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
+						humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
 						saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
-							, prevTimeTag, currentMsec, frameCount, humanDetectedVector[humanCount].label, fp);
+							, humanDetectedVector[humanCount].timeTag, currentMsec, frameCount, humanDetectedVector[humanCount].label, fp);
 
 						findFlag = true;
-						break;
 					}
 				}
+				// 더이상 그 이전에 객체를 고려할 필요가 없음
+				if (findFlag == true)
+					break;
 			}
 			// 새 객체가 출현 되었다고 판정함
 			if (findFlag == false) {
 				humanDetectedVector[humanCount].timeTag = currentMsec;
-				// label을 어떻게 부여할 것인지??
-
+				humanDetectedVector[humanCount].label = ++maxLabel;
 				saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
-					, prevTimeTag, currentMsec, frameCount, humanDetectedVector[humanCount].label, fp);
+					, humanDetectedVector[humanCount].timeTag, currentMsec, frameCount, humanDetectedVector[humanCount].label, fp);
 			}
 		} // end else
-
-		// 다음과 같은 경우에 레이블 번호를 다시 매길 필요가 있음
-		// 객체가 사라진 것이라 판단할 경우
-		if (humanDetectedVector.size() < prevDetectedVector_i.size()) {
-
-		}
-
-		// 객체가 새로 생긴 경우라 판단할 경우
-		else if (humanDetectedVector.size() > prevDetectedVector_i.size()) {
-
-		}
-
-		// 객체가 엇갈려져서 레이블이 엉킬 경우에(추후에 시간이 남으면 구현하도록 함)
-		else {
-		}
-
 	} // end for (humanCount) 
 
 	vector<component> vclear;
@@ -841,10 +825,14 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 
 // 현재와 이전에 검출한 결과를 비교, true 면 겹칠 수 없음
 bool IsComparePrevDetection(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index) {
-	return curr_detected[curr_index].left > prev_detected[prev_index].right
-		|| curr_detected[curr_index].right < prev_detected[prev_index].left
-		|| curr_detected[curr_index].top > prev_detected[prev_index].bottom
-		|| curr_detected[curr_index].bottom < prev_detected[prev_index].top;
+	// 약간 덜 겹쳐도 어느정도 보정해주기
+	// (레이블링 과정에서 똑같은 객체인데도 객체를 바로 잡지 못하면 겹치지 않는 경우가 간혹 있음, 레이블링 크기를 조금 줄였을 때)
+	const int overlapSparePoint_height = (int)(ROWS / 100);
+	const int overlapSparePoint_width = (int)(COLS / 100);
+	return curr_detected[curr_index].left > ( prev_detected[prev_index].right + overlapSparePoint_width)
+		|| curr_detected[curr_index].right < ( prev_detected[prev_index].left - overlapSparePoint_width)
+		|| curr_detected[curr_index].top > (prev_detected[prev_index].bottom + overlapSparePoint_height)
+		|| curr_detected[curr_index].bottom < (prev_detected[prev_index].top - overlapSparePoint_height);
 }
 
 vector<component> humanDetectedProcess(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector
