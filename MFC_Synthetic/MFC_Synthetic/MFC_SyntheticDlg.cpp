@@ -4,7 +4,6 @@
 #include "MFC_Synthetic.h"
 #include "MFC_SyntheticDlg.h"
 #include "afxdialogex.h"
-#include "SplashScreenEx.h"	//splash 화면
 
 // 메모리 누수를 점검하는 키워드 (http://codes.xenotech.net/38)
 // 점검하기 위해 디버깅 모드로 실행 후, 디버그 로그를 보면 됨
@@ -772,10 +771,14 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 
 	//큐가 비었는지 확인한다. 비었으면 더 이상 출력 할 것이 없는 것 이므로 종료
 	if (IsEmpty(&segment_queue)){
+		free(&tempnode);
 		KillTimer(SYN_RESULT_TIMER);
 		labelMap = NULL;
 		free(labelMap);
-		return bgFrame;
+
+		Mat nullFrame(ROWS, COLS, CV_8UC1);
+		nullFrame.setTo(Scalar(0));
+		return nullFrame;
 	}
 
 	vector<int> vectorPreNodeIndex; // 객체들 인덱스 정보를 저장하기 위한 벡터
@@ -813,7 +816,7 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 			// 아래 삭제 이후 synthetic으로 옮기기
 			//배경에 객체를 올리는 함수
 			bgFrame = printObjOnBG(bgFrame, m_segmentArray[tempnode.indexOfSegmentArray], labelMap, fileNameNoExtension);
-
+			
 			//타임태그를 string으로 변환
 			string timetag = "";
 			int timetagInSec = (m_segmentArray[tempnode.indexOfSegmentArray].timeTag + videoStartMsec) / 1000;	//영상의 시작시간을 더해준다.
@@ -849,6 +852,9 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 		}
 
 	}
+	free(&segment_queue);
+	free(m_segmentArray);
+//	free(&tempnode);
 	labelMap = NULL;
 	free(labelMap);
 	vector<int>().swap(vectorPreNodeIndex);
