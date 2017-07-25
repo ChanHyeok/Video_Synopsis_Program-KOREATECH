@@ -742,7 +742,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 	for (int humanCount = 0; humanCount < humanDetectedVector.size(); humanCount++) {
 		//이전 프레임의 검출된 객체가 있을 경우
 		if (!prevDetectedVector_i.empty()) {
-			static bool findFlag = false;
+			bool findFlag = false;
 			for (int j = 0; j < prevDetectedVector_i.size(); j++) {
 				// 두 프레임이 겹칠 경우에 대한 연산
 				if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, humanCount, j)) {
@@ -777,6 +777,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 				}
 				// 새 객체가 출현 되었다고 판정함
 				if (findFlag == false) {
+					printf("timetag 1111\n");
 					humanDetectedVector[humanCount].timeTag = currentMsec;
 					humanDetectedVector[humanCount].label = ++maxLabel;
 					saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
@@ -809,6 +810,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 			}
 			// 새 객체가 출현 되었다고 판정함
 			if (findFlag == false) {
+				printf("timetag 2222\n");
 				humanDetectedVector[humanCount].timeTag = currentMsec;
 				humanDetectedVector[humanCount].label = ++maxLabel;
 				saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
@@ -825,14 +827,10 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 
 // 현재와 이전에 검출한 결과를 비교, true 면 겹칠 수 없음
 bool IsComparePrevDetection(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index) {
-	// 약간 덜 겹쳐도 어느정도 보정해주기
-	// (레이블링 과정에서 똑같은 객체인데도 객체를 바로 잡지 못하면 겹치지 않는 경우가 간혹 있음, 레이블링 크기를 조금 줄였을 때)
-	const int overlapSparePoint_height = (int)(ROWS / 100);
-	const int overlapSparePoint_width = (int)(COLS / 100);
-	return curr_detected[curr_index].left > ( prev_detected[prev_index].right + overlapSparePoint_width)
-		|| curr_detected[curr_index].right < ( prev_detected[prev_index].left - overlapSparePoint_width)
-		|| curr_detected[curr_index].top > (prev_detected[prev_index].bottom + overlapSparePoint_height)
-		|| curr_detected[curr_index].bottom < (prev_detected[prev_index].top - overlapSparePoint_height);
+	return curr_detected[curr_index].left >  prev_detected[prev_index].right
+		|| curr_detected[curr_index].right <  prev_detected[prev_index].left
+		|| curr_detected[curr_index].top > prev_detected[prev_index].bottom
+		|| curr_detected[curr_index].bottom < prev_detected[prev_index].top ;
 }
 
 vector<component> humanDetectedProcess(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector
