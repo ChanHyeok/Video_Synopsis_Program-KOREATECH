@@ -4,7 +4,6 @@
 #include "MFC_Synthetic.h"
 #include "MFC_SyntheticDlg.h"
 #include "afxdialogex.h"
-#include "SplashScreenEx.h"	//splash 화면
 
 // 메모리 누수를 점검하는 키워드 (http://codes.xenotech.net/38)
 // 점검하기 위해 디버깅 모드로 실행 후, 디버그 로그를 보면 됨
@@ -587,6 +586,8 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 
 // segmentation 기능 수행, 물체 추적 및 파일로 저장
 void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int videoStartMin, int WMIN, int WMAX, int HMIN, int HMAX){
+	hash_map<string, int> hashmapDetailTXTInedx;	//detail text 파일의 객체 인덱스를 저장할 해시맵 <파일이름 - 인덱스 값> 구조
+
 	videoStartMsec = (videoStartHour * 60 + videoStartMin) * 60 * 1000;
 
 	unsigned int COLS = (int)vc_Source->get(CV_CAP_PROP_FRAME_WIDTH);	//가로 길이
@@ -672,7 +673,7 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 
 			// 영상을 처리하여 파일로 저장하기
 			humanDetectedVector = humanDetectedProcess(humanDetectedVector, prevHumanDetectedVector,
-				frame, frameCount, videoStartMsec, currentMsec, fp, fp_detail);
+				frame, frameCount, videoStartMsec, currentMsec, fp, fp_detail, hashmapDetailTXTInedx);
 
 
 			// 벡터 메모리 해제를 빈 벡터 생성(prevHumanDetectedVector 메모리 해제)
@@ -719,7 +720,7 @@ bool IsComparePrevDetection(vector<component> curr_detected, vector<component> p
 }
 
 vector<component> humanDetectedProcess(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector
-	, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, FILE *fp_detail) {
+	, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, FILE *fp_detail, hash_map<string,int> hashmapdetailTxtIndex) {
 
 	//printf("cur msec : %d\n", currentMsec);
 	int prevTimeTag;

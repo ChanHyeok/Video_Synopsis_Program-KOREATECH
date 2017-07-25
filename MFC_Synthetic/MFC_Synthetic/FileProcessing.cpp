@@ -56,8 +56,15 @@ bool saveSegmentationData(string video_name, component object, Mat object_frame
 
 	// txt파일로 저장
 	saveSegmentation_TXT(object, txt_fp);
-	if (object.timeTag == currentMsec)
-		saveSegmentation_TXT_detail(object, txt_fp_detail, ROWS, COLS);
+	printf("%d %d", object.timeTag ,currentMsec);
+	
+	//방향 정보 텍스트 파일 저장
+	if (object.timeTag == currentMsec)	//현재 오브젝트가 객체의 처음 일 경우
+		saveSegmentation_TXT_detail(object, txt_fp_detail, ROWS, COLS);	//새롭게 텍스트 파일에 기록
+	else{	//첫 오브젝트가 아닐 경우 해당 객체 위치로 이동하여 last 위치 덮어쓰기
+
+	}
+
 	return true;
 }
 

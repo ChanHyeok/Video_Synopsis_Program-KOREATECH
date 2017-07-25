@@ -8,6 +8,7 @@
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/highgui.hpp"
 #include <iostream>
+#include <hash_map>
 #include "afxcmn.h"
 using namespace std;
 using namespace cv;
@@ -105,7 +106,7 @@ void Enqueue(Queue *, int, int);
 node Dequeue(Queue *);
 
 // MAIN ****
-vector<component> humanDetectedProcess(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector, Mat, int, int, unsigned int, FILE *fp,FILE*);
+vector<component> humanDetectedProcess(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector, Mat, int, int, unsigned int, FILE *fp,FILE*, hash_map<string,int>);
 Mat getSyntheticFrame(Mat);
 
 // addition function of MAIN
