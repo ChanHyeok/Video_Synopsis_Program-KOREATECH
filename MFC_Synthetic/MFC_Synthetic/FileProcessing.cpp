@@ -12,6 +12,8 @@
 // segment의 fileName할당, JPG 파일 저장, txt파일 저장
 void saveSegmentation_JPG(component object, Mat frame, string video_path);
 void saveSegmentation_TXT(component object, FILE *fp);
+void saveSegmentation_TXT_detail(component object, FILE *fp, int,int);
+int directionChecker(component object, int ROWS, int COLS);
 string allocatingComponentFilename(int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector);
 
 // segment 폴더 안에 Segmentation된 Obj만을 jpg파일로 저장하는 함수
@@ -44,7 +46,7 @@ String getFileName(CString f_path, char find_char, BOOL extension) {
 
 // 전체 segment 데이터의 파일들을 저장하는 모듈
 bool saveSegmentationData(string video_name, component object, Mat object_frame
-	, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp, int ROWS, int COLS) {
+	, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp, FILE * txt_fp_detail, int ROWS, int COLS) {
 
 	// object의 파일이름 할당
 	object.fileName = allocatingComponentFilename(timeTag, currentMsec, frameCount, indexOfhumanDetectedVector);
@@ -54,7 +56,8 @@ bool saveSegmentationData(string video_name, component object, Mat object_frame
 
 	// txt파일로 저장
 	saveSegmentation_TXT(object, txt_fp);
-	saveSegmentation_TXT_detail(object, txt_fp, ROWS, COLS);
+	if (object.timeTag == currentMsec)
+		saveSegmentation_TXT_detail(object, txt_fp_detail, ROWS, COLS);
 	return true;
 }
 
@@ -96,14 +99,13 @@ void saveSegmentation_TXT(component object, FILE *fp) {
 void saveSegmentation_TXT_detail(component object, FILE *fp, int ROWS, int COLS) {
 	string info;
 	stringstream ss;
-	ss << object.fileName << " " << object.left << " " << object.top << " " << object.right << " " << object.bottom
-		<< " " << object.right - object.left << " " << object.bottom - object.top << '\n';
+	ss << object.fileName << " " << directionChecker(object,ROWS,COLS)<< '\n';
 	info = ss.str();
 	fprintf(fp, info.c_str());
 
 	return;
 }
-asd
+
 int directionChecker(component object, int ROWS, int COLS){
 	int result = 0;
 	int padding = 10;	//가장자리라고 허용할 위치 오차 픽셀값
