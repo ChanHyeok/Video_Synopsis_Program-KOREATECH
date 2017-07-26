@@ -132,6 +132,7 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 
 Mat getSyntheticFrame(Mat);
 
+
 // addition function of MAIN
 bool segmentationTimeInputException(CString str_h, CString str_m);
 bool IsComparePrevDetection(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index);
@@ -249,7 +250,10 @@ public:
 	afx_msg void OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnBnClickedCancel();
+	
+	//ÄÞº¸¹Ú½º
 	CComboBox mComboStart;
 	CComboBox mComboEnd;
+	afx_msg bool isDirectionMatch(int);
 };
 

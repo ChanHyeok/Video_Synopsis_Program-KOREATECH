@@ -1139,11 +1139,11 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 			for (int i = 0; i < segmentCount; i++) {
 				//start timetag와 end timetag 사이면 enqueue
 				if (m_segmentArray[i].timeTag >= obj1_TimeTag && m_segmentArray[i].timeTag <= obj2_TimeTag) {	//아직 찾지 못했고 일치하는 타임태그를 찾았을 경우
-					if (m_segmentArray[i].timeTag == m_segmentArray[i].msec){
-						printf("%s\n", m_segmentArray[i].fileName);
-						Enqueue(&segment_queue, m_segmentArray[i].timeTag, i);	//출력해야할 객체의 첫 프레임의 타임태그와 위치를 큐에 삽입
-						prevTimetag = m_segmentArray[i].timeTag;
-						prevIndex = m_segmentArray[i].index;
+					if (m_segmentArray[i].timeTag == m_segmentArray[i].msec && isDirectionMatch(m_segmentArray[i].timeTag)){
+						//printf("%s\n", m_segmentArray[i].fileName);
+							Enqueue(&segment_queue, m_segmentArray[i].timeTag, i);	//출력해야할 객체의 첫 프레임의 타임태그와 위치를 큐에 삽입
+							prevTimetag = m_segmentArray[i].timeTag;
+							prevIndex = m_segmentArray[i].index;
 					}
 				}
 				else if (m_segmentArray[i].timeTag > obj2_TimeTag)	//탐색 중, obj2_TimeTag을 넘으면  break;
@@ -1597,6 +1597,8 @@ void CMFC_SyntheticDlg::updateUI(int video_length, int video_cols, int video_row
 	mComboStart.AddString(_T(RIGHTABOVE));
 	mComboStart.AddString(_T(LEFTBELOW));
 	mComboStart.AddString(_T(RIGHTBELOW));
+	mComboStart.SetCurSel(0);	//첫 인덱스를 가리킴
+
 	mComboEnd.AddString(_T(ALL));
 	mComboEnd.AddString(_T(LEFT));
 	mComboEnd.AddString(_T(RIGHT));
@@ -1607,6 +1609,7 @@ void CMFC_SyntheticDlg::updateUI(int video_length, int video_cols, int video_row
 	mComboEnd.AddString(_T(RIGHTABOVE));
 	mComboEnd.AddString(_T(LEFTBELOW));
 	mComboEnd.AddString(_T(RIGHTBELOW));
+	mComboEnd.SetCurSel(0);	//첫 인덱스를 가리킴
 }
 
 //동영상 플레이어 슬라이더를 마우스로 잡은 뒤, 놓았을 때 발생하는 콜백
@@ -1702,4 +1705,75 @@ void CMFC_SyntheticDlg::OnBnClickedCancel()
 {
 	// TODO: Add your control notification handler code here
 	CDialogEx::OnCancel();
+}
+
+bool isDierectionAvailable(int val, int val_cur){
+	bool result=false;
+	switch (val){
+	case 0:
+		result = true;
+		break;
+	case 1:
+		if (val_cur == 20)
+			result = true;
+		break;
+	case 2:
+		if (val_cur == 15)
+			result = true;
+		break;
+	case 3:
+		if (val_cur == 13)
+			result = true;
+		break;
+	case 4:
+		if (val_cur == 19)
+			result = true;
+		break;
+	case 5:
+		if (val_cur == 10)
+			result = true;
+		break;
+	case 6:
+		if (val_cur == 23 || val_cur == 20 || val_cur == 13)
+			result = true;
+		break;
+	case 7:
+		if (val_cur == 18 || val_cur == 13 || val_cur == 15)
+			result = true;
+		break;
+	case 8:
+		if (val_cur == 29 || val_cur == 20 || val_cur == 19)
+			result = true;
+		break;
+	case 9:
+		if (val_cur == 24 || val_cur == 15 || val_cur == 19)
+			result = true;
+		break;
+	default:
+		break;
+	}
+
+	return result;
+}
+bool CMFC_SyntheticDlg::isDirectionMatch(int timetag){
+	bool isFirstOk = false, isLastOk=false;
+	int indexFirst = mComboStart.GetCurSel();
+	int indexLast = mComboEnd.GetCurSel();
+
+	FILE* fp_detail = fopen(getDetailTextFilePath(fileNameNoExtension).c_str(), "r");
+	int tempTimetag;
+	int tempFirst;
+	int tempLast;
+	while (fscanf(fp_detail, "%d %d %d", &tempTimetag, &tempFirst, &tempLast) != EOF){
+		if (tempTimetag == timetag)
+			break;
+	}
+	fclose(fp_detail);
+
+	isFirstOk = isDierectionAvailable(indexFirst,tempFirst);
+	isLastOk = isDierectionAvailable(indexLast,tempLast);
+
+	if (isFirstOk && isLastOk)
+		return true;
+	else return false;	
 }
