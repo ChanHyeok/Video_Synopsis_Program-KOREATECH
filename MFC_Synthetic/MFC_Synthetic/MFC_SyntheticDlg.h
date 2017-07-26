@@ -21,6 +21,10 @@ using namespace cv;
 #define RESULT_BACKGROUND_FILENAME "background_"
 const string SEGMENTATION_DATA_DIRECTORY_NAME = "data";
 
+// component vector Queue 관련
+const int MAXSIZE_OF_COMPONENT_VECTOR_QUEUE = 5;
+#define NEXT(index) ((index+1)%MAXSIZE_OF_COMPONENT_VECTOR_QUEUE)
+
 // segmentation structure
 typedef struct _segment {
 	string fileName;
@@ -104,8 +108,27 @@ int IsEmpty(Queue *);
 void Enqueue(Queue *, int, int);
 node Dequeue(Queue *);
 
+typedef struct ComponentVectorQueue // Component Vector을 위한 크기 5인 원형 Queue 구조체 정의
+{
+	vector<component> buf[MAXSIZE_OF_COMPONENT_VECTOR_QUEUE]; // 배열 요소요소를 담당하는 벡터
+	int front; // 앞쪽 (다음 데이터가 나갈 위치)
+	int rear; // 뒤쪽 (다음 데이터가 들어올 위치)
+}_ComponentVectorQueue;
+
+void InitComponentVectorQueue(ComponentVectorQueue *componentVectorQueue);
+bool IsComponentVectorQueueEmpty(ComponentVectorQueue *componentVectorQueue);
+bool IsComponentVectorQueueFull(ComponentVectorQueue *componentVectorQueue);
+void PutComponentVectorQueue(ComponentVectorQueue *componentVectorQueue, vector<component> componentVector);
+void RemoveComponentVectorQueue(ComponentVectorQueue *componentVectorQueue);
+vector<component> GetComponentVectorQueue(ComponentVectorQueue *componentVectorQueue, int point);
+
 // MAIN ****
+vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector_Array
+	, ComponentVectorQueue prevHumanDetectedVector_Queue, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, vector<pair<int, int>>*, int*);
+int IsComparePrevDetection2(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index);
+
 vector<component> humanDetectedProcess(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector, Mat, int, int, unsigned int, FILE *fp, FILE*, vector<pair<int, int>>*, int*);
+
 Mat getSyntheticFrame(Mat);
 
 // addition function of MAIN
@@ -223,5 +246,7 @@ public:
 
 	CSliderCtrl m_SliderPlayer;
 	afx_msg void OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnBnClickedOk();
+	afx_msg void OnBnClickedCancel();
 };
 

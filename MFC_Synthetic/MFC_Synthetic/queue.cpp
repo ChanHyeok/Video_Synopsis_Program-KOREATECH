@@ -1,3 +1,4 @@
+// check point
 #include "stdafx.h"
 #include "MFC_Synthetic.h"
 #include "MFC_SyntheticDlg.h"
@@ -23,7 +24,7 @@ int IsEmpty(Queue *queue)
 void Enqueue(Queue *queue, int data, int index)
 {
 	node *now = (node *)malloc(sizeof(node)); //노드 생성
-	//데이터 설정
+											  //데이터 설정
 	now->timeTag = data;
 	now->indexOfSegmentArray = index;
 	now->next = NULL;
@@ -55,4 +56,60 @@ node Dequeue(Queue *queue)
 	queue->front = now->next;//맨 앞은 now의 다음 노드로 설정
 	queue->count--;//보관 개수를 1 감소
 	return *now;
+}
+
+
+/************************
+prevHumanDetectedVector에 사용
+component vector에 대한 고정 크기 5인 원형큐의 연산들 정의
+************************/
+
+void InitComponentVectorQueue(ComponentVectorQueue *componentVectorQueue) {
+	printf("Init Queue\n");
+	componentVectorQueue->front = 0;
+	componentVectorQueue->rear = 0;
+}// 앞 뒤를 나타내는 포인터 두개를 같은 자리에 둠으로 비어있는 큐 생성
+
+bool IsComponentVectorQueueEmpty(ComponentVectorQueue *componentVectorQueue) {
+	// 앞 뒤 포인터가 같으면 true
+	if (componentVectorQueue->front == componentVectorQueue->rear)
+		return true;
+	else
+		return false;
+}
+
+bool IsComponentVectorQueueFull(ComponentVectorQueue *componentVectorQueue) {
+	// 큐의 앞/뒤 포인터의 차이가 1이 날 경우
+	if (NEXT(componentVectorQueue->rear) == componentVectorQueue->front)
+		return true;
+	else
+		return false;
+}
+
+// 큐 추가 연산
+void PutComponentVectorQueue(ComponentVectorQueue *componentVectorQueue, vector<component> componentVector) {
+	// 큐가 가득 차 있을 경우 함수 탈출
+	if (IsComponentVectorQueueFull(componentVectorQueue))
+		return;
+
+	// 데이터 추가
+	componentVectorQueue->buf[componentVectorQueue->rear] = componentVector;
+
+	// 모듈러 연산(포인터의 제일 끝에 도달할 경우 가장 앞으로 전환
+	componentVectorQueue->rear = NEXT(componentVectorQueue->rear);
+}
+
+// 큐 삭제 연산 (삭제한 데이터는 버림)
+void RemoveComponentVectorQueue(ComponentVectorQueue *componentVectorQueue) {
+	// 큐가 비었을 경우 삭제연산이 의미가 없기떄문에 함수 탈출
+	if (IsComponentVectorQueueEmpty(componentVectorQueue))
+		return;
+
+	// 큐의 전방 위치 증가 및 모듈러 연산
+	componentVectorQueue->front = NEXT(componentVectorQueue->front);
+}
+
+// point번째 component 데이터를 반환 
+vector<component> GetComponentVectorQueue(ComponentVectorQueue *componentVectorQueue, int point) {
+	return componentVectorQueue->buf[point];
 }

@@ -44,12 +44,6 @@ String getFileName(CString f_path, char find_char, BOOL extension) {
 	return f_name;
 }
 
-//pair의 값으로 vector를 찾는 함수
-bool isPairValueEqual(const std::pair<int, int>& element, int curObjTimetag)
-{
-	return element.first == curObjTimetag;
-}
-
 // 전체 segment 데이터의 파일들을 저장하는 모듈
 bool saveSegmentationData(string video_name, component object, Mat object_frame
 	, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp, FILE * txt_fp_detail, int ROWS, int COLS, vector<pair<int, int>>* vectorDetailTXTInedx, int* detailTxtIndex) {
@@ -69,60 +63,36 @@ bool saveSegmentationData(string video_name, component object, Mat object_frame
 		vectorDetailTXTInedx->push_back(std::make_pair(object.timeTag, (*detailTxtIndex)++));
 	}
 	else{	//첫 오브젝트가 아닐 경우 해당 객체 위치로 이동하여 last 위치 덮어쓰기
-		int index = 0,i=0;
+		int index = -1,i=0;
 		long seek;
 		int stamp;
 		int tempFirst;
 		int tempLast;
 		char strTemp[255];
 
-
-		for (i = 0; i < vectorDetailTXTInedx->size(); i++)
+		for (i = 0; i < vectorDetailTXTInedx->size(); i++)	//벡터 검색
 		if (vectorDetailTXTInedx->at(i).first == object.timeTag){
-			index = vectorDetailTXTInedx->at(i).second;
+			index = vectorDetailTXTInedx->at(i).second;	//key(timetag)에 대한 value(텍스트 파일에서 몇 번째 라인인지)저장
 			break;
 		}
 
-
 		//원하는 라인으로 이동
-		fseek(txt_fp_detail, 0, SEEK_SET);
+		if (index != -1){
+			fseek(txt_fp_detail, 0, SEEK_SET);
+			for (i = 0; i < index; i++)
+				fgets(strTemp, sizeof(strTemp), txt_fp_detail);
 
-		for (i = 0; i < index; i++)
-			fgets(strTemp, sizeof(strTemp), txt_fp_detail);
-		//		rewind(txt_fp_detail);//파일포인터 처음으로 이동
+			seek = ftell(txt_fp_detail);//덮어 쓰기를 할 위치
+			fscanf(txt_fp_detail, "%d %d %d\n", &stamp, &tempFirst, &tempLast);
+			fseek(txt_fp_detail, seek, SEEK_SET);//덮어쓸 위치로 이동
+			tempLast = directionChecker(object, ROWS, COLS);//Last 위치 갱신
+			//덮어쓰기
+			fputs((to_string(object.timeTag).append(" ").append(to_string(tempFirst)).append(" ").append(to_string(tempLast)).append("\n")).c_str(), txt_fp_detail);
 
-		//seek = ftell(txt_fp_detail);
-		//if (fgets(buf, 256, txt_fp_detail) == NULL) perror("no data");
-
-		//if (strstr(buf, "@") != NULL) start = seek;
-		//
-		//long len = filelength(fileno(txt_fp_detail)) - ftell(txt_fp_detail);
-		//char *tmp = (char *)malloc(len);
-		//fwrite(tmp, 1, len, fp);
-
-		//if (strstr(buf, "[5]") != NULL)
-		//{
-		//	
-		//	len = fread(tmp, 1, len, fp);
-
-		//	fseek(fp, start, SEEK_SET);
-		//	fwrite(tmp, 1, len, fp);
-		//	fflush(fp);
-		//	free(tmp);
-		//	_chsize(fileno(fp), ftell(fp));
-		//	break;
-		//}
-
-		seek = ftell(txt_fp_detail);
-
-		fscanf(txt_fp_detail, "%d %d %d\n", &stamp, &tempFirst, &tempLast);
-		fseek(txt_fp_detail, seek, SEEK_SET);
-		tempLast = directionChecker(object, ROWS, COLS);
-		fputs((to_string(object.timeTag).append(" ").append(to_string(tempFirst)).append(" ").append(to_string(tempLast)).append("\n")).c_str(), txt_fp_detail);
-//		fprintf(txt_fp_detail, "@%d %d %d\n", stamp, tempFirst, tempLast);
-		printf("%d %d %d\n", stamp, tempFirst, tempLast);
-		
-		fseek(txt_fp_detail, 0, SEEK_END);
+			fseek(txt_fp_detail, 0, SEEK_END);//파일 포인터 끝으로 이동
+		}
+		else
+			perror("No such timetag");
 	}
 
 	return true;
@@ -166,7 +136,7 @@ void saveSegmentation_TXT(component object, FILE *fp) {
 void saveSegmentation_TXT_detail(component object, FILE *fp, int ROWS, int COLS) {
 	string info;
 	stringstream ss;
-	ss << object.timeTag << " " << directionChecker(object, ROWS, COLS) << " 0\n";
+	ss << object.timeTag << " " << directionChecker(object, ROWS, COLS) << " 10\n";
 	info = ss.str();
 	fprintf(fp, info.c_str());
 

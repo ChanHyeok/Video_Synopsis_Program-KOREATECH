@@ -115,6 +115,8 @@ BEGIN_MESSAGE_MAP(CMFC_SyntheticDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_STOP, &CMFC_SyntheticDlg::OnBnClickedBtnStop)
 	ON_BN_CLICKED(IDC_BTN_REWIND, &CMFC_SyntheticDlg::OnBnClickedBtnRewind)
 	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SLIDER_PLAYER, &CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer)
+	ON_BN_CLICKED(IDOK, &CMFC_SyntheticDlg::OnBnClickedOk)
+	ON_BN_CLICKED(IDCANCEL, &CMFC_SyntheticDlg::OnBnClickedCancel)
 END_MESSAGE_MAP()
 
 
@@ -594,9 +596,10 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 	unsigned int COLS = (int)vc_Source->get(CV_CAP_PROP_FRAME_WIDTH);	//가로 길이
 	unsigned int ROWS = (int)vc_Source->get(CV_CAP_PROP_FRAME_HEIGHT);	//세로 길이
 
-	// humanDetector Vector
 	vector<component> humanDetectedVector, prevHumanDetectedVector;
-
+	ComponentVectorQueue prevHumanDetectedVector_queue;
+	InitComponentVectorQueue(&prevHumanDetectedVector_queue);
+	
 	/* Mat */
 	Mat frame(ROWS, COLS, CV_8UC3); // Mat(height, width, channel)
 	Mat frame_g(ROWS, COLS, CV_8UC1);
@@ -607,14 +610,6 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 
 	// 배경 초기화
 	background_gray = backgroundInit(vc_Source);
-
-	// To Do :: 세그먼테이션이 도중에 중단되었을 때 
-	// 그 시점에서부터 다시 세그먼테이션을 진행하고 싶을 때 vc_source의 처리
-
-	// 파일 및 디렉터리 정의 부분
-	// 세그먼테이션 데이터(txt, jpg들)를 저장할 디렉토리 유무확인, 없으면 만들어줌
-	int tmp = makeDataRootDirectory();
-	int tmp2 = makeDataSubDirectory(fileNameNoExtension);
 
 	// 얻어낸 객체 프레임의 정보를 써 낼 텍스트 파일 정의s
 	fp = fopen(getTextFilePath(fileNameNoExtension).c_str(), "w");	// 쓰기모드
@@ -673,9 +668,35 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 			currentMsec = vc_Source->get(CV_CAP_PROP_POS_MSEC);
 
 			// 영상을 처리하여 파일로 저장하기
-			humanDetectedVector = humanDetectedProcess(humanDetectedVector, prevHumanDetectedVector,
-				frame, frameCount, videoStartMsec, currentMsec, fp, fp_detail, &vectorDetailTXTInedx, &detailTXTIndex);
+			// humanDetectedVector = humanDetectedProcess(humanDetectedVector, prevHumanDetectedVector,
+			//	frame, frameCount, videoStartMsec, currentMsec, fp);
+			// humanDetected가 있을 경우에만 연산(함수호출 오버헤드 감소를 위함)
+			// 영상을 처리하여 타임태그를 새로 부여하고 파일로 저장하기(2)
+			if (humanDetectedVector.size() > 0)
+				humanDetectedVector = humanDetectedProcess2(humanDetectedVector, prevHumanDetectedVector
+				, prevHumanDetectedVector_queue, frame, frameCount, videoStartMsec, currentMsec, fp, &vectorDetailTXTInedx, &detailTXTIndex);
 
+			// 큐가 full일 경우 한자리 비워주기
+			if (IsComponentVectorQueueFull(&prevHumanDetectedVector_queue))
+				RemoveComponentVectorQueue(&prevHumanDetectedVector_queue);
+
+			// 큐에 매 수행마다 벡터를 무조건 넣어줘야함
+			PutComponentVectorQueue(&prevHumanDetectedVector_queue, humanDetectedVector);
+
+			// 확인 코드
+			/*
+			for (int i = 3; i < 5; i++) {
+			vector<component> prevDetectedVector_i = GetComponentVectorQueue(&prevHumanDetectedVector_queue
+			, (prevHumanDetectedVector_queue.rear + i) % 5);
+			for (int j = 0; j < prevDetectedVector_i.size(); j++) {
+			printf("queue[%d] = %d %d %d %d\n", i, prevDetectedVector_i[j].top, prevDetectedVector_i[j].bottom
+			, prevDetectedVector_i[j].left, prevDetectedVector_i[j].right);
+			}
+			vector<component> vclear;
+			prevDetectedVector_i.swap(vclear);
+			}
+			printf("\n");
+			*/
 
 			// 벡터 메모리 해제를 빈 벡터 생성(prevHumanDetectedVector 메모리 해제)
 			vector<component> vclear;
@@ -710,6 +731,92 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 	// 텍스트 파일 닫기
 	fclose(fp);
 	fclose(fp_detail);
+}
+// component vector 큐를 이용한 추가된 함수
+vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector
+	, ComponentVectorQueue prevHumanDetectedVector_Queue, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, vector<pair<int, int>>* vectorDetailTXTInedx, int* detailTxtIndex) {
+	// 현재에서 바로 이전 component 저장
+	vector<component> prevDetectedVector_i = prevHumanDetectedVector;
+
+	// 임시 타임태그 변수 선언, 일단 초기값은 currentMsec으로 지정
+	int prevTimeTag = currentMsec;
+
+	// 사람을 검출한 양 많큼 반복 (보통 humanCount 갯수 1, 2개 나옴)
+	for (int humanCount = 0; humanCount < humanDetectedVector.size(); humanCount++) {
+		if (!prevDetectedVector_i.empty()) {	//이전 프레임의 검출된 객체가 있을 경우
+			bool findFlag = false;
+			for (int j = 0; j < prevDetectedVector_i.size(); j++) {
+				if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, humanCount, j)) {	// 두 ROI가 겹칠 경우																										
+					// 이전 TimeTag를 할당
+					prevTimeTag = prevDetectedVector_i[j].timeTag;
+					humanDetectedVector[humanCount].timeTag = prevTimeTag;
+					saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
+						, prevTimeTag, currentMsec, frameCount, humanDetectedVector[humanCount].label, fp, vectorDetailTXTInedx, detailTxtIndex);
+
+					findFlag = true;
+				}
+			} // end for
+
+			if (findFlag == false) { // 이전 객체를 통해서 발견하지 못했음
+				for (int i = MAXSIZE_OF_COMPONENT_VECTOR_QUEUE - 3; i >= 0; i--) {
+					prevDetectedVector_i = GetComponentVectorQueue(&prevHumanDetectedVector_Queue,
+						(prevHumanDetectedVector_Queue.rear + i) % MAXSIZE_OF_COMPONENT_VECTOR_QUEUE);
+					for (int j = 0; j < prevDetectedVector_i.size(); j++) {
+						if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, humanCount, j)) {	// 두 ROI가 겹칠 경우																										
+							// 이전 TimeTag를 할당
+							prevTimeTag = prevDetectedVector_i[j].timeTag;
+							humanDetectedVector[humanCount].timeTag = prevTimeTag;
+							saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
+								, prevTimeTag, currentMsec, frameCount, humanDetectedVector[humanCount].label, fp, vectorDetailTXTInedx, detailTxtIndex);
+
+							//printf("%d번 거르기(!!!)\n", 4 - i);
+							//printf("data :: %d %d %d\n", prevTimeTag, currentMsec, frameCount);
+							findFlag = true;
+							break;
+						}
+					}
+				}
+				if (findFlag == false) { // 새 객체의 출현
+					prevTimeTag = currentMsec;
+					humanDetectedVector[humanCount].timeTag = currentMsec;
+					saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
+						, prevTimeTag, currentMsec, frameCount, humanDetectedVector[humanCount].label, fp, vectorDetailTXTInedx, detailTxtIndex);
+				}
+			}
+		} // end if ((!prevDetectedVector_i.empty())
+		else {	// 첫 시행이거나 이전 프레임에 검출된 객체가 없을 경우
+				// 새로운 이름 할당
+			bool findFlag = false;
+			for (int i = MAXSIZE_OF_COMPONENT_VECTOR_QUEUE - 3; i >= 0; i--) {
+				prevDetectedVector_i = GetComponentVectorQueue(&prevHumanDetectedVector_Queue,
+					(prevHumanDetectedVector_Queue.rear + i) % MAXSIZE_OF_COMPONENT_VECTOR_QUEUE);
+				for (int j = 0; j < prevDetectedVector_i.size(); j++) {
+					if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, humanCount, j)) {	// 두 ROI가 겹칠 경우																										
+						// 이전 TimeTag를 할당
+						prevTimeTag = prevDetectedVector_i[j].timeTag;
+						humanDetectedVector[humanCount].timeTag = prevTimeTag;
+						saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
+							, prevTimeTag, currentMsec, frameCount, humanDetectedVector[humanCount].label, fp, vectorDetailTXTInedx, detailTxtIndex);
+
+						/*printf("%d번 거르기(@@@)\n", 4 - i);
+						printf("data :: %d %d %d\n", prevTimeTag, currentMsec, frameCount);*/
+						findFlag = true;
+						break;
+					}
+				}
+			}
+			if (findFlag == false) {
+			humanDetectedVector[humanCount].timeTag = currentMsec;
+			saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
+				, prevTimeTag, currentMsec, frameCount, humanDetectedVector[humanCount].label, fp,vectorDetailTXTInedx, detailTxtIndex);
+			}
+		} // end else
+	} // end for (humanCount) 
+
+	vector<component> vclear;
+	prevDetectedVector_i.swap(vclear);
+
+	return humanDetectedVector;
 }
 
 // 현재와 이전에 검출한 결과를 비교, true 면 겹칠 수 없음
@@ -767,7 +874,7 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 Mat getSyntheticFrame(Mat bgFrame) {
 	int *labelMap = (int*)calloc(bgFrame.cols * bgFrame.rows, sizeof(int));	//겹침을 판단하는 용도
 
-	node tempnode;	//DeQueue한 결과를 받을 node
+	node tempnode, tempnode2;//DeQueue한 결과를 받을 node
 	int countOfObj = segment_queue.count;	//큐 인스턴스의 노드 갯수
 	stringstream ss;
 
@@ -1542,4 +1649,18 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 		}
 	}
 	return;
+}
+
+
+void CMFC_SyntheticDlg::OnBnClickedOk()
+{
+	// TODO: Add your control notification handler code here
+	//CDialogEx::OnOK();
+}
+
+
+void CMFC_SyntheticDlg::OnBnClickedCancel()
+{
+	// TODO: Add your control notification handler code here
+	CDialogEx::OnCancel();
 }
