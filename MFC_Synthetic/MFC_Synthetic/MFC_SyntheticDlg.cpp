@@ -751,7 +751,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 					prevTimeTag = prevDetectedVector_i[j].timeTag;
 					humanDetectedVector[humanCount].timeTag = prevTimeTag;
 					saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
-						, prevTimeTag, currentMsec, frameCount, humanDetectedVector[humanCount].label, fp, vectorDetailTXTInedx, detailTxtIndex);
+						, prevTimeTag, currentMsec, frameCount, humanCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTInedx, detailTxtIndex);
 
 					findFlag = true;
 				}
@@ -767,7 +767,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 							prevTimeTag = prevDetectedVector_i[j].timeTag;
 							humanDetectedVector[humanCount].timeTag = prevTimeTag;
 							saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
-								, prevTimeTag, currentMsec, frameCount, humanDetectedVector[humanCount].label, fp, vectorDetailTXTInedx, detailTxtIndex);
+								, prevTimeTag, currentMsec, frameCount, humanCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTInedx, detailTxtIndex);
 
 							//printf("%d번 거르기(!!!)\n", 4 - i);
 							//printf("data :: %d %d %d\n", prevTimeTag, currentMsec, frameCount);
@@ -780,7 +780,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 					prevTimeTag = currentMsec;
 					humanDetectedVector[humanCount].timeTag = currentMsec;
 					saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
-						, prevTimeTag, currentMsec, frameCount, humanDetectedVector[humanCount].label, fp, vectorDetailTXTInedx, detailTxtIndex);
+						, prevTimeTag, currentMsec, frameCount, humanCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTInedx, detailTxtIndex);
 				}
 			}
 		} // end if ((!prevDetectedVector_i.empty())
@@ -796,7 +796,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 						prevTimeTag = prevDetectedVector_i[j].timeTag;
 						humanDetectedVector[humanCount].timeTag = prevTimeTag;
 						saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
-							, prevTimeTag, currentMsec, frameCount, humanDetectedVector[humanCount].label, fp, vectorDetailTXTInedx, detailTxtIndex);
+							, prevTimeTag, currentMsec, frameCount, humanCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTInedx, detailTxtIndex);
 
 						/*printf("%d번 거르기(@@@)\n", 4 - i);
 						printf("data :: %d %d %d\n", prevTimeTag, currentMsec, frameCount);*/
@@ -808,7 +808,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 			if (findFlag == false) {
 			humanDetectedVector[humanCount].timeTag = currentMsec;
 			saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
-				, prevTimeTag, currentMsec, frameCount, humanDetectedVector[humanCount].label, fp,vectorDetailTXTInedx, detailTxtIndex);
+				, prevTimeTag, currentMsec, frameCount, humanCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTInedx, detailTxtIndex);
 			}
 		} // end else
 	} // end for (humanCount) 
