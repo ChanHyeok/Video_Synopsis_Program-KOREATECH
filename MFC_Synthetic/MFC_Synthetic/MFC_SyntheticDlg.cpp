@@ -21,6 +21,19 @@ static char THIS_FILE[] = __FILE__;
 #define BIN_VIDEO_TIMER 3	//Picture Control에 이진 영상을 출력하는 타이머
 #define PROGRESS_BAR_TIMER 4	//로딩바에 사용하는 타이머
 #define MAX_STR_BUFFER_SIZE  128 // 문자열 출력에 사용하는 버퍼 길이
+
+//콤보박스 텍스트
+const char* ALL = "전체";
+const char* LEFT = "왼쪽";
+const char* RIGHT = "오른쪽";
+const char* ABOVE = "윗쪽";
+const char* BELOW = "아랫쪽";
+const char* CENTER = "가운데";
+const char* LEFTABOVE = "좌상단";
+const char* RIGHTABOVE = "우상단";
+const char* LEFTBELOW = "좌하단";
+const char* RIGHTBELOW = "우하단";
+
 // 배경 생성
 const int FRAMES_FOR_MAKE_BACKGROUND = 350;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
 const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 1000;	//다음 배경을 만들기 위한 시간간격(동적)
@@ -98,6 +111,8 @@ void CMFC_SyntheticDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_SEG_SLIDER_HMAX, m_SliderHMAX);
 	DDX_Control(pDX, IDC_PROGRESS, m_LoadingProgressCtrl);
 	DDX_Control(pDX, IDC_SLIDER_PLAYER, m_SliderPlayer);
+	DDX_Control(pDX, IDC_COMBO_START, mComboStart);
+	DDX_Control(pDX, IDC_COMBO_END, mComboEnd);
 }
 
 //message map을 정의하는 부분
@@ -963,12 +978,6 @@ Mat getSyntheticFrame(Mat bgFrame) {
 }
 // 객체들 끼리 겹침을 판별하는 함수, 하나라도 성립하면 겹치지 않음
 bool IsObjectOverlapingDetector(segment m_segment, segment pre_segment) {
-	
-	/*if (m_segment.left <= pre_segment.right
-		&& m_segment.right >= pre_segment.left
-		&& m_segment.top <= pre_segment.bottom
-		&& m_segment.bottom >= pre_segment.top)
-	*/
 	return m_segment.left > pre_segment.right
 		|| m_segment.right < pre_segment.left
 		|| m_segment.top > pre_segment.bottom
@@ -1482,7 +1491,10 @@ void CMFC_SyntheticDlg::layoutInit(){
 	CWnd *pStringSearchStartTimeSlider = GetDlgItem(IDC_STRING_SEARCH_START_TIME_SLIDER);
 	CWnd *pStringSearchEndTimeSlider = GetDlgItem(IDC_STRING_SEARCH_END_TIME_SLIDER);
 	CWnd *pStringFpsSlider = GetDlgItem(IDC_STRING_FPS_SLIDER);
-
+	CWnd *pStringDirection = GetDlgItem(IDC_STRING_DIRECTION);
+	CWnd *pStringDirectionStart = GetDlgItem(IDC_STRING_DIRECTION_START);
+	CWnd *pStringDirectionEnd = GetDlgItem(IDC_STRING_DIRECTION_END);
+	
 	int box_syntheticX = padding;
 	int box_syntheticY = box_segmentationY + box_segmentationHeight + padding;
 	int box_syntheticWidth = dialogWidth - 3 * padding;
@@ -1499,8 +1511,13 @@ void CMFC_SyntheticDlg::layoutInit(){
 	pStringFps->MoveWindow(box_syntheticX + padding + 300, box_syntheticY + box_syntheticHeight*0.3, 100, 20, TRUE);
 	m_sliderFps.MoveWindow(box_syntheticX + padding + 300, box_syntheticY + box_syntheticHeight*0.3 + 20 + padding, 140, 20, TRUE);
 	pStringFpsSlider->MoveWindow(box_syntheticX + padding + 60 + 300, box_syntheticY + box_syntheticHeight*0.3 + 40 + padding * 2, 30, 20, TRUE);
+	
 
-
+	pStringDirection->MoveWindow(box_syntheticX + padding + 450, box_syntheticY + box_syntheticHeight*0.2, 100, 20, TRUE);
+	pStringDirectionStart->MoveWindow(box_syntheticX + padding + 470, box_syntheticY + box_syntheticHeight*0.4, 30, 20, TRUE);
+	mComboStart.MoveWindow(box_syntheticX + padding + 520, box_syntheticY + box_syntheticHeight*0.4, 100, 20, TRUE);
+	pStringDirectionEnd->MoveWindow(box_syntheticX + padding + 470, box_syntheticY + box_syntheticHeight*0.6, 30, 20, TRUE);
+	mComboEnd.MoveWindow(box_syntheticX + padding + 520, box_syntheticY + box_syntheticHeight*0.6, 100, 20, TRUE);
 
 	//로딩 바
 	m_LoadingProgressCtrl.MoveWindow(dialogWidth / 2 - 300, dialogHeight / 2 -80, 600, 80, TRUE);
@@ -1568,6 +1585,28 @@ void CMFC_SyntheticDlg::updateUI(int video_length, int video_cols, int video_row
 	m_SliderWMAX.SetPos(video_cols / 2);
 	m_SliderHMIN.SetPos(video_rows / 5);
 	m_SliderHMAX.SetPos(video_rows / 2);
+
+	//combo box
+	mComboStart.AddString(_T(ALL));
+	mComboStart.AddString(_T(LEFT));
+	mComboStart.AddString(_T(RIGHT));
+	mComboStart.AddString(_T(ABOVE));
+	mComboStart.AddString(_T(BELOW));
+	mComboStart.AddString(_T(CENTER));
+	mComboStart.AddString(_T(LEFTABOVE));
+	mComboStart.AddString(_T(RIGHTABOVE));
+	mComboStart.AddString(_T(LEFTBELOW));
+	mComboStart.AddString(_T(RIGHTBELOW));
+	mComboEnd.AddString(_T(ALL));
+	mComboEnd.AddString(_T(LEFT));
+	mComboEnd.AddString(_T(RIGHT));
+	mComboEnd.AddString(_T(ABOVE));
+	mComboEnd.AddString(_T(BELOW));
+	mComboEnd.AddString(_T(CENTER));
+	mComboEnd.AddString(_T(LEFTABOVE));
+	mComboEnd.AddString(_T(RIGHTABOVE));
+	mComboEnd.AddString(_T(LEFTBELOW));
+	mComboEnd.AddString(_T(RIGHTBELOW));
 }
 
 //동영상 플레이어 슬라이더를 마우스로 잡은 뒤, 놓았을 때 발생하는 콜백
