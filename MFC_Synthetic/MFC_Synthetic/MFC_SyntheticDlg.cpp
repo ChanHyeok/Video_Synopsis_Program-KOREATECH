@@ -36,7 +36,7 @@ boolean isPlayBtnClicked, isPauseBtnClicked;
 Mat background_gray, background_loadedFromFile; // 배경 프레임 , 합성 라디오 버튼 클릭 시 로드되는 합성에 사용할 배경 이미지
 
 unsigned int COLS, ROWS;
-
+bool synthesisEndFlag; // 합성이 끝남을 알려주는 플래그
 // File 관련
 FILE *fp; // frameInfo를 작성할 File Pointer
 std::string fileNameExtension(""); // 입력받은 비디오파일 이름
@@ -767,17 +767,21 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 	node tempnode;	//DeQueue한 결과를 받을 node
 	int countOfObj = segment_queue.count;	//큐 인스턴스의 노드 갯수
 	stringstream ss;
+	synthesisEndFlag = false;
 
 	//큐가 비었는지 확인한다. 비었으면 더 이상 출력 할 것이 없는 것 이므로 종료
 	if (IsEmpty(&segment_queue)){
 		// 타이머를 죽인 이후에
 		KillTimer(SYN_RESULT_TIMER);
 
+		// 합성이 끝났다고 판정하여 플래그를 true로 변경
+		synthesisEndFlag = true;
+
 		// 동적 해제
-		free(&tempnode);
 		free(labelMap);
 		delete[] m_segmentArray;
-		free(&segment_queue);
+		tempnode.next = NULL;
+		free(tempnode.next);
 
 		// 빈 프레임 반환
 		Mat nullFrame(ROWS, COLS, CV_8UC1);
@@ -855,7 +859,6 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 			}
 		}
 	}
-	free(&tempnode);
 	free(labelMap);
 	vector<int>().swap(vectorPreNodeIndex);
 	return bgFrame;
@@ -1217,8 +1220,9 @@ void CMFC_SyntheticDlg::SetRadioStatus(UINT value) {
 void CMFC_SyntheticDlg::OnBnClickedBtnPause()
 {
 	if (isPauseBtnClicked == false){
-		// 합성 영상 재생 중에 segment 배열의 메모리 해제를 위한 코드
-		delete[] m_segmentArray;
+		// 합성 영상 재생 중에 해당 버튼이 눌렸을 때에 segment 배열의 메모리 해제를 위한 코드
+		if (synthesisEndFlag == false)
+			delete[] m_segmentArray;
 
 		isPlayBtnClicked = false;
 		isPauseBtnClicked = true;
@@ -1233,8 +1237,9 @@ void CMFC_SyntheticDlg::OnBnClickedBtnPause()
 //정지 버튼
 void CMFC_SyntheticDlg::OnBnClickedBtnStop()
 {
-	// 합성 영상 재생 중에 segment 배열의 메모리 해제를 위한 코드
-	delete[] m_segmentArray;
+	// 합성 영상 재생 중에 해당 버튼이 눌렸을 때에 segment 배열의 메모리 해제를 위한 코드
+	if (synthesisEndFlag == false)
+		delete[] m_segmentArray;
 
 	printf("정지 버튼 눌림\n");
 
