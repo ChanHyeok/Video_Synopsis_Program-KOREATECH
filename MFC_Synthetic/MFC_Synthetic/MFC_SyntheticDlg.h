@@ -256,5 +256,6 @@ public:
 	CComboBox mComboEnd;
 	afx_msg bool isDirectionMatch(int);
 	
+	CButton mButtonSynSave;
 };
 

@@ -113,6 +113,7 @@ void CMFC_SyntheticDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_SLIDER_PLAYER, m_SliderPlayer);
 	DDX_Control(pDX, IDC_COMBO_START, mComboStart);
 	DDX_Control(pDX, IDC_COMBO_END, mComboEnd);
+	DDX_Control(pDX, IDC_BTN_SYN_SAVE, mButtonSynSave);
 }
 
 //message map을 정의하는 부분
@@ -1436,7 +1437,7 @@ void CMFC_SyntheticDlg::layoutInit(){
 	pButtonPlay->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 - 45, pictureContorlY + pictureContorlHeight + 10 + playerSliderHeight, 40, 40, TRUE);
 	pButtonPause->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 + 5, pictureContorlY + pictureContorlHeight + 10 + playerSliderHeight, 40, 40, TRUE);
 	pButtonStop->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 + 55, pictureContorlY + pictureContorlHeight + 10 + playerSliderHeight, 40, 40, TRUE);
-	
+	mButtonSynSave.MoveWindow(pictureContorlX + pictureContorlWidth-50, pictureContorlY + pictureContorlHeight + 10 + playerSliderHeight, 40, 40, TRUE);
 	//group box - segmetation
 	CWnd *pGroupSegmentation = GetDlgItem(IDC_GROUP_SEG);
 	CWnd *pStringStartTime = GetDlgItem(IDC_SEG_STRING_VIDEO_START_TIME);
