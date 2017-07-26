@@ -822,7 +822,7 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 
 			//커팅된 이미지에 타임태그를 달아준다
 			//params : (Mat, String to show, 출력할 위치, 폰트 타입, 폰트 크기, 색상, 굵기) 
-			putText(bgFrame, timetag, Point(m_segmentArray[tempnode.indexOfSegmentArray].left + 5, m_segmentArray[tempnode.indexOfSegmentArray].top - 10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 150, 150), 2);
+			putText(bgFrame, timetag, Point(m_segmentArray[tempnode.indexOfSegmentArray].left + 5, m_segmentArray[tempnode.indexOfSegmentArray].top + 50), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 1.5);	//은혜
 
 			//다음 프레임에 같은 타임태그를 가진 객체가 있는지 확인한다. 있으면 EnQueue
 			int frameIndex = 1;
@@ -1083,14 +1083,14 @@ stringstream timeConvertor(int t) {
 	sec = t % 60;
 
 	if (t / 3600 < 10)
-		s << "0" << hour << " : ";
+		s << "0" << hour << ":";
 	else
-		s << hour << " : ";
+		s << hour << ":";
 
 	if ((t % 3600) / 60 < 10)
-		s << "0" << min << " : ";
+		s << "0" << min << ":";
 	else
-		s << min << " : ";
+		s << min << ":";
 
 	if (t % 60 < 10)
 		s << "0" << sec;
