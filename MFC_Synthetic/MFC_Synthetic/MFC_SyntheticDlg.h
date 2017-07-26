@@ -10,6 +10,7 @@
 #include <iostream>
 #include "afxcmn.h"
 #include "afxwin.h"
+#include <time.h>
 using namespace std;
 using namespace cv;
 

@@ -205,6 +205,7 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	// 라디오 버튼 초기화
 	CheckRadioButton(IDC_RADIO_PLAY1, IDC_RADIO_PLAY3, IDC_RADIO_PLAY1);
 	radioChoice = 0; preRadioChoice = 0; //라디오 버튼의 default는 맨 처음 버튼임
+	mButtonSynSave.EnableWindow(false);
 
 	KillTimer(PROGRESS_BAR_TIMER);
 	m_LoadingProgressCtrl.ShowWindow(false);
@@ -1242,6 +1243,7 @@ void CMFC_SyntheticDlg::OnBnClickedBtnMenuLoad(){
 	// 라디오 버튼 초기화
 	CheckRadioButton(IDC_RADIO_PLAY1, IDC_RADIO_PLAY3, IDC_RADIO_PLAY1);
 	radioChoice = 0; preRadioChoice = 0; //라디오 버튼의 default는 맨 처음 버튼임
+	mButtonSynSave.EnableWindow(false);
 
 	KillTimer(PROGRESS_BAR_TIMER);
 	m_LoadingProgressCtrl.ShowWindow(false);
@@ -1252,6 +1254,7 @@ void CMFC_SyntheticDlg::SetRadioStatus(UINT value) {
 	UpdateData(TRUE);
 
 	if (radioChoice != mRadioPlay){	//현재 위치와 새로 누른 위치가 같을 경우 무시
+		mButtonSynSave.EnableWindow(false);	//저장버튼 막음
 		//슬라이더 활성 및 비활성
 		m_SliderPlayer.EnableWindow(TRUE);
 		m_sliderSearchStartTime.EnableWindow(FALSE);
@@ -1273,6 +1276,7 @@ void CMFC_SyntheticDlg::SetRadioStatus(UINT value) {
 			m_SliderPlayer.EnableWindow(FALSE);	//합성영상일 경우 비활성화
 			m_sliderSearchStartTime.EnableWindow(TRUE);	//활성화
 			m_sliderSearchEndTime.EnableWindow(TRUE);
+			mButtonSynSave.EnableWindow(true);//저장버튼 활성화
 			background_loadedFromFile = imread(getBackgroundFilePath(fileNameNoExtension));//합성 영상을 출력할 때 바탕이 될 프레임. 영상합성 라디오 버튼 클릭 시 자동으로 파일로부터 로드 됨
 			printf("합성 기본 배경 로드 완료\n");
 			break;
@@ -1438,8 +1442,7 @@ void CMFC_SyntheticDlg::layoutInit(){
 	pButtonPlay->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 - 45, pictureContorlY + pictureContorlHeight + 10 + playerSliderHeight, 40, 40, TRUE);
 	pButtonPause->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 + 5, pictureContorlY + pictureContorlHeight + 10 + playerSliderHeight, 40, 40, TRUE);
 	pButtonStop->MoveWindow(pictureContorlX + pictureContorlWidth*0.5 + 55, pictureContorlY + pictureContorlHeight + 10 + playerSliderHeight, 40, 40, TRUE);
-	mButtonSynSave.MoveWindow(pictureContorlX + pictureContorlWidth - 50, pictureContorlY + pictureContorlHeight + 10 + playerSliderHeight, 40, 40, TRUE);
-
+	
 	//group box - segmetation
 	CWnd *pGroupSegmentation = GetDlgItem(IDC_GROUP_SEG);
 	CWnd *pStringStartTime = GetDlgItem(IDC_SEG_STRING_VIDEO_START_TIME);
@@ -1522,6 +1525,8 @@ void CMFC_SyntheticDlg::layoutInit(){
 	mComboStart.MoveWindow(box_syntheticX + padding + 520, box_syntheticY + box_syntheticHeight*0.4, 100, 20, TRUE);
 	pStringDirectionEnd->MoveWindow(box_syntheticX + padding + 470, box_syntheticY + box_syntheticHeight*0.6, 30, 20, TRUE);
 	mComboEnd.MoveWindow(box_syntheticX + padding + 520, box_syntheticY + box_syntheticHeight*0.6, 100, 20, TRUE);
+
+	mButtonSynSave.MoveWindow(box_syntheticX + box_syntheticWidth-110, box_syntheticY + box_syntheticHeight*0.8, 100, 20, TRUE);
 
 	//로딩 바
 	m_LoadingProgressCtrl.MoveWindow(dialogWidth / 2 - 300, dialogHeight / 2 - 80, 600, 80, TRUE);
@@ -1614,6 +1619,7 @@ void CMFC_SyntheticDlg::updateUI(int video_length, int video_cols, int video_row
 	mComboEnd.AddString(_T(LEFTBELOW));
 	mComboEnd.AddString(_T(RIGHTBELOW));
 	mComboEnd.SetCurSel(0);	//첫 인덱스를 가리킴
+
 }
 
 //동영상 플레이어 슬라이더를 마우스로 잡은 뒤, 놓았을 때 발생하는 콜백
@@ -1782,6 +1788,17 @@ bool CMFC_SyntheticDlg::isDirectionMatch(int timetag){
 	else return false;
 }
 
+// 현재시간을 string type으로 return하는 함수
+const std::string currentDateTime() {
+	time_t     now = time(0); //현재 시간을 time_t 타입으로 저장
+	struct tm  tstruct;
+	char       buf[80];
+	tstruct = *localtime(&now);
+	strftime(buf, sizeof(buf), "%Y%m%d%H%M%S", &tstruct); // YYYY-MM-DD.HH:mm:ss 형태의 스트링
+
+	return buf;
+}
+
 void CMFC_SyntheticDlg::OnBnClickedBtnSynSave()
 {
 	//실행중인 타이머 종료
@@ -1792,6 +1809,10 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSynSave()
 	boolean isSynPlayable = checkSegmentation();
 
 	if (isSynPlayable){
+		m_LoadingProgressCtrl.ShowWindow(true);
+		m_LoadingProgressCtrl.SetRange(0, 100);
+		m_LoadingProgressCtrl.SetPos(0);
+
 		char *txtBuffer = new char[100];	//텍스트파일 읽을 때 사용할 buffer
 
 		string path = "./";
@@ -1894,8 +1915,11 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSynSave()
 
 		//파일로 동영상을 저장하기 위한 준비  
 		VideoWriter outputVideo;
-		outputVideo.open("ouput.avi", VideoWriter::fourcc('X', 'V', 'I', 'D'),
-			30, Size((int)background_loadedFromFile.cols, (int)background_loadedFromFile.rows), true);
+		string str = "./data/";
+		str.append(fileNameNoExtension).append("/").append(fileNameNoExtension).append("_").append(currentDateTime()).append(".avi");
+	
+		outputVideo.open(str, VideoWriter::fourcc('X', 'V', 'I', 'D'),
+			25, Size((int)background_loadedFromFile.cols, (int)background_loadedFromFile.rows), true);
 		if (!outputVideo.isOpened())
 		{
 			cout << "동영상을 저장하기 위한 초기화 작업 중 에러 발생" << endl;
@@ -1912,6 +1936,7 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSynSave()
 					bg_copy = NULL;
 					syntheticResult.release();
 					bg_copy.release();
+					m_LoadingProgressCtrl.SetPos(100);
 					break;
 				}
 				else{
@@ -1920,12 +1945,14 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSynSave()
 					bg_copy = NULL;
 					syntheticResult.release();
 					bg_copy.release();
+					m_LoadingProgressCtrl.OffsetPos(1);
 				}
 			}
 		}
+		m_LoadingProgressCtrl.ShowWindow(false);
 	}
 	else{ //실행 못하는 경우 segmentation을 진행하라고 출력
-		AfxMessageBox("You can't play without segmentation results");
+		AfxMessageBox("You can't save without segmentation results");
 	}
 
 }
