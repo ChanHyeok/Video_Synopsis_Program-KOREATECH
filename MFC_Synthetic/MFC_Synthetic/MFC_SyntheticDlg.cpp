@@ -764,18 +764,14 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 // 합성된 프레임을 가져오는 연산
 Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 	int *labelMap = (int*)calloc(bgFrame.cols * bgFrame.rows, sizeof(int));	//겹침을 판단하는 용도
-	node tempnode;	//DeQueue한 결과를 받을 node
+	node tempnode, prev_tempnode;	//DeQueue한 결과를 받을 node
 	int countOfObj = segment_queue.count;	//큐 인스턴스의 노드 갯수
 	stringstream ss;
 	synthesisEndFlag = false;
 
 	//큐가 비었는지 확인한다. 비었으면 더 이상 출력 할 것이 없는 것 이므로 종료
 	if (IsEmpty(&segment_queue)){
-<<<<<<< HEAD
-		free(&tempnode);
-=======
 		// 타이머를 죽인 이후에
->>>>>>> memory_lick
 		KillTimer(SYN_RESULT_TIMER);
 
 		// 합성이 끝났다고 판정하여 플래그를 true로 변경
@@ -783,15 +779,11 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 
 		// 동적 해제
 		free(labelMap);
-<<<<<<< HEAD
-
-=======
 		delete[] m_segmentArray;
 		tempnode.next = NULL;
 		free(tempnode.next);
 
 		// 빈 프레임 반환
->>>>>>> memory_lick
 		Mat nullFrame(ROWS, COLS, CV_8UC1);
 		nullFrame.setTo(Scalar(0));
 		return nullFrame;
@@ -812,9 +804,10 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 		BOOL isCross = false;
 		int curIndex = tempnode.indexOfSegmentArray;
 
-		//printf("\n%d : %s", i + 1, m_segmentArray[curIndex].fileName);
 		//객체가 이전 객체와 겹치는지 비교
-		if (i != 0 && m_segmentArray[curIndex].timeTag == m_segmentArray[curIndex].msec){	//처음이 아니고 현재 출력할 객체가 timetag의 첫 프레임 일 때
+		//처음이 아니고 현재 출력할 객체가 timetag의 첫 프레임 일 때		
+		if (i != 0 && ( m_segmentArray[curIndex].timeTag == m_segmentArray[curIndex].msec) ){
+	//		|| (prev_tempnode.timeTag == tempnode.timeTag) ){
 			for (int j = 0; j < i; j++){	//이전에 그린 객체 모두와 겹치는지 판별
 				if (IsObjectOverlapingDetector(m_segmentArray[curIndex], m_segmentArray[vectorPreNodeIndex.at(j)])){
 					isCross = false; // 겹치지 않음
@@ -822,14 +815,19 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 				else{ //겹침
 					isCross = true;
 					Enqueue(&segment_queue, tempnode.timeTag, tempnode.indexOfSegmentArray);	//출력하지 않고 다시 큐에 삽입
+					prev_tempnode = tempnode;
 					break;
 				}
 			}
 		}
 
+		// 많이 겹치는 객체들 간에 delay를 주되,
+		// 모든 프레임이 빠짐없이(끊김없이) 출력되도록 함
+
+		// 그렇게 하기 위해 한 프레임에 나타나는 segment의 갯수를 한정할 수 있고,
+		// 좁게 들어가면, 특정 구역에 나타낼 segment의 갯수를 제한하도록 구성한다.
 
 		if (isCross == false){	//출력된 객체가 없거나 이전 객체와 겹치지 않는 경우
-			// 아래 삭제 이후 synthetic으로 옮기기
 			//배경에 객체를 올리는 함수
 			bgFrame = printObjOnBG(bgFrame, m_segmentArray[tempnode.indexOfSegmentArray], labelMap, fileNameNoExtension);
 			
@@ -843,16 +841,17 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 			//params : (Mat, String to show, 출력할 위치, 폰트 타입, 폰트 크기, 색상, 굵기) 
 			putText(bgFrame, timetag, Point(m_segmentArray[tempnode.indexOfSegmentArray].left + 5, m_segmentArray[tempnode.indexOfSegmentArray].top - 10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 150, 150), 2);
 
-			//다음 프레임에 같은 타임태그를 가진 객체가 있는지 확인한다. 있으면 EnQueue
 			int frameIndex = 1;
+
 			while (1){
-				//다음 프레임에 도달할 때 까지 아무것도 하지 않는다.
+				// 다음 프레임에 도달할 때 까지 아무것도 하지 않는다.
 				if (m_segmentArray[tempnode.indexOfSegmentArray].frameCount == m_segmentArray[tempnode.indexOfSegmentArray + frameIndex].frameCount){
 					frameIndex++;
 				}
-				else{//프레임 번호가 넘어 갔을 경우
+				else{ //프레임 번호가 넘어 갔을 경우
 					if ((m_segmentArray[tempnode.indexOfSegmentArray].frameCount + 1) == m_segmentArray[tempnode.indexOfSegmentArray + frameIndex].frameCount){//다음 객체가 검출된 프레임이 이전 프레임과 1 차이가 날 때
 						//타임태그가 같고 인덱스가 같은 경우에만 큐에 넣어서 다음에 이어 출력될 수 있도록 한다.
+						//다음 프레임에 같은 타임태그를 가진 객체가 있는지 확인한다. 있으면 EnQueue
 						if (m_segmentArray[tempnode.indexOfSegmentArray].timeTag == m_segmentArray[tempnode.indexOfSegmentArray + frameIndex].timeTag
 							&& m_segmentArray[tempnode.indexOfSegmentArray].index == m_segmentArray[tempnode.indexOfSegmentArray + frameIndex].index) {
 							Enqueue(&segment_queue, tempnode.timeTag, tempnode.indexOfSegmentArray + 1);
@@ -861,19 +860,18 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 						else
 							frameIndex++;
 					}
-					else //다음 객체가 있는 프레임이 객체가 있는 프레임과 2차이 이상 날 때
+					else {
+						//다음 객체가 있는 프레임이 객체가 있는 프레임과 2차이 이상 날 때
 						break;
+						// 이 부분에서 프레임 간의 거리의 차이가 있을 경우
+						// 별다른 처리가 없기 때문에 끊김이 발생한다고 생각함
+					}
 				}
 			}
 		}
 	}
-<<<<<<< HEAD
-	free(&segment_queue);
 	free(m_segmentArray);
-//	free(&tempnode);
 	labelMap = NULL;
-=======
->>>>>>> memory_lick
 	free(labelMap);
 	vector<int>().swap(vectorPreNodeIndex);
 	return bgFrame;
