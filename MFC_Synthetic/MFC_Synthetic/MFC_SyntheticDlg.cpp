@@ -1724,19 +1724,19 @@ bool isDierectionAvailable(int val, int val_cur){
 		result = true;
 		break;
 	case 1:
-		if (val_cur == 20)
+		if (val_cur == 20 || val_cur == 23 || val_cur == 29)
 			result = true;
 		break;
 	case 2:
-		if (val_cur == 15)
+		if (val_cur == 15 || val_cur == 18 || val_cur == 24)
 			result = true;
 		break;
 	case 3:
-		if (val_cur == 13)
+		if (val_cur == 13 || val_cur == 23 || val_cur == 18)
 			result = true;
 		break;
 	case 4:
-		if (val_cur == 19)
+		if (val_cur == 19 || val_cur == 29 || val_cur == 24)
 			result = true;
 		break;
 	case 5:
@@ -1744,19 +1744,19 @@ bool isDierectionAvailable(int val, int val_cur){
 			result = true;
 		break;
 	case 6:
-		if (val_cur == 23 || val_cur == 20 || val_cur == 13)
+		if (val_cur == 23)
 			result = true;
 		break;
 	case 7:
-		if (val_cur == 18 || val_cur == 13 || val_cur == 15)
+		if (val_cur == 18)
 			result = true;
 		break;
 	case 8:
-		if (val_cur == 29 || val_cur == 20 || val_cur == 19)
+		if (val_cur == 29)
 			result = true;
 		break;
 	case 9:
-		if (val_cur == 24 || val_cur == 15 || val_cur == 19)
+		if (val_cur == 24)
 			result = true;
 		break;
 	default:
