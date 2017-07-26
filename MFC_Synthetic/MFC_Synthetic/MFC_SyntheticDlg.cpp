@@ -586,7 +586,8 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 
 // segmentation 기능 수행, 물체 추적 및 파일로 저장
 void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoStartHour, int videoStartMin, int WMIN, int WMAX, int HMIN, int HMAX){
-	hash_map<string, int> hashmapDetailTXTInedx;	//detail text 파일의 객체 인덱스를 저장할 해시맵 <파일이름 - 인덱스 값> 구조
+	vector<pair<int, int>> vectorDetailTXTInedx;	//detail text 파일의 객체 인덱스를 저장할 벡터 <타임태그 - 텍스트파일의 인덱스 값> 구조
+	int detailTXTIndex=0;	//텍스트 파일의 라인 수. 해쉬맵에 value값으로 저장 할 것임.
 
 	videoStartMsec = (videoStartHour * 60 + videoStartMin) * 60 * 1000;
 
@@ -617,7 +618,7 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 
 	// 얻어낸 객체 프레임의 정보를 써 낼 텍스트 파일 정의s
 	fp = fopen(getTextFilePath(fileNameNoExtension).c_str(), "w");	// 쓰기모드
-	fp_detail = fopen(getDetailTextFilePath(fileNameNoExtension).c_str(), "w");	// 쓰기모드
+	fp_detail = fopen(getDetailTextFilePath(fileNameNoExtension).c_str(), "w+");	// 쓰기모드
 	fprintf(fp, to_string(videoStartMsec).append("\n").c_str());	//첫줄에 영상시작시간 적어줌
 
 	// vc_source의 시작시간 0으로 초기화
@@ -673,7 +674,7 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 
 			// 영상을 처리하여 파일로 저장하기
 			humanDetectedVector = humanDetectedProcess(humanDetectedVector, prevHumanDetectedVector,
-				frame, frameCount, videoStartMsec, currentMsec, fp, fp_detail, hashmapDetailTXTInedx);
+				frame, frameCount, videoStartMsec, currentMsec, fp, fp_detail, &vectorDetailTXTInedx, &detailTXTIndex);
 
 
 			// 벡터 메모리 해제를 빈 벡터 생성(prevHumanDetectedVector 메모리 해제)
@@ -720,7 +721,7 @@ bool IsComparePrevDetection(vector<component> curr_detected, vector<component> p
 }
 
 vector<component> humanDetectedProcess(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector
-	, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, FILE *fp_detail, hash_map<string,int> hashmapdetailTxtIndex) {
+	, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, FILE *fp_detail, vector<pair<int, int>>* vectorDetailTXTInedx, int* detailTxtIndex) {
 
 	//printf("cur msec : %d\n", currentMsec);
 	int prevTimeTag;
@@ -736,7 +737,7 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 					//printf("%d가 겹침\n", prevTimeTag);
 					humanDetectedVector[index].timeTag = prevTimeTag;
 					saveSegmentationData(fileNameNoExtension, humanDetectedVector[index], frame
-						, prevTimeTag, currentMsec, frameCount, index, fp, fp_detail, ROWS, COLS);
+						, prevTimeTag, currentMsec, frameCount, index, fp, fp_detail, ROWS, COLS, vectorDetailTXTInedx, detailTxtIndex);
 
 					findFlag = true;
 					//break;
@@ -746,7 +747,7 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 			if (findFlag == false) { // 새 객체의 출현
 				humanDetectedVector[index].timeTag = currentMsec;
 				saveSegmentationData(fileNameNoExtension, humanDetectedVector[index], frame
-					, currentMsec, currentMsec, frameCount, index, fp, fp_detail, ROWS, COLS);
+					, currentMsec, currentMsec, frameCount, index, fp, fp_detail, ROWS, COLS, vectorDetailTXTInedx, detailTxtIndex);
 
 				//printf("새로운 객체 : %s\n", humanDetectedVector[i].fileName);
 			}
@@ -755,7 +756,7 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 			// 새로운 이름 할당
 			humanDetectedVector[index].timeTag = currentMsec;
 			saveSegmentationData(fileNameNoExtension, humanDetectedVector[index], frame
-				, currentMsec, currentMsec, frameCount, index, fp, fp_detail, ROWS, COLS);
+				, currentMsec, currentMsec, frameCount, index, fp, fp_detail, ROWS, COLS, vectorDetailTXTInedx, detailTxtIndex);
 			//printf("***이전프레임 검출 객체 없음\n새로운 객체 : %s\n", humanDetectedVector[i].fileName);
 		}
 	}

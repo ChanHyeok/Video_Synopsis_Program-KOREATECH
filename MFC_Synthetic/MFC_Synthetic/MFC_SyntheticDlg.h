@@ -8,7 +8,6 @@
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/highgui.hpp"
 #include <iostream>
-#include <hash_map>
 #include "afxcmn.h"
 using namespace std;
 using namespace cv;
@@ -106,7 +105,7 @@ void Enqueue(Queue *, int, int);
 node Dequeue(Queue *);
 
 // MAIN ****
-vector<component> humanDetectedProcess(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector, Mat, int, int, unsigned int, FILE *fp,FILE*, hash_map<string,int>);
+vector<component> humanDetectedProcess(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector, Mat, int, int, unsigned int, FILE *fp, FILE*, vector<pair<int, int>>*, int*);
 Mat getSyntheticFrame(Mat);
 
 // addition function of MAIN
@@ -131,7 +130,7 @@ int temporalMedianBG(Mat frameimg, Mat bgimg, int rows, int cols);
 String getFileName(CString f_path, char find_char, BOOL);
 Mat loadJPGObjectFile(segment obj, string file_name);
 bool saveSegmentationData(string video_name, component object, Mat object_frame
-	, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp, FILE*,int ,int);
+	, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp, FILE*, int, int, vector<pair<int, int>>*, int*);
 
 string getTextFilePath(string video_name);
 string getDetailTextFilePath(string video_name);

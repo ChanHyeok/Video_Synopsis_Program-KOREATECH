@@ -12,7 +12,7 @@
 // segment의 fileName할당, JPG 파일 저장, txt파일 저장
 void saveSegmentation_JPG(component object, Mat frame, string video_path);
 void saveSegmentation_TXT(component object, FILE *fp);
-void saveSegmentation_TXT_detail(component object, FILE *fp, int,int);
+void saveSegmentation_TXT_detail(component object, FILE *fp, int, int);
 int directionChecker(component object, int ROWS, int COLS);
 string allocatingComponentFilename(int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector);
 
@@ -44,9 +44,15 @@ String getFileName(CString f_path, char find_char, BOOL extension) {
 	return f_name;
 }
 
+//pair의 값으로 vector를 찾는 함수
+bool isPairValueEqual(const std::pair<int, int>& element, int curObjTimetag)
+{
+	return element.first == curObjTimetag;
+}
+
 // 전체 segment 데이터의 파일들을 저장하는 모듈
 bool saveSegmentationData(string video_name, component object, Mat object_frame
-	, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp, FILE * txt_fp_detail, int ROWS, int COLS) {
+	, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp, FILE * txt_fp_detail, int ROWS, int COLS, vector<pair<int, int>>* vectorDetailTXTInedx, int* detailTxtIndex) {
 
 	// object의 파일이름 할당
 	object.fileName = allocatingComponentFilename(timeTag, currentMsec, frameCount, indexOfhumanDetectedVector);
@@ -56,13 +62,67 @@ bool saveSegmentationData(string video_name, component object, Mat object_frame
 
 	// txt파일로 저장
 	saveSegmentation_TXT(object, txt_fp);
-	printf("%d %d", object.timeTag ,currentMsec);
-	
-	//방향 정보 텍스트 파일 저장
-	if (object.timeTag == currentMsec)	//현재 오브젝트가 객체의 처음 일 경우
-		saveSegmentation_TXT_detail(object, txt_fp_detail, ROWS, COLS);	//새롭게 텍스트 파일에 기록
-	else{	//첫 오브젝트가 아닐 경우 해당 객체 위치로 이동하여 last 위치 덮어쓰기
 
+	//방향 정보 텍스트 파일 저장
+	if (object.timeTag == currentMsec){//현재 오브젝트가 객체의 처음 일 경우
+		saveSegmentation_TXT_detail(object, txt_fp_detail, ROWS, COLS);	//새롭게 텍스트 파일에 기록
+		vectorDetailTXTInedx->push_back(std::make_pair(object.timeTag, (*detailTxtIndex)++));
+	}
+	else{	//첫 오브젝트가 아닐 경우 해당 객체 위치로 이동하여 last 위치 덮어쓰기
+		int index = 0,i=0;
+		long seek;
+		int stamp;
+		int tempFirst;
+		int tempLast;
+		char strTemp[255];
+
+
+		for (i = 0; i < vectorDetailTXTInedx->size(); i++)
+		if (vectorDetailTXTInedx->at(i).first == object.timeTag){
+			index = vectorDetailTXTInedx->at(i).second;
+			break;
+		}
+
+
+		//원하는 라인으로 이동
+		fseek(txt_fp_detail, 0, SEEK_SET);
+
+		for (i = 0; i < index; i++)
+			fgets(strTemp, sizeof(strTemp), txt_fp_detail);
+		//		rewind(txt_fp_detail);//파일포인터 처음으로 이동
+
+		//seek = ftell(txt_fp_detail);
+		//if (fgets(buf, 256, txt_fp_detail) == NULL) perror("no data");
+
+		//if (strstr(buf, "@") != NULL) start = seek;
+		//
+		//long len = filelength(fileno(txt_fp_detail)) - ftell(txt_fp_detail);
+		//char *tmp = (char *)malloc(len);
+		//fwrite(tmp, 1, len, fp);
+
+		//if (strstr(buf, "[5]") != NULL)
+		//{
+		//	
+		//	len = fread(tmp, 1, len, fp);
+
+		//	fseek(fp, start, SEEK_SET);
+		//	fwrite(tmp, 1, len, fp);
+		//	fflush(fp);
+		//	free(tmp);
+		//	_chsize(fileno(fp), ftell(fp));
+		//	break;
+		//}
+
+		seek = ftell(txt_fp_detail);
+
+		fscanf(txt_fp_detail, "%d %d %d\n", &stamp, &tempFirst, &tempLast);
+		fseek(txt_fp_detail, seek, SEEK_SET);
+		tempLast = directionChecker(object, ROWS, COLS);
+		fputs((to_string(object.timeTag).append(" ").append(to_string(tempFirst)).append(" ").append(to_string(tempLast)).append("\n")).c_str(), txt_fp_detail);
+//		fprintf(txt_fp_detail, "@%d %d %d\n", stamp, tempFirst, tempLast);
+		printf("%d %d %d\n", stamp, tempFirst, tempLast);
+		
+		fseek(txt_fp_detail, 0, SEEK_END);
 	}
 
 	return true;
@@ -106,7 +166,7 @@ void saveSegmentation_TXT(component object, FILE *fp) {
 void saveSegmentation_TXT_detail(component object, FILE *fp, int ROWS, int COLS) {
 	string info;
 	stringstream ss;
-	ss << object.fileName << " " << directionChecker(object,ROWS,COLS)<< '\n';
+	ss << object.timeTag << " " << directionChecker(object, ROWS, COLS) << " 0\n";
 	info = ss.str();
 	fprintf(fp, info.c_str());
 
@@ -114,14 +174,14 @@ void saveSegmentation_TXT_detail(component object, FILE *fp, int ROWS, int COLS)
 }
 
 int directionChecker(component object, int ROWS, int COLS){
-	int result = 0;
+	int result = 10;
 	int padding = 10;	//가장자리라고 허용할 위치 오차 픽셀값
 	//좌
 	if (object.left<padding){
-		result += 1;
+		result += 10;
 	}
 	//우
-	else if (object.right>COLS-padding-1){
+	else if (object.right>COLS - padding - 1){
 		result += 5;
 	}
 	else{	//가운데
@@ -133,7 +193,7 @@ int directionChecker(component object, int ROWS, int COLS){
 		result += 3;
 	}
 	//하
-	else if (object.bottom>ROWS-padding-1){
+	else if (object.bottom>ROWS - padding - 1){
 		result += 9;
 	}
 	else{	//가운데
