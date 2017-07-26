@@ -10,6 +10,7 @@
 #include <iostream>
 #include "afxcmn.h"
 #include "afxwin.h"
+#include <time.h>
 using namespace std;
 using namespace cv;
 
@@ -256,5 +257,7 @@ public:
 	CComboBox mComboEnd;
 	afx_msg bool isDirectionMatch(int);
 	
+	CButton mButtonSynSave;
+	afx_msg void OnBnClickedBtnSynSave();
 };
 
