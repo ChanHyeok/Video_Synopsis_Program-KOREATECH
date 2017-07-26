@@ -257,5 +257,6 @@ public:
 	afx_msg bool isDirectionMatch(int);
 	
 	CButton mButtonSynSave;
+	afx_msg void OnBnClickedBtnSynSave();
 };
 
