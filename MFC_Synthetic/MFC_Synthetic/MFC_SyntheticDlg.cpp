@@ -218,76 +218,77 @@ void CMFC_SyntheticDlg::loadFile(){
 	//파일 다이얼로그 호출해서 segmentation 할 영상 선택	
 	char szFilter[] = "Video (*.avi, *.MP4) | *.avi;*.mp4; | All Files(*.*)|*.*||";	//검색 옵션
 	CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, szFilter, AfxGetMainWnd());	//파일 다이얼로그 생성
-	dlg.DoModal();	//다이얼로그 띄움
+	if (dlg.DoModal() == 1){	//다이얼로그 띄움
+		//load한 영상의 이름을 text control에 표시
+		CString cstrImgPath = dlg.GetPathName();	//path
+		String stringFileName = "File Name : ";	//출력할 문자열
+		fileNameExtension.clear();
+		fileNameExtension = getFileName(cstrImgPath, '\\', true);
 
-	//load한 영상의 이름을 text control에 표시
-	CString cstrImgPath = dlg.GetPathName();	//path
-	String stringFileName = "File Name : ";	//출력할 문자열
-	fileNameExtension.clear();
-	fileNameExtension = getFileName(cstrImgPath, '\\', true);
+		CWnd *pStringFileName = GetDlgItem(IDC_MENU_STRING_FILE_NAME);
+		char *video_filename_cstr = new char[stringFileName.length() + 1];
+		strcpy(video_filename_cstr, stringFileName.c_str());
+		strcat(video_filename_cstr, fileNameExtension.c_str());
+		pStringFileName->SetWindowTextA(video_filename_cstr);
 
-	CWnd *pStringFileName = GetDlgItem(IDC_MENU_STRING_FILE_NAME);
-	char *video_filename_cstr = new char[stringFileName.length() + 1];
-	strcpy(video_filename_cstr, stringFileName.c_str());
-	strcat(video_filename_cstr, fileNameExtension.c_str());
-	pStringFileName->SetWindowTextA(video_filename_cstr);
+		video_filename_cstr = NULL;
+		free(video_filename_cstr);
 
-	video_filename_cstr = NULL;
-	free(video_filename_cstr);
+		//segmentation 결과를 저장할 텍스트 파일 이름 설정
+		txt_filename = RESULT_TEXT_FILENAME;
+		fileNameNoExtension = getFileName(cstrImgPath, '\\', false);
+		txt_filename = txt_filename.append(fileNameNoExtension).append(".txt");
 
-	//segmentation 결과를 저장할 텍스트 파일 이름 설정
-	txt_filename = RESULT_TEXT_FILENAME;
-	fileNameNoExtension = getFileName(cstrImgPath, '\\', false);
-	txt_filename = txt_filename.append(fileNameNoExtension).append(".txt");
+		// 세그먼테이션 데이터(txt, jpg들)를 저장할 디렉토리 유무확인, 없으면 만들어줌
 
-	// 세그먼테이션 데이터(txt, jpg들)를 저장할 디렉토리 유무확인, 없으면 만들어줌
+		// root 디렉토리 생성(폴더명 data)
+		if (!isDirectory(SEGMENTATION_DATA_DIRECTORY_NAME.c_str())) {
+			int rootDirectory_check = makeDataRootDirectory();
+			printf("root 생성");
+		}
 
-	// root 디렉토리 생성(폴더명 data)
-	if (!isDirectory(SEGMENTATION_DATA_DIRECTORY_NAME.c_str())) {
-		int rootDirectory_check = makeDataRootDirectory();
-		printf("root 생성");
+		// video 이름 별 디렉토리 생성(폴더명 확장자 없는 파일 이름)
+		if (!isDirectory(getDirectoryPath(fileNameNoExtension.c_str()))) {
+			int subDirectory_check = makeDataSubDirectory(getDirectoryPath(fileNameNoExtension));
+			printf("sub 생성");
+		}
+
+		// obj 디렉토리 생성
+		if (!isDirectory(getObjDirectoryPath(fileNameNoExtension.c_str()))) {
+			int subObjDirectory_check = makeDataSubDirectory(getObjDirectoryPath(fileNameNoExtension));
+			printf("sub-obj 생성");
+		}
+
+		capture.open((string)cstrImgPath);
+		capture_for_background.open((string)cstrImgPath);
+
+		if (!capture.isOpened() || !capture_for_background.isOpened()) { //예외처리. 해당이름의 파일이 없는 경우
+			perror("No Such File!\n");
+			::SendMessage(GetSafeHwnd(), WM_CLOSE, NULL, NULL);	//다이얼 로그 종료
+		}
+
+		//영상 정보 - COLS,ROWS,FPS,비디오 길이(초)
+		COLS = (int)capture.get(CV_CAP_PROP_FRAME_WIDTH); //가로 길이
+		ROWS = (int)capture.get(CV_CAP_PROP_FRAME_HEIGHT); //세로 길이
+		fps = capture.get(CV_CAP_PROP_FPS);
+		totalFrameCount = (int)capture.get(CV_CAP_PROP_FRAME_COUNT);
+		videoLength = (int)((totalFrameCount / (float)fps));	//비디오의 길이를 초단위로 계산
+
+		// 배경생성부분
+		background_gray = backgroundInit(&capture_for_background);
+
+		SetTimer(LOGO_TIMER, 1, NULL);
+
+		//라디오버튼 - 합성영상 활성화 / 비활성화
+		if (checkSegmentation()){
+			GetDlgItem(IDC_RADIO_PLAY2)->EnableWindow(TRUE);
+		}
+		else{
+			GetDlgItem(IDC_RADIO_PLAY2)->EnableWindow(FALSE);
+		}
 	}
-
-	// video 이름 별 디렉토리 생성(폴더명 확장자 없는 파일 이름)
-	if (!isDirectory(getDirectoryPath(fileNameNoExtension.c_str()))) {
-		int subDirectory_check = makeDataSubDirectory(getDirectoryPath(fileNameNoExtension));
-		printf("sub 생성");
-	}
-
-	// obj 디렉토리 생성
-	if (!isDirectory(getObjDirectoryPath(fileNameNoExtension.c_str()))) {
-		int subObjDirectory_check = makeDataSubDirectory(getObjDirectoryPath(fileNameNoExtension));
-		printf("sub-obj 생성");
-	}
-
-	capture.open((string)cstrImgPath);
-	capture_for_background.open((string)cstrImgPath);
-
-	if (!capture.isOpened() || !capture_for_background.isOpened()) { //예외처리. 해당이름의 파일이 없는 경우
-		perror("No Such File!\n");
-		::SendMessage(GetSafeHwnd(), WM_CLOSE, NULL, NULL);	//다이얼 로그 종료
-	}
-
-	//영상 정보 - COLS,ROWS,FPS,비디오 길이(초)
-	COLS = (int)capture.get(CV_CAP_PROP_FRAME_WIDTH); //가로 길이
-	ROWS = (int)capture.get(CV_CAP_PROP_FRAME_HEIGHT); //세로 길이
-	fps = capture.get(CV_CAP_PROP_FPS);
-	totalFrameCount = (int)capture.get(CV_CAP_PROP_FRAME_COUNT);
-	videoLength = (int)((totalFrameCount / (float)fps));	//비디오의 길이를 초단위로 계산
-
-	// 배경생성부분
-	background_gray = backgroundInit(&capture_for_background);
-
-	SetTimer(LOGO_TIMER, 1, NULL);
-
-	//라디오버튼 - 합성영상 활성화 / 비활성화
-	if (checkSegmentation()){
-		GetDlgItem(IDC_RADIO_PLAY2)->EnableWindow(TRUE);
-	}
-	else{
-		GetDlgItem(IDC_RADIO_PLAY2)->EnableWindow(FALSE);
-	}
-
+	else
+		OnCancel();
 }
 
 void CMFC_SyntheticDlg::OnSysCommand(UINT nID, LPARAM lParam)
@@ -1724,19 +1725,19 @@ bool isDierectionAvailable(int val, int val_cur){
 		result = true;
 		break;
 	case 1:
-		if (val_cur == 20)
+		if (val_cur == 20 || val_cur == 23 || val_cur == 29)
 			result = true;
 		break;
 	case 2:
-		if (val_cur == 15)
+		if (val_cur == 15 || val_cur == 18 || val_cur == 24)
 			result = true;
 		break;
 	case 3:
-		if (val_cur == 13)
+		if (val_cur == 13 || val_cur == 23 || val_cur == 18)
 			result = true;
 		break;
 	case 4:
-		if (val_cur == 19)
+		if (val_cur == 19 || val_cur == 29 || val_cur == 24)
 			result = true;
 		break;
 	case 5:
@@ -1744,19 +1745,19 @@ bool isDierectionAvailable(int val, int val_cur){
 			result = true;
 		break;
 	case 6:
-		if (val_cur == 23 || val_cur == 20 || val_cur == 13)
+		if (val_cur == 23)
 			result = true;
 		break;
 	case 7:
-		if (val_cur == 18 || val_cur == 13 || val_cur == 15)
+		if (val_cur == 18)
 			result = true;
 		break;
 	case 8:
-		if (val_cur == 29 || val_cur == 20 || val_cur == 19)
+		if (val_cur == 29)
 			result = true;
 		break;
 	case 9:
-		if (val_cur == 24 || val_cur == 15 || val_cur == 19)
+		if (val_cur == 24)
 			result = true;
 		break;
 	default:
