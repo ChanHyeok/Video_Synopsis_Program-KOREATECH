@@ -116,6 +116,8 @@ stringstream timeConvertor(int t);
 bool IsObjectOverlapingDetector(segment, segment);
 Mat backgroundInit(VideoCapture *vc_Source);
 
+int readSegmentTxtFile(segment* );
+bool inputSegmentQueue(int obj1_TimeTag, int obj2_TimeTag, int segmentCount, segment* );
 // connectecComponentLabelling.cpp
 vector<component> connectedComponentsLabelling(Mat frame, int rows, int cols, int, int, int, int);
 bool labelSizeFiltering(int width, int height, int, int, int, int);
