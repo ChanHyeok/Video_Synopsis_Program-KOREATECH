@@ -770,6 +770,9 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 	int countOfObj = segment_queue.count;	//큐 인스턴스의 노드 갯수
 	stringstream ss;
 
+
+	string timetag = "";
+
 	//큐가 비었는지 확인한다. 비었으면 더 이상 출력 할 것이 없는 것 이므로 종료
 	if (IsEmpty(&segment_queue)){
 		KillTimer(SYN_RESULT_TIMER);
@@ -785,6 +788,12 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 		vectorPreNodeIndex.push_back(tempnode.indexOfSegmentArray);	//큐에 있는 객체들의 인덱스 정보 저장
 		Enqueue(&segment_queue, tempnode.timeTag, tempnode.indexOfSegmentArray);
 	}
+
+
+	//////////////은혜
+	Point* vectorTimeTag;
+
+
 
 	// 큐에 들어있는 객체 갯수 만큼 DeQueue. 
 	for (int i = 0; i < countOfObj; i++) {
@@ -815,14 +824,17 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 			bgFrame = printObjOnBG(bgFrame, m_segmentArray[tempnode.indexOfSegmentArray], labelMap, fileNameNoExtension);
 
 			//타임태그를 string으로 변환
-			string timetag = "";
+			//string timetag = "";
 			int timetagInSec = (m_segmentArray[tempnode.indexOfSegmentArray].timeTag + videoStartMsec) / 1000;	//영상의 시작시간을 더해준다.
 			ss = timeConvertor(timetagInSec);
 			timetag = ss.str();
 
+			/*
 			//커팅된 이미지에 타임태그를 달아준다
 			//params : (Mat, String to show, 출력할 위치, 폰트 타입, 폰트 크기, 색상, 굵기) 
 			putText(bgFrame, timetag, Point(m_segmentArray[tempnode.indexOfSegmentArray].left + 5, m_segmentArray[tempnode.indexOfSegmentArray].top + 50), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 1.5);	//은혜
+			*/
+			vectorTimeTag[i] = Point(m_segmentArray[tempnode.indexOfSegmentArray].left + 5, m_segmentArray[tempnode.indexOfSegmentArray].top + 50); //은혜
 
 			//다음 프레임에 같은 타임태그를 가진 객체가 있는지 확인한다. 있으면 EnQueue
 			int frameIndex = 1;
@@ -847,8 +859,11 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 				}
 			}
 		}
-
 	}
+	for (int i = 0; i < countOfObj; i++) {
+		putText(bgFrame, timetag, vectorTimeTag[i], FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 1.5);	//은혜
+	}
+
 	labelMap = NULL;
 	free(labelMap);
 	vector<int>().swap(vectorPreNodeIndex);
