@@ -250,10 +250,11 @@ public:
 	afx_msg void OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnBnClickedCancel();
-	
+	afx_msg Mat getSyntheticFrame(Mat);
 	//ÄÞº¸¹Ú½º
 	CComboBox mComboStart;
 	CComboBox mComboEnd;
 	afx_msg bool isDirectionMatch(int);
+	
 };
 
