@@ -127,7 +127,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 int IsComparePrevDetection2(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index);
 
 vector<component> humanDetectedProcess(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector, Mat, int, int, unsigned int, FILE *fp);
-Mat getSyntheticFrame(Mat);
+
 
 // addition function of MAIN
 bool segmentationTimeInputException(CString str_h, CString str_m);
@@ -138,6 +138,8 @@ stringstream timeConvertor(int t);
 bool IsObjectOverlapingDetector(segment, segment);
 Mat backgroundInit(VideoCapture *vc_Source);
 
+int readSegmentTxtFile(segment* );
+bool inputSegmentQueue(int obj1_TimeTag, int obj2_TimeTag, int segmentCount, segment* );
 // connectecComponentLabelling.cpp
 vector<component> connectedComponentsLabelling(Mat frame, int rows, int cols, int, int, int, int);
 bool labelSizeFiltering(int width, int height, int, int, int, int);
@@ -243,7 +245,11 @@ public:
 
 	CSliderCtrl m_SliderPlayer;
 	afx_msg void OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pResult);
+<<<<<<< HEAD
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnBnClickedCancel();
+=======
+	afx_msg Mat getSyntheticFrame(Mat);
+>>>>>>> synthetic_correction
 };
 
