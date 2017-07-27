@@ -791,7 +791,8 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 
 
 	//////////////은혜
-	Point* vectorTimeTag;
+	Point* TimeTag_p = new Point[countOfObj];		// 타임태그 위치
+	string* TimeTag_s = new string[countOfObj];		// 타임태그 내용
 
 
 
@@ -834,7 +835,9 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 			//params : (Mat, String to show, 출력할 위치, 폰트 타입, 폰트 크기, 색상, 굵기) 
 			putText(bgFrame, timetag, Point(m_segmentArray[tempnode.indexOfSegmentArray].left + 5, m_segmentArray[tempnode.indexOfSegmentArray].top + 50), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 1.5);	//은혜
 			*/
-			vectorTimeTag[i] = Point(m_segmentArray[tempnode.indexOfSegmentArray].left + 5, m_segmentArray[tempnode.indexOfSegmentArray].top + 50); //은혜
+			//은혜
+			TimeTag_p[i] = Point(m_segmentArray[tempnode.indexOfSegmentArray].left + 5, m_segmentArray[tempnode.indexOfSegmentArray].top + 50); //은혜
+			TimeTag_s[i] = timetag;
 
 			//다음 프레임에 같은 타임태그를 가진 객체가 있는지 확인한다. 있으면 EnQueue
 			int frameIndex = 1;
@@ -861,8 +864,12 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 		}
 	}
 	for (int i = 0; i < countOfObj; i++) {
-		putText(bgFrame, timetag, vectorTimeTag[i], FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 1.5);	//은혜
+		putText(bgFrame, TimeTag_s[i], TimeTag_p[i], FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 1.5);	//은혜
 	}
+
+	//은혜
+	delete TimeTag_p;
+	delete TimeTag_s;
 
 	labelMap = NULL;
 	free(labelMap);
