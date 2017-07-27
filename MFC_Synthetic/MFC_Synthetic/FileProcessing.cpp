@@ -14,7 +14,7 @@ void saveSegmentation_JPG(component object, Mat frame, string video_path);
 void saveSegmentation_TXT(component object, FILE *fp);
 void saveSegmentation_TXT_detail(component object, FILE *fp, int, int);
 int directionChecker(component object, int ROWS, int COLS);
-string allocatingComponentFilename(int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector);
+string allocatingComponentFilename(int timeTag, int currentMsec, int frameCount, int label);
 
 // segment 폴더 안에 Segmentation된 Obj만을 jpg파일로 저장하는 함수
 Mat objectCutting(component object, Mat img, unsigned int ROWS, unsigned int COLS);
@@ -46,10 +46,10 @@ String getFileName(CString f_path, char find_char, BOOL extension) {
 
 // 전체 segment 데이터의 파일들을 저장하는 모듈
 bool saveSegmentationData(string video_name, component object, Mat object_frame
-	, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp, FILE * txt_fp_detail, int ROWS, int COLS, vector<pair<int, int>>* vectorDetailTXTInedx, int* detailTxtIndex) {
+	, int currentMsec, int frameCount, FILE *txt_fp, FILE * txt_fp_detail, int ROWS, int COLS, vector<pair<int, int>>* vectorDetailTXTInedx, int* detailTxtIndex) {
 
 	// object의 파일이름 할당
-	object.fileName = allocatingComponentFilename(timeTag, currentMsec, frameCount, indexOfhumanDetectedVector);
+	object.fileName = allocatingComponentFilename(object.timeTag, currentMsec, frameCount, object.label);
 
 	// jpg파일로 저장
 	saveSegmentation_JPG(object, object_frame, getObjDirectoryPath(video_name));
@@ -244,10 +244,10 @@ int makeDataSubDirectory(string video_path) {
 }
 
 // 파일의 이름부분을 저장
-string allocatingComponentFilename(int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector) {
+string allocatingComponentFilename(int timeTag, int currentMsec, int frameCount, int label) {
 	string name;
 	return name.append(to_string(timeTag)).append("_")
 		.append(to_string(currentMsec)).append("_")
 		.append(to_string(frameCount)).append("_")
-		.append(to_string(indexOfhumanDetectedVector));
+		.append(to_string(label));
 }

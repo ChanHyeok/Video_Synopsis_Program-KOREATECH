@@ -127,10 +127,6 @@ vector<component> GetComponentVectorQueue(ComponentVectorQueue *componentVectorQ
 // MAIN ****
 vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector_Array
 	, ComponentVectorQueue prevHumanDetectedVector_Queue, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, vector<pair<int, int>>*, int*);
-int IsComparePrevDetection2(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index);
-
-vector<component> humanDetectedProcess(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector, Mat, int, int, unsigned int, FILE *fp, FILE*, vector<pair<int, int>>*, int*);
-
 Mat getSyntheticFrame(Mat);
 
 
@@ -158,7 +154,7 @@ int temporalMedianBG(Mat frameimg, Mat bgimg, int rows, int cols);
 String getFileName(CString f_path, char find_char, BOOL);
 Mat loadJPGObjectFile(segment obj, string file_name);
 bool saveSegmentationData(string video_name, component object, Mat object_frame
-	, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp, FILE*, int, int, vector<pair<int, int>>*, int*);
+	, int currentMsec, int frameCount, FILE *txt_fp, FILE*, int, int, vector<pair<int, int>>*, int*);
 
 string getTextFilePath(string video_name);
 string getDetailTextFilePath(string video_name);
@@ -251,14 +247,7 @@ public:
 
 	CSliderCtrl m_SliderPlayer;
 	afx_msg void OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pResult);
-<<<<<<< HEAD
-<<<<<<< HEAD
-	afx_msg void OnBnClickedOk();
-	afx_msg void OnBnClickedCancel();
-=======
-	afx_msg Mat getSyntheticFrame(Mat);
->>>>>>> synthetic_correction
-=======
+
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnBnClickedCancel();
 	afx_msg Mat getSyntheticFrame(Mat);
@@ -270,6 +259,6 @@ public:
 	CButton mButtonSynSave;
 	afx_msg void OnBnClickedBtnSynSave();
 	afx_msg bool inputSegmentQueue(int obj1_TimeTag, int obj2_TimeTag, int segmentCount, segment*);
->>>>>>> master
+
 };
 
