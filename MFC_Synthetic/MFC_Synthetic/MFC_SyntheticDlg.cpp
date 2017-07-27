@@ -85,6 +85,16 @@ void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 END_MESSAGE_MAP()
 
+// 현재시간을 string type으로 return하는 함수
+const std::string currentDateTime() {
+	time_t     now = time(0); //현재 시간을 time_t 타입으로 저장
+	struct tm  tstruct;
+	char       buf[80];
+	tstruct = *localtime(&now);
+	strftime(buf, sizeof(buf), "%Y%m%d%H%M%S", &tstruct); // YYYY-MM-DD.HH:mm:ss 형태의 스트링
+
+	return buf;
+}
 
 /*
 Main Dialog
@@ -571,6 +581,8 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 // 시와 분을 입력받아 segmentation을 진행함
 void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 {
+
+	cout << currentDateTime() << endl;
 	KillTimer(LOGO_TIMER);
 	KillTimer(VIDEO_TIMER);
 	KillTimer(BIN_VIDEO_TIMER);
@@ -600,6 +612,7 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 
 		//로딩 숨기기
 		m_LoadingProgressCtrl.ShowWindow(false);
+		cout<<currentDateTime()<<endl;
 	}
 	else {	// 범위 외 입력시 예외처리
 	}
@@ -1843,17 +1856,6 @@ bool CMFC_SyntheticDlg::isDirectionMatch(int timetag){
 	if (isFirstOk && isLastOk)
 		return true;
 	else return false;
-}
-
-// 현재시간을 string type으로 return하는 함수
-const std::string currentDateTime() {
-	time_t     now = time(0); //현재 시간을 time_t 타입으로 저장
-	struct tm  tstruct;
-	char       buf[80];
-	tstruct = *localtime(&now);
-	strftime(buf, sizeof(buf), "%Y%m%d%H%M%S", &tstruct); // YYYY-MM-DD.HH:mm:ss 형태의 스트링
-
-	return buf;
 }
 
 void CMFC_SyntheticDlg::OnBnClickedBtnSynSave()
