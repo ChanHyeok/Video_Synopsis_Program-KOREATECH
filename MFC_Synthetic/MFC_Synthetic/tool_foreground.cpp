@@ -13,6 +13,7 @@ Mat ExtractForegroundToMOG2(Mat frameimg) {
 	pMOG2 = createBackgroundSubtractorMOG2();
 	pMOG2->apply(frameimg, result_frame);
 
+
 	return result_frame;
 }
 
