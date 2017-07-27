@@ -12,6 +12,8 @@
 // segment의 fileName할당, JPG 파일 저장, txt파일 저장
 void saveSegmentation_JPG(component object, Mat frame, string video_path);
 void saveSegmentation_TXT(component object, FILE *fp);
+void saveSegmentation_TXT_detail(component object, FILE *fp, int, int);
+int directionChecker(component object, int ROWS, int COLS);
 string allocatingComponentFilename(int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector);
 
 // segment 폴더 안에 Segmentation된 Obj만을 jpg파일로 저장하는 함수
@@ -44,7 +46,7 @@ String getFileName(CString f_path, char find_char, BOOL extension) {
 
 // 전체 segment 데이터의 파일들을 저장하는 모듈
 bool saveSegmentationData(string video_name, component object, Mat object_frame
-	, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp) {
+	, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp, FILE * txt_fp_detail, int ROWS, int COLS, vector<pair<int, int>>* vectorDetailTXTInedx, int* detailTxtIndex) {
 
 	// object의 파일이름 할당
 	object.fileName = allocatingComponentFilename(timeTag, currentMsec, frameCount, indexOfhumanDetectedVector);
@@ -54,6 +56,44 @@ bool saveSegmentationData(string video_name, component object, Mat object_frame
 
 	// txt파일로 저장
 	saveSegmentation_TXT(object, txt_fp);
+
+	//방향 정보 텍스트 파일 저장
+	if (object.timeTag == currentMsec){//현재 오브젝트가 객체의 처음 일 경우
+		saveSegmentation_TXT_detail(object, txt_fp_detail, ROWS, COLS);	//새롭게 텍스트 파일에 기록
+		vectorDetailTXTInedx->push_back(std::make_pair(object.timeTag, (*detailTxtIndex)++));
+	}
+	else{	//첫 오브젝트가 아닐 경우 해당 객체 위치로 이동하여 last 위치 덮어쓰기
+		int index = -1,i=0;
+		long seek;
+		int stamp;
+		int tempFirst;
+		int tempLast;
+		char strTemp[255];
+
+		for (i = 0; i < vectorDetailTXTInedx->size(); i++)	//벡터 검색
+		if (vectorDetailTXTInedx->at(i).first == object.timeTag){
+			index = vectorDetailTXTInedx->at(i).second;	//key(timetag)에 대한 value(텍스트 파일에서 몇 번째 라인인지)저장
+			break;
+		}
+
+		//원하는 라인으로 이동
+		if (index != -1){
+			fseek(txt_fp_detail, 0, SEEK_SET);
+			for (i = 0; i < index; i++)
+				fgets(strTemp, sizeof(strTemp), txt_fp_detail);
+
+			seek = ftell(txt_fp_detail);//덮어 쓰기를 할 위치
+			fscanf(txt_fp_detail, "%d %d %d\n", &stamp, &tempFirst, &tempLast);
+			fseek(txt_fp_detail, seek, SEEK_SET);//덮어쓸 위치로 이동
+			tempLast = directionChecker(object, ROWS, COLS);//Last 위치 갱신
+			//덮어쓰기
+			fputs((to_string(object.timeTag).append(" ").append(to_string(tempFirst)).append(" ").append(to_string(tempLast)).append("\n")).c_str(), txt_fp_detail);
+
+			fseek(txt_fp_detail, 0, SEEK_END);//파일 포인터 끝으로 이동
+		}
+		else
+			perror("No such timetag");
+	}
 
 	return true;
 }
@@ -87,6 +127,50 @@ void saveSegmentation_TXT(component object, FILE *fp) {
 		<< " " << object.right - object.left << " " << object.bottom - object.top << '\n';
 	info = ss.str();
 	fprintf(fp, info.c_str());
+
+	return;
+}
+
+// Segmentation된 Obj의 Data의 방향정보를 txt파일로 저장하는 함수
+// format : FILE_NAME first(입장) last(퇴장)
+void saveSegmentation_TXT_detail(component object, FILE *fp, int ROWS, int COLS) {
+	string info;
+	stringstream ss;
+	ss << object.timeTag << " " << directionChecker(object, ROWS, COLS) << " 10\n";
+	info = ss.str();
+	fprintf(fp, info.c_str());
+
+	return;
+}
+
+int directionChecker(component object, int ROWS, int COLS){
+	int result = 10;
+	int padding = 10;	//가장자리라고 허용할 위치 오차 픽셀값
+	//좌
+	if (object.left<padding){
+		result += 10;
+	}
+	//우
+	else if (object.right>COLS - padding - 1){
+		result += 5;
+	}
+	else{	//가운데
+
+	}
+
+	//상
+	if (object.top<padding){
+		result += 3;
+	}
+	//하
+	else if (object.bottom>ROWS - padding - 1){
+		result += 9;
+	}
+	else{	//가운데
+
+	}
+
+	return result;
 }
 
 // jpg로 저장된 object를 반환해 주는 함수
@@ -110,13 +194,19 @@ Mat objectCutting(component object, Mat img, unsigned int ROWS, unsigned int COL
 
 // 텍스트 파일(세그먼트 정보가 저장된) 이름을 반환하는 함수
 string getTextFilePath(string video_name) {
-	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name 
+	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name
 		+ "/" + RESULT_TEXT_FILENAME + video_name + (".txt");
+}
+
+// 텍스트 파일(위치 정보가 저장되는) 이름을 반환하는 함수
+string getDetailTextFilePath(string video_name) {
+	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name
+		+ "/" + RESULT_TEXT_DETAIL_FILENAME + video_name + (".txt");
 }
 
 // 배경 파일 이름을 반환하는 함수
 string getBackgroundFilePath(string video_name) {
-	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name 
+	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name
 		+ "/" + RESULT_BACKGROUND_FILENAME + video_name + (".jpg");
 }
 
