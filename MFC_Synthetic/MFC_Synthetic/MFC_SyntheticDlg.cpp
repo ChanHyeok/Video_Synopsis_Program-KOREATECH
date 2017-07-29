@@ -837,7 +837,7 @@ bool IsComparePrevDetection(vector<component> curr_detected, vector<component> p
 // 합성된 프레임을 가져오는 연산
 Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 	int *labelMap = (int*)calloc(bgFrame.cols * bgFrame.rows, sizeof(int));	//겹침을 판단하는 용도
-	node tempnode, prev_tempnode;	//DeQueue한 결과를 받을 node
+	node segment_node, prev_segment_node;	//DeQueue한 결과를 받을 node
 	int countOfObj = segment_queue.count;	//큐 인스턴스의 노드 갯수
 	stringstream ss;
 	synthesisEndFlag = false;
@@ -853,8 +853,8 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 		// 동적 해제
 		free(labelMap);
 		delete[] m_segmentArray;
-		tempnode.next = NULL;
-		free(tempnode.next);
+		segment_node.next = NULL;
+		free(segment_node.next);
 
 		// 빈 프레임 반환
 		Mat nullFrame(ROWS, COLS, CV_8UC1);
@@ -862,33 +862,21 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 		return nullFrame;
 	}
 
-	vector<int> vectorPreNodeIndex; // 객체들 인덱스 정보를 저장하기 위한 벡터
-
-	for (int k = 0; k < countOfObj; k++){
-		tempnode = Dequeue(&segment_queue);
-		vectorPreNodeIndex.push_back(tempnode.indexOfSegmentArray);	//큐에 있는 객체들의 인덱스 정보 저장
-		Enqueue(&segment_queue, tempnode.timeTag, tempnode.indexOfSegmentArray);
-	}
-
 	// 큐에 들어있는 객체 갯수 만큼 DeQueue. 
-	for (int i = 0; i < countOfObj; i++) {
+	for (int i_Obj = 0; i_Obj < countOfObj; i_Obj++) {
 		//dequeue한 객체를 출력한다.
-		tempnode = Dequeue(&segment_queue);
+		segment_node = Dequeue(&segment_queue);
 		BOOL isCross = false;
-		int curIndex = tempnode.indexOfSegmentArray;
+		int curIndex = segment_node.segment_data.index;
 
-		//객체가 이전 객체와 겹치는지 비교
 		//처음이 아니고 현재 출력할 객체가 timetag의 첫 프레임 일 때		
-		if (i != 0 && ( m_segmentArray[curIndex].timeTag == m_segmentArray[curIndex].msec) ){
-	//		|| (prev_tempnode.timeTag == tempnode.timeTag) ){
-			for (int j = 0; j < i; j++){	//이전에 그린 객체 모두와 겹치는지 판별
-				if (IsObjectOverlapingDetector(m_segmentArray[curIndex], m_segmentArray[vectorPreNodeIndex.at(j)])){
-					isCross = false; // 겹치지 않음
-				}
-				else{ //겹침
+		if (i_Obj != 0 && (segment_node.segment_data.first_timeTagFlag == true) ){
+			for (int j = 0; j < i_Obj; j++){
+				//이전에 그린 객체 모두와 겹치는지 판별해서 겹칠 경우
+				if (!IsObjectOverlapingDetector(m_segmentArray[curIndex], m_segmentArray[j])){
 					isCross = true;
-					Enqueue(&segment_queue, tempnode.timeTag, tempnode.indexOfSegmentArray);	//출력하지 않고 다시 큐에 삽입
-					prev_tempnode = tempnode;
+					Enqueue(&segment_queue, segment_node.segment_data);	//출력하지 않고 다시 큐에 삽입
+					prev_segment_node = segment_node;
 					break;
 				}
 			}
@@ -896,32 +884,32 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 
 		if (isCross == false){	//출력된 객체가 없거나 이전 객체와 겹치지 않는 경우
 			//배경에 객체를 올리는 함수
-			bgFrame = printObjOnBG(bgFrame, m_segmentArray[tempnode.indexOfSegmentArray], labelMap, fileNameNoExtension);
+			bgFrame = printObjOnBG(bgFrame, m_segmentArray[segment_node.indexOfSegmentArray], labelMap, fileNameNoExtension);
 			
 			//타임태그를 string으로 변환
 			string timetag = "";
-			int timetagInSec = (m_segmentArray[tempnode.indexOfSegmentArray].timeTag + videoStartMsec) / 1000;	//영상의 시작시간을 더해준다.
+			int timetagInSec = (m_segmentArray[segment_node.indexOfSegmentArray].timeTag + videoStartMsec) / 1000;	//영상의 시작시간을 더해준다.
 			ss = timeConvertor(timetagInSec);
 			timetag = ss.str();
 
 			//커팅된 이미지에 타임태그를 달아준다
 			//params : (Mat, String to show, 출력할 위치, 폰트 타입, 폰트 크기, 색상, 굵기) 
-			putText(bgFrame, timetag, Point(m_segmentArray[tempnode.indexOfSegmentArray].left + 5, m_segmentArray[tempnode.indexOfSegmentArray].top - 10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 150, 150), 2);
+			putText(bgFrame, timetag, Point(m_segmentArray[segment_node.indexOfSegmentArray].left + 5, m_segmentArray[segment_node.indexOfSegmentArray].top - 10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 150, 150), 2);
 
 			int frameIndex = 1;
 
 			while (1){
 				// 다음 프레임에 도달할 때 까지 아무것도 하지 않는다.
-				if (m_segmentArray[tempnode.indexOfSegmentArray].frameCount == m_segmentArray[tempnode.indexOfSegmentArray + frameIndex].frameCount){
+				if (m_segmentArray[segment_node.indexOfSegmentArray].frameCount == m_segmentArray[segment_node.indexOfSegmentArray + frameIndex].frameCount){
 					frameIndex++;
 				}
 				else{ //프레임 번호가 넘어 갔을 경우
-					if ((m_segmentArray[tempnode.indexOfSegmentArray].frameCount + 1) == m_segmentArray[tempnode.indexOfSegmentArray + frameIndex].frameCount){//다음 객체가 검출된 프레임이 이전 프레임과 1 차이가 날 때
+					if ((m_segmentArray[segment_node.indexOfSegmentArray].frameCount + 1) == m_segmentArray[segment_node.indexOfSegmentArray + frameIndex].frameCount){//다음 객체가 검출된 프레임이 이전 프레임과 1 차이가 날 때
 						//타임태그가 같고 인덱스가 같은 경우에만 큐에 넣어서 다음에 이어 출력될 수 있도록 한다.
 						//다음 프레임에 같은 타임태그를 가진 객체가 있는지 확인한다. 있으면 EnQueue
-						if (m_segmentArray[tempnode.indexOfSegmentArray].timeTag == m_segmentArray[tempnode.indexOfSegmentArray + frameIndex].timeTag
-							&& m_segmentArray[tempnode.indexOfSegmentArray].index == m_segmentArray[tempnode.indexOfSegmentArray + frameIndex].index) {
-							Enqueue(&segment_queue, tempnode.timeTag, tempnode.indexOfSegmentArray + 1);
+						if (m_segmentArray[segment_node.indexOfSegmentArray].timeTag == m_segmentArray[segment_node.indexOfSegmentArray + frameIndex].timeTag
+							&& m_segmentArray[segment_node.indexOfSegmentArray].index == m_segmentArray[segment_node.indexOfSegmentArray + frameIndex].index) {
+							Enqueue(&segment_queue, segment_node.timeTag, segment_node.indexOfSegmentArray + 1);
 							break;
 						}
 						else
@@ -937,7 +925,6 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 	free(m_segmentArray);
 	labelMap = NULL;
 	free(labelMap);
-	vector<int>().swap(vectorPreNodeIndex);
 	return bgFrame;
 }
 // 객체들 끼리 겹침을 판별하는 함수, 하나라도 성립하면 겹치지 않음
@@ -1069,7 +1056,7 @@ int readSegmentTxtFile(segment* segmentArray) {
 	while (!feof(fp)) {
 		fgets(txtBuffer, 99, fp);
 
-		// txt파일에 있는 프레임 데이터들 segmentArray 버퍼로 복사
+		// txt파일에 있는 프레임 데이터들 segmentArray 버퍼로 복사 (component의 label == segment의 index)
 		sscanf(txtBuffer, "%d_%d_%d_%d %d %d %d %d %d %d",
 			&segmentArray[segmentCount].timeTag, &segmentArray[segmentCount].msec,
 			&segmentArray[segmentCount].frameCount, &segmentArray[segmentCount].index,
@@ -1100,42 +1087,6 @@ int readSegmentTxtFile(segment* segmentArray) {
 			}
 		}
 	}
-	/*
-	// frameInfo.txt 파일에서 데이터를 추출 하여 segment array 초기화
-	while (!feof(fp)) {
-		fgets(txtBuffer, 99, fp);
-
-		// txt파일에 있는 프레임 데이터들 segmentArray 버퍼로 복사
-		sscanf(txtBuffer, "%d_%d_%d_%d %d %d %d %d %d %d",
-			&m_segmentArray[segmentCount].timeTag, &m_segmentArray[segmentCount].msec,
-			&m_segmentArray[segmentCount].frameCount, &m_segmentArray[segmentCount].index,
-			&m_segmentArray[segmentCount].left, &m_segmentArray[segmentCount].top,
-			&m_segmentArray[segmentCount].right, &m_segmentArray[segmentCount].bottom,
-			&m_segmentArray[segmentCount].width, &m_segmentArray[segmentCount].height);
-
-		// filename 저장
-		m_segmentArray[segmentCount].fileName
-			.append(to_string(m_segmentArray[segmentCount].timeTag)).append("_")
-			.append(to_string(m_segmentArray[segmentCount].msec)).append("_")
-			.append(to_string(m_segmentArray[segmentCount].frameCount)).append("_")
-			.append(to_string(m_segmentArray[segmentCount].index)).append(".jpg");
-
-		// m_segmentArray의 인덱스 증가
-		segmentCount++;
-	}
-
-	// 버블 정렬 사용하여 m_segmentArray를 TimeTag순으로 정렬
-	segment *tmp_segment = new segment; // 임시 segment 동적생성, 메모리 해제에 용의하게 하기
-	for (int i = 0; i < segmentCount; i++) {
-		for (int j = 0; j < segmentCount - 1; j++) {
-			if (m_segmentArray[j].timeTag > m_segmentArray[j + 1].timeTag) {
-				// m_segmentArray[segmentCount]와 m_segmentArray[segmentCount + 1]의 교체
-				*tmp_segment = m_segmentArray[j + 1];
-				m_segmentArray[j + 1] = m_segmentArray[j];
-				m_segmentArray[j] = *tmp_segment;
-			}
-		}
-	}*/
 
 	// 임시 버퍼들의 메모리 해제
 	free(tmp_segment);
@@ -1151,13 +1102,18 @@ bool CMFC_SyntheticDlg::inputSegmentQueue(int obj1_TimeTag, int obj2_TimeTag, in
 	//큐 초기화
 	InitQueue(&segment_queue);
 	//출력할 객체를 큐에 삽입하는 부분
+
 	for (int i = 0; i < segmentCount; i++) {
 		// start timetag와 end timetag 사이면 enqueue
-		// 아직 찾지 못했고 일치하는 타임태그를 찾았을 경우
+		// 아직 찾지 못했고 일치하는 타임태그를 찾았을 경우 출력해야할 객체의 첫 프레임의 타임태그와 위치를 큐에 삽입
 		if (segmentArray[i].timeTag >= obj1_TimeTag && segmentArray[i].timeTag <= obj2_TimeTag) {
 			if (segmentArray[i].timeTag == segmentArray[i].msec && isDirectionMatch(segmentArray[i].timeTag)) {
-				//출력해야할 객체의 첫 프레임의 타임태그와 위치를 큐에 삽입
-				Enqueue(&segment_queue, segmentArray[i].timeTag, i);
+				// 어떤 timetag의 첫 객체일 경우에 처리
+				bool temp_firstObjectFlag = false;
+				if (segmentArray[i].timeTag == segmentArray[i].msec)
+					temp_firstObjectFlag = true;
+
+				Enqueue(&segment_queue, segmentArray[i]);
 			}
 		}
 		//탐색 중, obj2_TimeTag을 넘으면 진행 완료
@@ -1907,7 +1863,7 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSynSave()
 			if (m_segmentArray[i].timeTag >= obj1_TimeTag && m_segmentArray[i].timeTag <= obj2_TimeTag) {	//아직 찾지 못했고 일치하는 타임태그를 찾았을 경우
 				if (m_segmentArray[i].timeTag == m_segmentArray[i].msec && isDirectionMatch(m_segmentArray[i].timeTag)){
 					//printf("%s\n", m_segmentArray[i].fileName);
-					Enqueue(&segment_queue, m_segmentArray[i].timeTag, i);	//출력해야할 객체의 첫 프레임의 타임태그와 위치를 큐에 삽입
+					Enqueue(&segment_queue, m_segmentArray[i]);	//출력해야할 객체의 첫 프레임의 타임태그와 위치를 큐에 삽입
 					prevTimetag = m_segmentArray[i].timeTag;
 					prevIndex = m_segmentArray[i].index;
 				}

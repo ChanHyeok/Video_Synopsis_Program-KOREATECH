@@ -34,6 +34,7 @@ typedef struct _segment {
 	unsigned int msec;
 	unsigned int frameCount;
 	unsigned int index;
+	bool first_timeTagFlag;
 	int left;
 	int top;
 	int right;
@@ -59,12 +60,9 @@ typedef struct _component {
 	string fileName;
 	unsigned int timeTag;
 	unsigned int label;
-	unsigned int sumOfX;
-	unsigned int sumOfY;
 	unsigned int size;
 	float centerOfX;
 	float centerOfY;
-	unsigned int firstPixel;
 	unsigned int left;
 	unsigned int right;
 	unsigned int top;
@@ -76,12 +74,9 @@ typedef struct _component {
 		fileName = "";
 		timeTag = 0;
 		label = 0;
-		sumOfX = 0;
-		sumOfY = 0;
 		size = 0;
 		centerOfX = 0.0;
 		centerOfY = 0.0;
-		firstPixel = 0;
 		left = 0;
 		right = 0;
 		top = 0;
@@ -92,13 +87,14 @@ typedef struct _component {
 	}
 }component;
 
-// 큐
+// segment를 위한 큐
 typedef struct node //노드 정의
 {
-	unsigned int timeTag;
-	int indexOfSegmentArray;
+	segment segment_data;
 	struct node *next;
 }node;
+
+// segmentQueue
 typedef struct Queue //Queue 구조체 정의
 {
 	node *front; //맨 앞(꺼낼 위치)
@@ -107,9 +103,10 @@ typedef struct Queue //Queue 구조체 정의
 }Queue;
 void InitQueue(Queue *);
 int IsEmpty(Queue *);
-void Enqueue(Queue *, int, int);
+void Enqueue(Queue *, segment);
 node Dequeue(Queue *);
 
+// componentVector 타입이 그대로 저장되는 '원형' Queue
 typedef struct ComponentVectorQueue // Component Vector을 위한 크기 5인 원형 Queue 구조체 정의
 {
 	vector<component> buf[MAXSIZE_OF_COMPONENT_VECTOR_QUEUE]; // 배열 요소요소를 담당하는 벡터
