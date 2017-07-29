@@ -24,7 +24,7 @@ int IsEmpty(Queue *queue)
 void Enqueue(Queue *queue, segment data)
 {
 	//노드 생성
-	node *now = (node *)malloc(sizeof(node));
+	node *now = new node;
 	
 	//데이터 설정
 	now->segment_data = data;
@@ -44,7 +44,6 @@ void Enqueue(Queue *queue, segment data)
 	queue->count++;//보관 개수를 1 증가
 
 	// 임시로 생성한 node 메모리 해제
-	free(now);
 }
 
 node Dequeue(Queue *queue)

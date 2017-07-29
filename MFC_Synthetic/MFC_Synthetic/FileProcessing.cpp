@@ -14,7 +14,7 @@ void saveSegmentation_JPG(component object, Mat frame, string video_path);
 void saveSegmentation_TXT(component object, FILE *fp);
 void saveSegmentation_TXT_detail(component object, FILE *fp, int, int);
 int directionChecker(component object, int ROWS, int COLS);
-string allocatingComponentFilename(int timeTag, int currentMsec, int frameCount, int label);
+string allocatingComponentFilename(int timeTag, int currentMsec, int frameCount, int label_num);
 
 // segment 폴더 안에 Segmentation된 Obj만을 jpg파일로 저장하는 함수
 Mat objectCutting(component object, Mat img, unsigned int ROWS, unsigned int COLS);
@@ -244,10 +244,10 @@ int makeDataSubDirectory(string video_path) {
 }
 
 // 파일의 이름부분을 저장
-string allocatingComponentFilename(int timeTag, int currentMsec, int frameCount, int label) {
+string allocatingComponentFilename(int timeTag, int currentMsec, int frameCount, int label_num) {
 	string name;
 	return name.append(to_string(timeTag)).append("_")
 		.append(to_string(currentMsec)).append("_")
 		.append(to_string(frameCount)).append("_")
-		.append(to_string(label));
+		.append(to_string(label_num));
 }
