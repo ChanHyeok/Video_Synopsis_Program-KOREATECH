@@ -34,13 +34,13 @@ typedef struct _segment {
 	unsigned int msec;
 	unsigned int frameCount;
 	unsigned int index;
-	bool first_timeTagFlag;
 	int left;
 	int top;
 	int right;
 	int bottom;
 	int width;
 	int height;
+	bool first_timeTagFlag; // 타임태그에 첫번 째 객체임을 판별하는 변수
 	_segment() {
 		fileName = "";
 		timeTag = 0;
@@ -91,6 +91,7 @@ typedef struct _component {
 typedef struct node //노드 정의
 {
 	segment segment_data;
+	int indexOfSegmentArray;
 	struct node *next;
 }node;
 
@@ -103,7 +104,7 @@ typedef struct Queue //Queue 구조체 정의
 }Queue;
 void InitQueue(Queue *);
 int IsEmpty(Queue *);
-void Enqueue(Queue *, segment);
+void Enqueue(Queue *, segment, int);
 node Dequeue(Queue *);
 
 // componentVector 타입이 그대로 저장되는 '원형' Queue

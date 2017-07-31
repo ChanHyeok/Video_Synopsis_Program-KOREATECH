@@ -553,7 +553,7 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 		break;
 	case SYN_RESULT_TIMER:
 		printf("#");
-		Mat bg_copy = imread(getBackgroundFilePath(fileNameNoExtension));
+		Mat bg_copy; background_loadedFromFile.copyTo(bg_copy);
 		// 불러온 배경을 이용하여 합성을 진행
 		Mat syntheticResult = getSyntheticFrame(bg_copy);
 		DisplayImage(IDC_RESULT_IMAGE, syntheticResult, SYN_RESULT_TIMER);
@@ -686,6 +686,9 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 			// 현재 프레임의 영상 시간 가져오기
 			currentMsec = vc_Source->get(CV_CAP_PROP_POS_MSEC);
 
+			// 영상을 처리하여 파일로 저장하기
+			// humanDetectedVector = humanDetectedProcess(humanDetectedVector, prevHumanDetectedVector,
+			//	frame, frameCount, videoStartMsec, currentMsec, fp);
 			// humanDetected가 있을 경우에만 연산(함수호출 오버헤드 감소를 위함)
 			// 영상을 처리하여 타임태그를 새로 부여하고 파일로 저장하기(2)
 			if (humanDetectedVector.size() > 0)
@@ -699,12 +702,29 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 			// 큐에 매 수행마다 벡터를 무조건 넣어줘야함
 			PutComponentVectorQueue(&prevHumanDetectedVector_queue, humanDetectedVector);
 
+			// 확인 코드
+			/*
+			for (int i = 3; i < 5; i++) {
+			vector<component> prevDetectedVector_i = GetComponentVectorQueue(&prevHumanDetectedVector_queue
+			, (prevHumanDetectedVector_queue.rear + i) % 5);
+			for (int j = 0; j < prevDetectedVector_i.size(); j++) {
+			printf("queue[%d] = %d %d %d %d\n", i, prevDetectedVector_i[j].top, prevDetectedVector_i[j].bottom
+			, prevDetectedVector_i[j].left, prevDetectedVector_i[j].right);
+			}
+			vector<component> vclear;
+			prevDetectedVector_i.swap(vclear);
+			}
+			printf("\n");
+			*/
+
 			// 벡터 메모리 해제를 빈 벡터 생성(prevHumanDetectedVector 메모리 해제)
 			vector<component> vclear;
 			prevHumanDetectedVector.swap(vclear);
 
 			vclear.clear();
 			prevHumanDetectedVector.clear();
+
+
 
 			// 현재 검출한 데이터를 이전 데이터에 저장하기
 			prevHumanDetectedVector = humanDetectedVector;
@@ -732,27 +752,23 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 	fclose(fp_detail);
 }
 // component vector 큐를 이용한 추가된 함수
-// timetag 뿐 아니라 label 재 부여 연산이 필요함
 vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector
 	, ComponentVectorQueue prevHumanDetectedVector_Queue, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, vector<pair<int, int>>* vectorDetailTXTInedx, int* detailTxtIndex) {
 	// 현재에서 바로 이전 component 저장
-	// prevDetectedVector를 바로 큐에 있는 이전 vector로 지정할 시 
-	// 파일 저장할 시 frameCount를 매기는 데에 오류가 생김(오류 발생 원인은 아직까지도 불명)
 	vector<component> prevDetectedVector_i = prevHumanDetectedVector;
 
-	// 현재 label의 마지막 수를 저장함
-	int maxLabel = humanDetectedVector.size() - 1;
+	// 임시 타임태그 변수 선언, 일단 초기값은 currentMsec으로 지정
 	int prevTimeTag = currentMsec;
+
 	// 사람을 검출한 양 많큼 반복 (보통 humanCount 갯수 1, 2개 나옴)
 	for (int humanCount = 0; humanCount < humanDetectedVector.size(); humanCount++) {
-		//이전 프레임의 검출된 객체가 있을 경우
-		if (!prevDetectedVector_i.empty()) {
+		if (!prevDetectedVector_i.empty()) {	//이전 프레임의 검출된 객체가 있을 경우
 			bool findFlag = false;
 			for (int j = 0; j < prevDetectedVector_i.size(); j++) {
-				// 두 프레임이 겹칠 경우에 대한 연산
-				if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, humanCount, j)) {
-					humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
-					humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
+				if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, humanCount, j)) {	// 두 ROI가 겹칠 경우																										
+					// 이전 TimeTag를 할당
+					prevTimeTag = prevDetectedVector_i[j].timeTag;
+					humanDetectedVector[humanCount].timeTag = prevTimeTag;
 					saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
 						, currentMsec, frameCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTInedx, detailTxtIndex);
 
@@ -760,30 +776,28 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 				}
 			} // end for
 
-			// 이전 객체를 통해서 발견하지 못했음
-			if (findFlag == false) {
-				 // 이전 뿐 아니라 그 이전에 데이터에 접근하기
+			if (findFlag == false) { // 이전 객체를 통해서 발견하지 못했음
 				for (int i = MAXSIZE_OF_COMPONENT_VECTOR_QUEUE - 3; i >= 0; i--) {
 					prevDetectedVector_i = GetComponentVectorQueue(&prevHumanDetectedVector_Queue,
 						(prevHumanDetectedVector_Queue.rear + i) % MAXSIZE_OF_COMPONENT_VECTOR_QUEUE);
 					for (int j = 0; j < prevDetectedVector_i.size(); j++) {
-						// 두 프레임이 겹칠 경우에 대한 연산
-						if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, humanCount, j)) {
-							humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
-							humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
+						if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, humanCount, j)) {	// 두 ROI가 겹칠 경우																										
+							// 이전 TimeTag를 할당
+							prevTimeTag = prevDetectedVector_i[j].timeTag;
+							humanDetectedVector[humanCount].timeTag = prevTimeTag;
 							saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
 								, currentMsec, frameCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTInedx, detailTxtIndex);
 
+							//printf("%d번 거르기(!!!)\n", 4 - i);
+							//printf("data :: %d %d %d\n", prevTimeTag, currentMsec, frameCount);
 							findFlag = true;
+							break;
 						}
 					}
-					if (findFlag == true)
-						break;
 				}
-				// 새 객체가 출현 되었다고 판정함
-				if (findFlag == false) {
+				if (findFlag == false) { // 새 객체의 출현
+					prevTimeTag = currentMsec;
 					humanDetectedVector[humanCount].timeTag = currentMsec;
-					humanDetectedVector[humanCount].label = ++maxLabel;
 					saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
 						, currentMsec, frameCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTInedx, detailTxtIndex);
 				}
@@ -792,28 +806,26 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 		else {	// 첫 시행이거나 이전 프레임에 검출된 객체가 없을 경우
 			// 새로운 이름 할당
 			bool findFlag = false;
-			// 이전 뿐 아니라 그 이전에 데이터에 접근하기
 			for (int i = MAXSIZE_OF_COMPONENT_VECTOR_QUEUE - 3; i >= 0; i--) {
 				prevDetectedVector_i = GetComponentVectorQueue(&prevHumanDetectedVector_Queue,
 					(prevHumanDetectedVector_Queue.rear + i) % MAXSIZE_OF_COMPONENT_VECTOR_QUEUE);
 				for (int j = 0; j < prevDetectedVector_i.size(); j++) {
-					// 두 프레임이 겹칠 경우에 대한 연산
-					if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, humanCount, j)) {
-						humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
-						humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
+					if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, humanCount, j)) {	// 두 ROI가 겹칠 경우																										
+						// 이전 TimeTag를 할당
+						prevTimeTag = prevDetectedVector_i[j].timeTag;
+						humanDetectedVector[humanCount].timeTag = prevTimeTag;
 						saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
 							, currentMsec, frameCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTInedx, detailTxtIndex);
+
+						/*printf("%d번 거르기(@@@)\n", 4 - i);
+						printf("data :: %d %d %d\n", prevTimeTag, currentMsec, frameCount);*/
 						findFlag = true;
+						break;
 					}
 				}
-				// 더이상 그 이전에 객체를 고려할 필요가 없음
-				if (findFlag == true)
-					break;
 			}
-			// 새 객체가 출현 되었다고 판정함
 			if (findFlag == false) {
 				humanDetectedVector[humanCount].timeTag = currentMsec;
-				humanDetectedVector[humanCount].label = ++maxLabel;
 				saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
 					, currentMsec, frameCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTInedx, detailTxtIndex);
 			}
@@ -828,17 +840,63 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 
 // 현재와 이전에 검출한 결과를 비교, true 면 겹칠 수 없음
 bool IsComparePrevDetection(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index) {
-	return curr_detected[curr_index].left >  prev_detected[prev_index].right
-		|| curr_detected[curr_index].right <  prev_detected[prev_index].left
+	return curr_detected[curr_index].left > prev_detected[prev_index].right
+		|| curr_detected[curr_index].right < prev_detected[prev_index].left
 		|| curr_detected[curr_index].top > prev_detected[prev_index].bottom
-		|| curr_detected[curr_index].bottom < prev_detected[prev_index].top ;
+		|| curr_detected[curr_index].bottom < prev_detected[prev_index].top;
 }
+/*
+vector<component> humanDetectedProcess(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector
+	, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, FILE *fp_detail, vector<pair<int, int>>* vectorDetailTXTInedx, int* detailTxtIndex) {
 
+	//printf("cur msec : %d\n", currentMsec);
+	int prevTimeTag;
+	for (int index = 0; index < humanDetectedVector.size(); index++) {
+		// TODO : 현재 프레임에서 이전프레임과 겹치는 obj가 있는지 판단한다. 
+		// 이전 오브젝트에 다음오브젝트가 두개가 걸칠 경우 어떻게 처리할 것인가?
+		if (!prevHumanDetectedVector.empty()) {	//이전 프레임의 검출된 객체가 있을 경우
+			bool findFlag = false;
+			for (int j = 0; j < prevHumanDetectedVector.size(); j++) {
+				if (!IsComparePrevDetection(humanDetectedVector, prevHumanDetectedVector, index, j)) {	// 두 ROI가 겹칠 경우
+					// 이전 TimeTag를 할당
+					prevTimeTag = prevHumanDetectedVector[j].timeTag;
+					//printf("%d가 겹침\n", prevTimeTag);
+					humanDetectedVector[index].timeTag = prevTimeTag;
+					saveSegmentationData(fileNameNoExtension, humanDetectedVector[index], frame
+						, prevTimeTag, currentMsec, frameCount, index, fp, fp_detail, ROWS, COLS, vectorDetailTXTInedx, detailTxtIndex);
+
+					findFlag = true;
+					//break;
+				}
+			}
+
+			if (findFlag == false) { // 새 객체의 출현
+				humanDetectedVector[index].timeTag = currentMsec;
+				saveSegmentationData(fileNameNoExtension, humanDetectedVector[index], frame
+					, currentMsec, currentMsec, frameCount, index, fp, fp_detail, ROWS, COLS, vectorDetailTXTInedx, detailTxtIndex);
+
+				//printf("새로운 객체 : %s\n", humanDetectedVector[i].fileName);
+			}
+		}
+		else {	// 첫 시행이거나 이전 프레임에 검출된 객체가 없을 경우
+			// 새로운 이름 할당
+			humanDetectedVector[index].timeTag = currentMsec;
+			saveSegmentationData(fileNameNoExtension, humanDetectedVector[index], frame
+				, currentMsec, currentMsec, frameCount, index, fp, fp_detail, ROWS, COLS, vectorDetailTXTInedx, detailTxtIndex);
+			//printf("***이전프레임 검출 객체 없음\n새로운 객체 : %s\n", humanDetectedVector[i].fileName);
+		}
+	}
+	return humanDetectedVector;
+}
+*/
 // 합성된 프레임을 가져오는 연산
 Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 	int *labelMap = (int*)calloc(bgFrame.cols * bgFrame.rows, sizeof(int));	//겹침을 판단하는 용도
-	node segment_node, prev_segment_node;	//DeQueue한 결과를 받을 node
+
+	node tempnode;	//DeQueue한 결과를 받을 node
+
 	int countOfObj = segment_queue.count;	//큐 인스턴스의 노드 갯수
+	stringstream ss;
 	synthesisEndFlag = false;
 
 	//큐가 비었는지 확인한다. 비었으면 더 이상 출력 할 것이 없는 것 이므로 종료
@@ -852,8 +910,8 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 		// 동적 해제
 		free(labelMap);
 		delete[] m_segmentArray;
-		segment_node.next = NULL;
-		free(segment_node.next);
+		tempnode.next = NULL;
+		free(tempnode.next);
 
 		// 빈 프레임 반환
 		Mat nullFrame(ROWS, COLS, CV_8UC1);
@@ -861,70 +919,75 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 		return nullFrame;
 	}
 
-	// 큐에 들어있는 객체 갯수 만큼 DeQueue. 
-	for (int i_Obj = 0; i_Obj < countOfObj; i_Obj++) {
-		//dequeue한 객체를 출력한다.
-		segment_node = Dequeue(&segment_queue);
-		BOOL isCross = false;
-		int curIndex = segment_node.segment_data.index;
+	vector<int> vectorPreNodeIndex; // 객체들 인덱스 정보를 저장하기 위한 벡터
 
-		//처음이 아니고 현재 출력할 객체가 timetag의 첫 프레임 일 때		
-		if (i_Obj != 0 && (segment_node.segment_data.first_timeTagFlag == true) ){
-			for (int j = 0; j < i_Obj; j++){
-				//이전에 그린 객체 모두와 겹치는지 판별해서 겹칠 경우
-				if (!IsObjectOverlapingDetector(segment_node.segment_data, m_segmentArray[j])){
-					printf("i_Obj = %d   겹침확인!!!!!\n", i_Obj);
+	for (int k = 0; k < countOfObj; k++){
+		tempnode = Dequeue(&segment_queue);
+		vectorPreNodeIndex.push_back(tempnode.indexOfSegmentArray);	//큐에 있는 객체들의 인덱스 정보 저장
+		Enqueue(&segment_queue, tempnode.segment_data, tempnode.indexOfSegmentArray);
+	}
+
+	// 큐에 들어있는 객체 갯수 만큼 DeQueue. 
+	for (int i = 0; i < countOfObj; i++) {
+		//dequeue한 객체를 출력한다.
+		tempnode = Dequeue(&segment_queue);
+		BOOL isCross = false;
+		int curIndex = tempnode.indexOfSegmentArray;
+
+		//객체가 이전 객체와 겹치는지 비교, 처음이 아니고 현재 출력할 객체가 timetag의 첫 프레임 일 때
+		if (i != 0 && m_segmentArray[curIndex].timeTag == m_segmentArray[curIndex].msec){
+			for (int j = 0; j < i; j++){	//이전에 그린 객체 모두와 겹치는지 판별
+				if (IsObjectOverlapingDetector(m_segmentArray[curIndex], m_segmentArray[vectorPreNodeIndex.at(j)])){
 					isCross = true;
-					Enqueue(&segment_queue, segment_node.segment_data);	//출력하지 않고 다시 큐에 삽입
-					prev_segment_node = segment_node;
+					Enqueue(&segment_queue, tempnode.segment_data, tempnode.indexOfSegmentArray);	//출력하지 않고 다시 큐에 삽입
 					break;
 				}
 			}
 		}
 
 		if (isCross == false){	//출력된 객체가 없거나 이전 객체와 겹치지 않는 경우
-			//배경에 객체를 올리는 함수
-			bgFrame = printObjOnBG(bgFrame, m_segmentArray[i_Obj], labelMap, fileNameNoExtension);
+			//배경에 객체를 올리기
+			bgFrame = printObjOnBG(bgFrame, m_segmentArray[tempnode.indexOfSegmentArray], labelMap, fileNameNoExtension);
+			
 			//타임태그를 string으로 변환
-			stringstream ss;
 			string timetag = "";
-			int timetagInSec = (m_segmentArray[i_Obj].timeTag + videoStartMsec) / 1000;	//영상의 시작시간을 더해준다.
+			int timetagInSec = (m_segmentArray[tempnode.indexOfSegmentArray].timeTag + videoStartMsec) / 1000;	//영상의 시작시간을 더해준다.
 			ss = timeConvertor(timetagInSec);
 			timetag = ss.str();
 
 			//커팅된 이미지에 타임태그를 달아준다
 			//params : (Mat, String to show, 출력할 위치, 폰트 타입, 폰트 크기, 색상, 굵기) 
-			putText(bgFrame, timetag, Point(m_segmentArray[i_Obj].left + 5, m_segmentArray[i_Obj].top - 10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 150, 150), 2);
+			putText(bgFrame, timetag, Point(m_segmentArray[tempnode.indexOfSegmentArray].left + 5, m_segmentArray[tempnode.indexOfSegmentArray].top - 10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 150, 150), 2);
 
+			//다음 프레임에 같은 타임태그를 가진 객체가 있는지 확인한다. 있으면 EnQueue
 			int frameIndex = 1;
-
 			while (1){
 				// 다음 프레임에 도달할 때 까지 아무것도 하지 않는다.
-				if (m_segmentArray[i_Obj].frameCount == m_segmentArray[i_Obj + frameIndex].frameCount){
+				if (m_segmentArray[tempnode.indexOfSegmentArray].frameCount == m_segmentArray[tempnode.indexOfSegmentArray + frameIndex].frameCount){
 					frameIndex++;
 				}
-				else{ //프레임 번호가 넘어 갔을 경우
-					if ((m_segmentArray[i_Obj].frameCount + 1) == m_segmentArray[i_Obj + frameIndex].frameCount){//다음 객체가 검출된 프레임이 이전 프레임과 1 차이가 날 때
+				//프레임 번호가 넘어 갔을 경우
+				else{
+					 //다음 객체가 검출된 프레임이 이전 프레임과 1 차이가 날 때
+					if ((m_segmentArray[tempnode.indexOfSegmentArray].frameCount + 1) == m_segmentArray[tempnode.indexOfSegmentArray + frameIndex].frameCount){
 						//타임태그가 같고 인덱스가 같은 경우에만 큐에 넣어서 다음에 이어 출력될 수 있도록 한다.
-						//다음 프레임에 같은 타임태그를 가진 객체가 있는지 확인한다. 있으면 EnQueue
-						if (m_segmentArray[i_Obj].timeTag == m_segmentArray[i_Obj + frameIndex].timeTag
-							&& m_segmentArray[i_Obj].index == m_segmentArray[i_Obj + frameIndex].index) {
-							Enqueue(&segment_queue, segment_node.segment_data);
+						if (m_segmentArray[tempnode.indexOfSegmentArray].timeTag == m_segmentArray[tempnode.indexOfSegmentArray + frameIndex].timeTag
+							&& m_segmentArray[tempnode.indexOfSegmentArray].index == m_segmentArray[tempnode.indexOfSegmentArray + frameIndex].index) {
+							Enqueue(&segment_queue, tempnode.segment_data, tempnode.indexOfSegmentArray + 1);
 							break;
 						}
 						else
 							frameIndex++;
 					}
-					else {
+					//다음 객체가 있는 프레임이 객체가 있는 프레임과 2차이 이상 날 때
+					else 
 						break;
-					}
 				}
 			}
 		}
 	}
-	delete &segment_node;
 	free(labelMap);
-	free(m_segmentArray);
+	vector<int>().swap(vectorPreNodeIndex);
 	return bgFrame;
 }
 // 객체들 끼리 겹침을 판별하는 함수, 하나라도 성립하면 겹치지 않음
@@ -1056,7 +1119,7 @@ int readSegmentTxtFile(segment* segmentArray) {
 	while (!feof(fp)) {
 		fgets(txtBuffer, 99, fp);
 
-		// txt파일에 있는 프레임 데이터들 segmentArray 버퍼로 복사 (component의 label == segment의 index)
+		// txt파일에 있는 프레임 데이터들 segmentArray 버퍼로 복사
 		sscanf(txtBuffer, "%d_%d_%d_%d %d %d %d %d %d %d",
 			&segmentArray[segmentCount].timeTag, &segmentArray[segmentCount].msec,
 			&segmentArray[segmentCount].frameCount, &segmentArray[segmentCount].index,
@@ -1087,6 +1150,42 @@ int readSegmentTxtFile(segment* segmentArray) {
 			}
 		}
 	}
+	/*
+	// frameInfo.txt 파일에서 데이터를 추출 하여 segment array 초기화
+	while (!feof(fp)) {
+		fgets(txtBuffer, 99, fp);
+
+		// txt파일에 있는 프레임 데이터들 segmentArray 버퍼로 복사
+		sscanf(txtBuffer, "%d_%d_%d_%d %d %d %d %d %d %d",
+			&m_segmentArray[segmentCount].timeTag, &m_segmentArray[segmentCount].msec,
+			&m_segmentArray[segmentCount].frameCount, &m_segmentArray[segmentCount].index,
+			&m_segmentArray[segmentCount].left, &m_segmentArray[segmentCount].top,
+			&m_segmentArray[segmentCount].right, &m_segmentArray[segmentCount].bottom,
+			&m_segmentArray[segmentCount].width, &m_segmentArray[segmentCount].height);
+
+		// filename 저장
+		m_segmentArray[segmentCount].fileName
+			.append(to_string(m_segmentArray[segmentCount].timeTag)).append("_")
+			.append(to_string(m_segmentArray[segmentCount].msec)).append("_")
+			.append(to_string(m_segmentArray[segmentCount].frameCount)).append("_")
+			.append(to_string(m_segmentArray[segmentCount].index)).append(".jpg");
+
+		// m_segmentArray의 인덱스 증가
+		segmentCount++;
+	}
+
+	// 버블 정렬 사용하여 m_segmentArray를 TimeTag순으로 정렬
+	segment *tmp_segment = new segment; // 임시 segment 동적생성, 메모리 해제에 용의하게 하기
+	for (int i = 0; i < segmentCount; i++) {
+		for (int j = 0; j < segmentCount - 1; j++) {
+			if (m_segmentArray[j].timeTag > m_segmentArray[j + 1].timeTag) {
+				// m_segmentArray[segmentCount]와 m_segmentArray[segmentCount + 1]의 교체
+				*tmp_segment = m_segmentArray[j + 1];
+				m_segmentArray[j + 1] = m_segmentArray[j];
+				m_segmentArray[j] = *tmp_segment;
+			}
+		}
+	}*/
 
 	// 임시 버퍼들의 메모리 해제
 	free(tmp_segment);
@@ -1102,18 +1201,14 @@ bool CMFC_SyntheticDlg::inputSegmentQueue(int obj1_TimeTag, int obj2_TimeTag, in
 	//큐 초기화
 	InitQueue(&segment_queue);
 	//출력할 객체를 큐에 삽입하는 부분
-
 	for (int i = 0; i < segmentCount; i++) {
 		// start timetag와 end timetag 사이면 enqueue
-		// 아직 찾지 못했고 일치하는 타임태그를 찾았을 경우 출력해야할 객체의 첫 프레임의 타임태그와 위치를 큐에 삽입
+		// 아직 찾지 못했고 일치하는 타임태그를 찾았을 경우
 		if (segmentArray[i].timeTag >= obj1_TimeTag && segmentArray[i].timeTag <= obj2_TimeTag) {
-		//	if (segmentArray[i].timeTag == segmentArray[i].msec && isDirectionMatch(segmentArray[i].timeTag)) {
-				// 어떤 timetag의 첫 객체일 경우에 처리
-				segmentArray[i].first_timeTagFlag = false;
-				if (segmentArray[i].timeTag == segmentArray[i].msec) {
-					segmentArray[i].first_timeTagFlag = true;
-				}Enqueue(&segment_queue, segmentArray[i]);
-		//	}
+			if (segmentArray[i].timeTag == segmentArray[i].msec && isDirectionMatch(segmentArray[i].timeTag)) {
+				//출력해야할 객체의 첫 프레임의 타임태그와 위치를 큐에 삽입
+				Enqueue(&segment_queue, segmentArray[i], i);
+			}
 		}
 		//탐색 중, obj2_TimeTag을 넘으면 진행 완료
 		else if (segmentArray[i].timeTag > obj2_TimeTag) {
@@ -1862,7 +1957,7 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSynSave()
 			if (m_segmentArray[i].timeTag >= obj1_TimeTag && m_segmentArray[i].timeTag <= obj2_TimeTag) {	//아직 찾지 못했고 일치하는 타임태그를 찾았을 경우
 				if (m_segmentArray[i].timeTag == m_segmentArray[i].msec && isDirectionMatch(m_segmentArray[i].timeTag)){
 					//printf("%s\n", m_segmentArray[i].fileName);
-					Enqueue(&segment_queue, m_segmentArray[i]);	//출력해야할 객체의 첫 프레임의 타임태그와 위치를 큐에 삽입
+					Enqueue(&segment_queue, m_segmentArray[i], i);	//출력해야할 객체의 첫 프레임의 타임태그와 위치를 큐에 삽입
 					prevTimetag = m_segmentArray[i].timeTag;
 					prevIndex = m_segmentArray[i].index;
 				}

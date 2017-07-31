@@ -21,11 +21,12 @@ Mat Syn_Background_Foreground(Mat background, Mat firstForegroundImage, Mat seco
 		}
 	}
 	return result;
-}
 
+}
 Mat printObjOnBG(Mat background, segment obj, int* labelMap, string loadedFrameFileName) {
+	// 세그먼트 jpg파일 불러내 오기
 	Mat frame = loadJPGObjectFile(obj, loadedFrameFileName);
-	// To do ;: loadJPGObjectFile 다시 옮기기
+	// 블렌딩 프로세스
 	for (int i = obj.top; i < obj.bottom; i++) {
 		for (int j = obj.left + 1; j < obj.right; j++) {
 			Vec3b colorB = background.at<Vec3b>(Point(j, i));

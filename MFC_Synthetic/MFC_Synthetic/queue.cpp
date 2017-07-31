@@ -21,13 +21,14 @@ int IsEmpty(Queue *queue)
 	return queue->count == 0;    //보관 개수가 0이면 빈 상태
 }
 
-void Enqueue(Queue *queue, segment data)
+void Enqueue(Queue *queue, segment data, int index_data)
 {
 	//노드 생성
 	node *now = new node;
 	
 	//데이터 설정
 	now->segment_data = data;
+	now->indexOfSegmentArray = index_data;
 
 	//노드 다음 포인터 초기화 
 	now->next = NULL;
@@ -49,6 +50,8 @@ void Enqueue(Queue *queue, segment data)
 node Dequeue(Queue *queue)
 {
 	segment data;
+	int index_data;
+
 	node nowAddress, *now;
 	now = &nowAddress;
 	if (IsEmpty(queue))//큐가 비었을 때
@@ -57,6 +60,7 @@ node Dequeue(Queue *queue)
 	}
 	now = queue->front;//맨 앞의 노드를 now에 기억
 	data = now->segment_data;//반환할 값은 now의 data로 설정
+	index_data = now->indexOfSegmentArray;
 	queue->front = now->next;//맨 앞은 now의 다음 노드로 설정
 	queue->count--;//보관 개수를 1 감소
 	return *now;
