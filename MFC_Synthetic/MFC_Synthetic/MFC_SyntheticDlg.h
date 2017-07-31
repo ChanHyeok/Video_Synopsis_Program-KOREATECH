@@ -27,6 +27,9 @@ const string SEGMENTATION_DATA_DIRECTORY_NAME = "data";
 const int MAXSIZE_OF_COMPONENT_VECTOR_QUEUE = 8;
 #define NEXT(index) ((index+1)%MAXSIZE_OF_COMPONENT_VECTOR_QUEUE)
 
+// segment 임시 버퍼 관련
+const int MAX_SEGMENT_TEMP_BUFFER = MAXSIZE_OF_COMPONENT_VECTOR_QUEUE;
+
 // segmentation structure
 typedef struct _segment {
 	string fileName;
@@ -53,6 +56,7 @@ typedef struct _segment {
 		bottom = 0;
 		width = 0;
 		height = 0;
+		first_timeTagFlag = false;
 	}
 }segment;
 //component model
