@@ -1184,42 +1184,6 @@ int readSegmentTxtFile(segment* segmentArray) {
 			}
 		}
 	}
-	/*
-	// frameInfo.txt 파일에서 데이터를 추출 하여 segment array 초기화
-	while (!feof(fp)) {
-		fgets(txtBuffer, 99, fp);
-
-		// txt파일에 있는 프레임 데이터들 segmentArray 버퍼로 복사
-		sscanf(txtBuffer, "%d_%d_%d_%d %d %d %d %d %d %d",
-			&m_segmentArray[segmentCount].timeTag, &m_segmentArray[segmentCount].msec,
-			&m_segmentArray[segmentCount].frameCount, &m_segmentArray[segmentCount].index,
-			&m_segmentArray[segmentCount].left, &m_segmentArray[segmentCount].top,
-			&m_segmentArray[segmentCount].right, &m_segmentArray[segmentCount].bottom,
-			&m_segmentArray[segmentCount].width, &m_segmentArray[segmentCount].height);
-
-		// filename 저장
-		m_segmentArray[segmentCount].fileName
-			.append(to_string(m_segmentArray[segmentCount].timeTag)).append("_")
-			.append(to_string(m_segmentArray[segmentCount].msec)).append("_")
-			.append(to_string(m_segmentArray[segmentCount].frameCount)).append("_")
-			.append(to_string(m_segmentArray[segmentCount].index)).append(".jpg");
-
-		// m_segmentArray의 인덱스 증가
-		segmentCount++;
-	}
-
-	// 버블 정렬 사용하여 m_segmentArray를 TimeTag순으로 정렬
-	segment *tmp_segment = new segment; // 임시 segment 동적생성, 메모리 해제에 용의하게 하기
-	for (int i = 0; i < segmentCount; i++) {
-		for (int j = 0; j < segmentCount - 1; j++) {
-			if (m_segmentArray[j].timeTag > m_segmentArray[j + 1].timeTag) {
-				// m_segmentArray[segmentCount]와 m_segmentArray[segmentCount + 1]의 교체
-				*tmp_segment = m_segmentArray[j + 1];
-				m_segmentArray[j + 1] = m_segmentArray[j];
-				m_segmentArray[j] = *tmp_segment;
-			}
-		}
-	}*/
 
 	// 임시 버퍼들의 메모리 해제
 	free(tmp_segment);
@@ -1890,105 +1854,23 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSynSave()
 		m_LoadingProgressCtrl.SetRange(0, 100);
 		m_LoadingProgressCtrl.SetPos(0);
 
-		char *txtBuffer = new char[100];	//텍스트파일 읽을 때 사용할 buffer
+		segment *segmentArray = new segment[BUFFER];
 
-		string path = "./";
-		path.append(getTextFilePath(fileNameNoExtension));
+		int segmentCount = readSegmentTxtFile(segmentArray);
 
-		fp = fopen(path.c_str(), "r");
-
-		//*******************************************텍스트파일을 읽어서 정렬****************************************************************
-		m_segmentArray = new segment[BUFFER];  //(segment*)calloc(BUFFER, sizeof(segment));	//텍스트 파일에서 읽은 segment 정보를 저장할 배열 초기화
-
-		int segmentCount = 0;
-		fseek(fp, 0, SEEK_SET);	//포인터 처음으로 이동
-		fgets(txtBuffer, 99, fp);
-		sscanf(txtBuffer, "%d", &videoStartMsec);	//텍스트 파일 첫줄에 명시된 실제 영상 시작 시간 받아옴
-
-		// frameInfo.txt 파일에서 데이터를 추출 하여 segment array 초기화
-		while (!feof(fp)) {
-			fgets(txtBuffer, 99, fp);
-
-			// txt파일에 있는 프레임 데이터들 segmentArray 버퍼로 복사
-			sscanf(txtBuffer, "%d_%d_%d_%d %d %d %d %d %d %d",
-				&m_segmentArray[segmentCount].timeTag, &m_segmentArray[segmentCount].msec,
-				&m_segmentArray[segmentCount].frameCount, &m_segmentArray[segmentCount].index,
-				&m_segmentArray[segmentCount].left, &m_segmentArray[segmentCount].top,
-				&m_segmentArray[segmentCount].right, &m_segmentArray[segmentCount].bottom,
-				&m_segmentArray[segmentCount].width, &m_segmentArray[segmentCount].height);
-
-			// filename 저장
-			m_segmentArray[segmentCount].fileName
-				.append(to_string(m_segmentArray[segmentCount].timeTag)).append("_")
-				.append(to_string(m_segmentArray[segmentCount].msec)).append("_")
-				.append(to_string(m_segmentArray[segmentCount].frameCount)).append("_")
-				.append(to_string(m_segmentArray[segmentCount].index)).append(".jpg");
-
-			// m_segmentArray의 인덱스 증가
-			segmentCount++;
-		}
-
-		// 버블 정렬 사용하여 m_segmentArray를 TimeTag순으로 정렬
-		segment *tmp_segment = new segment; // 임시 segment 동적생성, 메모리 해제에 용의하게 하기
-		for (int i = 0; i < segmentCount; i++) {
-			for (int j = 0; j < segmentCount - 1; j++) {
-				if (m_segmentArray[j].timeTag > m_segmentArray[j + 1].timeTag) {
-					// m_segmentArray[segmentCount]와 m_segmentArray[segmentCount + 1]의 교체
-					*tmp_segment = m_segmentArray[j + 1];
-					m_segmentArray[j + 1] = m_segmentArray[j];
-					m_segmentArray[j] = *tmp_segment;
-				}
-			}
-		}
-
-		//정렬 확인 코드
-		/*	{
-		for (int i = 0; i < segmentCount; i++)
-		cout << m_segmentArray[i].fileName << endl;
-		}*/
-
-		// 임시 버퍼 메모리 해제
-		delete tmp_segment;
-		delete[] txtBuffer;
-
-		// 텍스트 파일 닫기
-		fclose(fp);
-		//****************************************************************************************************************
-
-		//큐 초기화
-		InitQueue(&segment_queue);
-
-		/************************************/
 		//TimeTag를 Edit box로부터 입력받음
 		unsigned int obj1_TimeTag = m_sliderSearchStartTime.GetPos() * 1000;	//검색할 TimeTag1
 		unsigned int obj2_TimeTag = m_sliderSearchEndTime.GetPos() * 1000;	//검색할 TimeTag2
 
-		if (obj1_TimeTag >= obj2_TimeTag){
-			AfxMessageBox("Search start time can't larger than end time");
+		if (obj1_TimeTag >= obj2_TimeTag) {
+			AfxMessageBox("Check search time again");
 			return;
 		}
 
-		bool find1 = false;
-		bool find2 = false;
-
-		int prevTimetag = 0;
-		int prevIndex = -1;
-
-		//출력할 객체를 큐에 삽입하는 부분
-		for (int i = 0; i < segmentCount; i++) {
-			//start timetag와 end timetag 사이면 enqueue
-			if (m_segmentArray[i].timeTag >= obj1_TimeTag && m_segmentArray[i].timeTag <= obj2_TimeTag) {	//아직 찾지 못했고 일치하는 타임태그를 찾았을 경우
-				if (m_segmentArray[i].timeTag == m_segmentArray[i].msec && isDirectionMatch(m_segmentArray[i].timeTag)){
-					//printf("%s\n", m_segmentArray[i].fileName);
-					Enqueue(&segment_queue, m_segmentArray[i].timeTag, i);	//출력해야할 객체의 첫 프레임의 타임태그와 위치를 큐에 삽입
-					prevTimetag = m_segmentArray[i].timeTag;
-					prevIndex = m_segmentArray[i].index;
-				}
-			}
-			else if (m_segmentArray[i].timeTag > obj2_TimeTag)	//탐색 중, obj2_TimeTag을 넘으면  break;
-				break;
+		if (inputSegmentQueue(obj1_TimeTag, obj2_TimeTag, segmentCount, segmentArray)) {
+			// free(m_segmentArray);
 		}
-		/***********/
+		m_segmentArray = segmentArray;
 
 		//파일로 동영상을 저장하기 위한 준비  
 		VideoWriter outputVideo;
@@ -2008,6 +1890,8 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSynSave()
 				Mat syntheticResult = getSyntheticFrame(bg_copy);
 				if (segment_queue.count==0){
 					printf("영상 저장 끝\n");
+					delete[] m_segmentArray;
+
 					outputVideo.release();
 					syntheticResult = NULL;
 					bg_copy = NULL;
