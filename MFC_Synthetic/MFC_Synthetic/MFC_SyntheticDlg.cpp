@@ -4,7 +4,6 @@
 #include "MFC_Synthetic.h"
 #include "MFC_SyntheticDlg.h"
 #include "afxdialogex.h"
-#include "SplashScreenEx.h"	//splash 화면
 
 // 메모리 누수를 점검하는 키워드 (http://codes.xenotech.net/38)
 // 점검하기 위해 디버깅 모드로 실행 후, 디버그 로그를 보면 됨
@@ -789,11 +788,9 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 		Enqueue(&segment_queue, tempnode.timeTag, tempnode.indexOfSegmentArray);
 	}
 
-
-	//////////////은혜
 	Point* TimeTag_p = new Point[countOfObj];		// 타임태그 위치
 	string* TimeTag_s = new string[countOfObj];		// 타임태그 내용
-
+	int countOfShowObj = 0;	//실질적으로 출력할 객체 수
 
 
 	// 큐에 들어있는 객체 갯수 만큼 DeQueue. 
@@ -830,14 +827,11 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 			ss = timeConvertor(timetagInSec);
 			timetag = ss.str();
 
-			/*
-			//커팅된 이미지에 타임태그를 달아준다
-			//params : (Mat, String to show, 출력할 위치, 폰트 타입, 폰트 크기, 색상, 굵기) 
-			putText(bgFrame, timetag, Point(m_segmentArray[tempnode.indexOfSegmentArray].left + 5, m_segmentArray[tempnode.indexOfSegmentArray].top + 50), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 1.5);	//은혜
-			*/
-			//은혜
-			TimeTag_p[i] = Point(m_segmentArray[tempnode.indexOfSegmentArray].left + 5, m_segmentArray[tempnode.indexOfSegmentArray].top + 50); //은혜
-			TimeTag_s[i] = timetag;
+			
+			//타임태그 위치 및 텍스트 정보 저장
+			TimeTag_p[countOfShowObj] = Point(m_segmentArray[tempnode.indexOfSegmentArray].left + 5, m_segmentArray[tempnode.indexOfSegmentArray].top + 50);
+			TimeTag_s[countOfShowObj] = timetag;
+			countOfShowObj++;
 
 			//다음 프레임에 같은 타임태그를 가진 객체가 있는지 확인한다. 있으면 EnQueue
 			int frameIndex = 1;
@@ -863,13 +857,12 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 			}
 		}
 	}
-	for (int i = 0; i < countOfObj; i++) {
-		putText(bgFrame, TimeTag_s[i], TimeTag_p[i], FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 1.5);	//은혜
+	for (int i = 0; i < countOfShowObj; i++) {
+		putText(bgFrame, TimeTag_s[i], TimeTag_p[i], FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 1.5);
 	}
 
-	//은혜
-	delete TimeTag_p;
-	delete TimeTag_s;
+	delete[] TimeTag_p;
+	delete[] TimeTag_s;
 
 	labelMap = NULL;
 	free(labelMap);
