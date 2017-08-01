@@ -912,6 +912,9 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 	stringstream ss;
 	synthesisEndFlag = false;
 
+
+	string timetag = "";
+
 	//큐가 비었는지 확인한다. 비었으면 더 이상 출력 할 것이 없는 것 이므로 종료
 	if (IsEmpty(&segment_queue)){
 		// 타이머를 죽인 이후에
@@ -939,6 +942,11 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 		vectorPreNodeIndex.push_back(tempnode.indexOfSegmentArray);	//큐에 있는 객체들의 인덱스 정보 저장
 		Enqueue(&segment_queue, tempnode.timeTag, tempnode.indexOfSegmentArray);
 	}
+
+	Point* TimeTag_p = new Point[countOfObj];		// 타임태그 위치
+	string* TimeTag_s = new string[countOfObj];		// 타임태그 내용
+	int countOfShowObj = 0;	//실질적으로 출력할 객체 수
+
 
 	// 큐에 들어있는 객체 갯수 만큼 DeQueue. 
 	for (int i = 0; i < countOfObj; i++) {
@@ -969,14 +977,16 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 			bgFrame = printObjOnBG(bgFrame, m_segmentArray[tempnode.indexOfSegmentArray], labelMap, fileNameNoExtension);
 			
 			//타임태그를 string으로 변환
-			string timetag = "";
+			//string timetag = "";
 			int timetagInSec = (m_segmentArray[tempnode.indexOfSegmentArray].timeTag + videoStartMsec) / 1000;	//영상의 시작시간을 더해준다.
 			ss = timeConvertor(timetagInSec);
 			timetag = ss.str();
 
-			//커팅된 이미지에 타임태그를 달아준다
-			//params : (Mat, String to show, 출력할 위치, 폰트 타입, 폰트 크기, 색상, 굵기) 
-			putText(bgFrame, timetag, Point(m_segmentArray[tempnode.indexOfSegmentArray].left + 5, m_segmentArray[tempnode.indexOfSegmentArray].top - 10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 150, 150), 2);
+			
+			//타임태그 위치 및 텍스트 정보 저장
+			TimeTag_p[countOfShowObj] = Point(m_segmentArray[tempnode.indexOfSegmentArray].left + 5, m_segmentArray[tempnode.indexOfSegmentArray].top + 50);
+			TimeTag_s[countOfShowObj] = timetag;
+			countOfShowObj++;
 
 			//다음 프레임에 같은 타임태그를 가진 객체가 있는지 확인한다. 있으면 EnQueue
 			int frameIndex = 1;
@@ -1002,6 +1012,14 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 			}
 		}
 	}
+	for (int i = 0; i < countOfShowObj; i++) {
+		putText(bgFrame, TimeTag_s[i], TimeTag_p[i], FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 1.5);
+	}
+
+	delete[] TimeTag_p;
+	delete[] TimeTag_s;
+
+	labelMap = NULL;
 	free(labelMap);
 	vector<int>().swap(vectorPreNodeIndex);
 	return bgFrame;
@@ -1265,14 +1283,14 @@ stringstream timeConvertor(int t) {
 	sec = t % 60;
 
 	if (t / 3600 < 10)
-		s << "0" << hour << " : ";
+		s << "0" << hour << ":";
 	else
-		s << hour << " : ";
+		s << hour << ":";
 
 	if ((t % 3600) / 60 < 10)
-		s << "0" << min << " : ";
+		s << "0" << min << ":";
 	else
-		s << min << " : ";
+		s << min << ":";
 
 	if (t % 60 < 10)
 		s << "0" << sec;
