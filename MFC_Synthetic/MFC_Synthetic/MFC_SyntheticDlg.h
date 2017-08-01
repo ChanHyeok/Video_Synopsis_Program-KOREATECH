@@ -141,7 +141,7 @@ Mat morphologicalOperation(Mat);
 stringstream timeConvertor(int t);
 
 bool IsObjectOverlapingDetector(segment, segment);
-Mat backgroundInit(VideoCapture *vc_Source);
+Mat grayBackgroundInit(VideoCapture *vc_Source, int );
 
 int readSegmentTxtFile(segment* );
 
@@ -187,7 +187,7 @@ public:
 	CImage *cimage_mfc;
 	CStatic m_picture;
 
-	VideoCapture capture, capture_for_background;
+	VideoCapture capture;
 
 	boolean isPlayBtnClicked;
 	CRect m_rectCurHist;
@@ -247,6 +247,7 @@ public:
 	afx_msg void updateUI(int, int, int, int);
 	afx_msg void segmentationOperator(VideoCapture* vc_Source, int, int, int, int, int, int);
 	afx_msg void OnBnClickedBtnRewind();
+	Mat CMFC_SyntheticDlg::binaryModeProcess(Mat curr_frame, Mat bg);
 	CProgressCtrl m_LoadingProgressCtrl;
 
 	CSliderCtrl m_SliderPlayer;
