@@ -865,54 +865,11 @@ bool IsComparePrevDetection(vector<component> curr_detected, vector<component> p
 		|| curr_detected[curr_index].top > prev_detected[prev_index].bottom
 		|| curr_detected[curr_index].bottom < prev_detected[prev_index].top;
 }
-/*
-vector<component> humanDetectedProcess(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector
-	, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, FILE *fp_detail, vector<pair<int, int>>* vectorDetailTXTInedx, int* detailTxtIndex) {
 
-	//printf("cur msec : %d\n", currentMsec);
-	int prevTimeTag;
-	for (int index = 0; index < humanDetectedVector.size(); index++) {
-		// TODO : 현재 프레임에서 이전프레임과 겹치는 obj가 있는지 판단한다.
-		// 이전 오브젝트에 다음오브젝트가 두개가 걸칠 경우 어떻게 처리할 것인가?
-		if (!prevHumanDetectedVector.empty()) {	//이전 프레임의 검출된 객체가 있을 경우
-			bool findFlag = false;
-			for (int j = 0; j < prevHumanDetectedVector.size(); j++) {
-				if (!IsComparePrevDetection(humanDetectedVector, prevHumanDetectedVector, index, j)) {	// 두 ROI가 겹칠 경우
-					// 이전 TimeTag를 할당
-					prevTimeTag = prevHumanDetectedVector[j].timeTag;
-					//printf("%d가 겹침\n", prevTimeTag);
-					humanDetectedVector[index].timeTag = prevTimeTag;
-					saveSegmentationData(fileNameNoExtension, humanDetectedVector[index], frame
-						, prevTimeTag, currentMsec, frameCount, index, fp, fp_detail, ROWS, COLS, vectorDetailTXTInedx, detailTxtIndex);
-
-					findFlag = true;
-					//break;
-				}
-			}
-
-			if (findFlag == false) { // 새 객체의 출현
-				humanDetectedVector[index].timeTag = currentMsec;
-				saveSegmentationData(fileNameNoExtension, humanDetectedVector[index], frame
-					, currentMsec, currentMsec, frameCount, index, fp, fp_detail, ROWS, COLS, vectorDetailTXTInedx, detailTxtIndex);
-
-				//printf("새로운 객체 : %s\n", humanDetectedVector[i].fileName);
-			}
-		}
-		else {	// 첫 시행이거나 이전 프레임에 검출된 객체가 없을 경우
-			// 새로운 이름 할당
-			humanDetectedVector[index].timeTag = currentMsec;
-			saveSegmentationData(fileNameNoExtension, humanDetectedVector[index], frame
-				, currentMsec, currentMsec, frameCount, index, fp, fp_detail, ROWS, COLS, vectorDetailTXTInedx, detailTxtIndex);
-			//printf("***이전프레임 검출 객체 없음\n새로운 객체 : %s\n", humanDetectedVector[i].fileName);
-		}
-	}
-	return humanDetectedVector;
-}
-*/
 // 합성된 프레임을 가져오는 연산
 Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 	int *labelMap = (int*)calloc(bgFrame.cols * bgFrame.rows, sizeof(int));	//겹침을 판단하는 용도
-	segment temp_segment;//DeQueue한 결과를 받을 segment
+	segment temp_segment; //DeQueue한 결과를 받을 segment
 	int countOfObj = segment_queue.count;	//큐 인스턴스의 노드 갯수
 	synthesisEndFlag = false;
 
@@ -934,12 +891,12 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 		return nullFrame;
 	}
 
-	// 객체들 인덱스 정보를 저장하기 위한 벡터
-	vector<int> vectorPreNodeIndex;
-
 	Point* TimeTag_p = new Point[countOfObj];		// 타임태그 위치
 	string* TimeTag_s = new string[countOfObj];		// 타임태그 내용
 	int countOfShowObj = 0;	//실질적으로 출력할 객체 수
+
+	// 객체들 인덱스 정보를 저장하기 위한 벡터
+	vector<int> vectorPreNodeIndex;
 
 	//큐에 있는 객체들의 인덱스 정보들을 벡터에 저장
 	for (int k = 0; k < countOfObj; k++) {
@@ -949,10 +906,16 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 		Enqueue(&segment_queue, temp_segment, curr_index);
 	}
 
+	bool isEnqueueFlag = true;
 	// 큐에 들어있는 객체 갯수 만큼 DeQueue. 
 	for (int i = 0; i < countOfObj; i++) {
 		//dequeue한 객체를 출력한다.
-		int curIndex = Getqueue_IndexOfSegmentArray(&segment_queue);
+		int curIndex;
+		if (isEnqueueFlag == false)
+			curIndex++;
+		else 
+			curIndex = Getqueue_IndexOfSegmentArray(&segment_queue);
+
 		temp_segment = Dequeue(&segment_queue);
 		BOOL isCross = false;
 
@@ -976,7 +939,6 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 			int timetagInSec = (m_segmentArray[curIndex].timeTag + videoStartMsec) / 1000;	//영상의 시작시간을 더해준다.
 			string timetag = timeConvertor(timetagInSec).str();
 
-
 			//타임태그 위치 및 텍스트 정보 저장
 			TimeTag_p[countOfShowObj] = Point(m_segmentArray[curIndex].left + 5, m_segmentArray[curIndex].top + 50);
 			TimeTag_s[countOfShowObj] = timetag;
@@ -986,21 +948,20 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 			int frameIndexGap = 1;
 
 			// 다음 객체가 검출된 프레임이 이전 프레임과 1 차이가 날 때
-			if (m_segmentArray[curIndex].frameCount + 1
-				== m_segmentArray[curIndex + 1].frameCount) {
-				//타임태그가 같고 인덱스가 같은 경우에만 큐에 넣어서 다음에 이어 출력될 수 있도록 한다.
-				if (IsEnqueueFiltering(m_segmentArray, curIndex))
+			if (m_segmentArray[curIndex].frameCount + 1 == m_segmentArray[curIndex + 1].frameCount) {
+				//타임태그가 같고 인덱스가 같은 경우에만 큐에 넣어서 다음에 이어 출력될 수 있도록 한다.(일반적인 경우)
+				if (isEnqueueFlag = IsEnqueueFiltering(m_segmentArray, curIndex))
 					Enqueue(&segment_queue, temp_segment, curIndex + 1);
 			}
 
 			//다음 객체가 있는 프레임이 객체가 있는 프레임과 2 이상, 버퍼 이하 만큼 차이 날 때
 			else {
-				for (int i = frameIndexGap + 1; i <= MAX_SEGMENT_TEMP_BUFFER; i++) {
+				for (int i = frameIndexGap + 1; i <= MAX_SEGMENT_TEMP_BUFFER + 1; i++) {
 					// 세그먼트 카운트의 차이를 비교함
-					if (m_segmentArray[curIndex].frameCount + i
-						== m_segmentArray[curIndex + 1].frameCount) {
-						// 이전과 타임태그와 인덱스가 모두 같을 때에
-						if (IsEnqueueFiltering(m_segmentArray, curIndex)) {
+					if (m_segmentArray[curIndex].frameCount + i	== m_segmentArray[curIndex + 1].frameCount) {
+						// 이전과 타임태그와 인덱스가 모두 같을 때에 다음 인덱스 enqueue시키기
+						if (isEnqueueFlag = IsEnqueueFiltering(m_segmentArray, curIndex)) {
+							printf(" 2 이상, 버퍼 이하 만큼 차이 %d %d\n", temp_segment.timeTag, temp_segment.frameCount);
 							Enqueue(&segment_queue, temp_segment, curIndex + 1);
 							break;
 						}
@@ -1012,12 +973,12 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 	} // end for (int i = 0; i < countOfObj; i++)
 
 	for (int i = 0; i < countOfShowObj; i++) {
+		if (bgFrame.cols > 50 && bgFrame.rows > 50)
 		putText(bgFrame, TimeTag_s[i], TimeTag_p[i], FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 1.5);
 	}
 
-	delete[] TimeTag_p;
-	delete[] TimeTag_s;
-
+	// 합성 중 메모리 해제
+	delete[] TimeTag_p; delete[] TimeTag_s;
 	labelMap = NULL;
 	free(labelMap);
 	vector<int>().swap(vectorPreNodeIndex);
@@ -1034,25 +995,26 @@ bool IsObjectOverlapingDetector(segment m_segment, segment pre_segment) {
 bool IsEnqueueFiltering(segment *segment_array, int cur_index) {
 	// 양 끝 filter_object_num 갯수만큼의 객체를 비교하고자 함
 	// 1일 경우 앞쪽 뒷쪽 한 개씩만
-	const int filter_object_num = 1;
-	const int filter_object_height = ROWS / 15;
-	const int filter_object_width = COLS / 15;
+	const unsigned int filter_object_num = 1;
+	const unsigned int filter_object_height = ROWS / 2; //  ( 480/15 = 32)
+	const unsigned int filter_object_width = COLS / 2; //  ( 640/15 = 42)
 
 	// 앞의 객체가 없으면 그냥 출력 가능하게 함
-	if ((cur_index <= filter_object_num && cur_index >= 0)
-		|| segment_array[cur_index].first_timeTagFlag == true)
+	if ((cur_index < filter_object_num && cur_index >= 0)
+		|| segment_array[cur_index].first_timeTagFlag == true) {
 		return true;
-
+	}
 	if ((segment_array[cur_index].timeTag == segment_array[cur_index + 1].timeTag)
 		&& (segment_array[cur_index].index == segment_array[cur_index + 1].index)) {
 		// 앞 뒤로 일정 범위 이상의 height, width보다 작으면 필터 통과, 출력 가능하게끔 만듦
-		for (int i = 0; i < filter_object_num; i++) {
-			bool height_filter = ((segment_array[cur_index - i].height - segment_array[cur_index].height) < filter_object_height)
-				&& ((segment_array[cur_index + i].height - segment_array[cur_index].height) < filter_object_height);
-			bool width_filter = ((segment_array[cur_index - i].width - segment_array[cur_index].width) < filter_object_width)
-				&& ((segment_array[cur_index + i].width - segment_array[cur_index].width) < filter_object_width);
+		for (int i = 1; i <= filter_object_num; i++) {
+			bool height_filter = (abs(segment_array[cur_index - i].height - segment_array[cur_index].height) < filter_object_height)
+				&& (abs(segment_array[cur_index + i].height - segment_array[cur_index].height) < filter_object_height);
+			bool width_filter = (abs(segment_array[cur_index - i].width - segment_array[cur_index].width) < filter_object_width)
+				&& (abs(segment_array[cur_index + i].width - segment_array[cur_index].width) < filter_object_width);
 
-			if (height_filter && width_filter == true)
+			// 필터가 모두 true가 될 경우
+			if ((height_filter && width_filter) == true)
 				return true;
 		}
 		// 위의 height, width 필터도 통과 못할 경우는 
