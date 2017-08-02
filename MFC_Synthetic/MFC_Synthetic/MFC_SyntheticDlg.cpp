@@ -85,6 +85,16 @@ void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 END_MESSAGE_MAP()
 
+// 현재시간을 string type으로 return하는 함수
+const std::string currentDateTime() {
+	time_t     now = time(0); //현재 시간을 time_t 타입으로 저장
+	struct tm  tstruct;
+	char       buf[80];
+	tstruct = *localtime(&now);
+	strftime(buf, sizeof(buf), "%Y%m%d%H%M%S", &tstruct); // YYYY-MM-DD.HH:mm:ss 형태의 스트링
+
+	return buf;
+}
 
 /*
 Main Dialog
@@ -571,6 +581,8 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 // 시와 분을 입력받아 segmentation을 진행함
 void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 {
+
+	cout << currentDateTime() << endl;
 	KillTimer(LOGO_TIMER);
 	KillTimer(VIDEO_TIMER);
 	KillTimer(BIN_VIDEO_TIMER);
@@ -600,6 +612,7 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 
 		//로딩 숨기기
 		m_LoadingProgressCtrl.ShowWindow(false);
+		cout<<currentDateTime()<<endl;
 	}
 	else {	// 범위 외 입력시 예외처리
 	}
@@ -903,6 +916,9 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 	int countOfObj = segment_queue.count;	//큐 인스턴스의 노드 갯수
 	synthesisEndFlag = false;
 
+
+	string timetag = "";
+
 	//큐가 비었는지 확인한다. 비었으면 더 이상 출력 할 것이 없는 것 이므로 종료
 	if (IsEmpty(&segment_queue)) {
 		// 타이머를 죽인 이후에
@@ -932,6 +948,11 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 		Enqueue(&segment_queue, tempnode.segment_data, tempnode.indexOfSegmentArray);
 	}
 
+	Point* TimeTag_p = new Point[countOfObj];		// 타임태그 위치
+	string* TimeTag_s = new string[countOfObj];		// 타임태그 내용
+	int countOfShowObj = 0;	//실질적으로 출력할 객체 수
+
+
 	// 큐에 들어있는 객체 갯수 만큼 DeQueue. 
 	for (int i = 0; i < countOfObj; i++) {
 		//dequeue한 객체를 출력한다.
@@ -956,12 +977,18 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 			bgFrame = printObjOnBG(bgFrame, m_segmentArray[tempnode.indexOfSegmentArray], labelMap, fileNameNoExtension);
 
 			//타임태그를 string으로 변환
+<<<<<<< HEAD
+=======
+			//string timetag = "";
+>>>>>>> master
 			int timetagInSec = (m_segmentArray[tempnode.indexOfSegmentArray].timeTag + videoStartMsec) / 1000;	//영상의 시작시간을 더해준다.
 			string timetag = timeConvertor(timetagInSec).str();
 
-			//커팅된 이미지에 타임태그를 달아준다
-			//params : (Mat, String to show, 출력할 위치, 폰트 타입, 폰트 크기, 색상, 굵기) 
-			putText(bgFrame, timetag, Point(m_segmentArray[tempnode.indexOfSegmentArray].left + 5, m_segmentArray[tempnode.indexOfSegmentArray].top - 10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 150, 150), 2);
+			
+			//타임태그 위치 및 텍스트 정보 저장
+			TimeTag_p[countOfShowObj] = Point(m_segmentArray[tempnode.indexOfSegmentArray].left + 5, m_segmentArray[tempnode.indexOfSegmentArray].top + 50);
+			TimeTag_s[countOfShowObj] = timetag;
+			countOfShowObj++;
 
 			//다음 프레임에 같은 타임태그를 가진 객체가 있는지 확인한다. 있으면 EnQueue
 			int frameIndexGap = 1;
@@ -988,12 +1015,29 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 							break;
 						}
 					}
+<<<<<<< HEAD
 				} // end for  (int i = frameIndexGap + 1 ...
 				// 임시 세그먼트 buffer 크기 이상 차이나는 객체들은 출력되지 않도록 설정
 			} // end else
 		} // end if (isCross == false)
 	} // end for (int i = 0; i < countOfObj; i++)
 
+=======
+					else //다음 객체가 있는 프레임이 객체가 있는 프레임과 2차이 이상 날 때
+						break;
+				}
+			}
+		}
+	}
+	for (int i = 0; i < countOfShowObj; i++) {
+		putText(bgFrame, TimeTag_s[i], TimeTag_p[i], FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 1.5);
+	}
+
+	delete[] TimeTag_p;
+	delete[] TimeTag_s;
+
+	labelMap = NULL;
+>>>>>>> master
 	free(labelMap);
 	vector<int>().swap(vectorPreNodeIndex);
 	return bgFrame;
@@ -1158,42 +1202,6 @@ int readSegmentTxtFile(segment* segmentArray) {
 			}
 		}
 	}
-	/*
-	// frameInfo.txt 파일에서 데이터를 추출 하여 segment array 초기화
-	while (!feof(fp)) {
-		fgets(txtBuffer, 99, fp);
-
-		// txt파일에 있는 프레임 데이터들 segmentArray 버퍼로 복사
-		sscanf(txtBuffer, "%d_%d_%d_%d %d %d %d %d %d %d",
-			&m_segmentArray[segmentCount].timeTag, &m_segmentArray[segmentCount].msec,
-			&m_segmentArray[segmentCount].frameCount, &m_segmentArray[segmentCount].index,
-			&m_segmentArray[segmentCount].left, &m_segmentArray[segmentCount].top,
-			&m_segmentArray[segmentCount].right, &m_segmentArray[segmentCount].bottom,
-			&m_segmentArray[segmentCount].width, &m_segmentArray[segmentCount].height);
-
-		// filename 저장
-		m_segmentArray[segmentCount].fileName
-			.append(to_string(m_segmentArray[segmentCount].timeTag)).append("_")
-			.append(to_string(m_segmentArray[segmentCount].msec)).append("_")
-			.append(to_string(m_segmentArray[segmentCount].frameCount)).append("_")
-			.append(to_string(m_segmentArray[segmentCount].index)).append(".jpg");
-
-		// m_segmentArray의 인덱스 증가
-		segmentCount++;
-	}
-
-	// 버블 정렬 사용하여 m_segmentArray를 TimeTag순으로 정렬
-	segment *tmp_segment = new segment; // 임시 segment 동적생성, 메모리 해제에 용의하게 하기
-	for (int i = 0; i < segmentCount; i++) {
-		for (int j = 0; j < segmentCount - 1; j++) {
-			if (m_segmentArray[j].timeTag > m_segmentArray[j + 1].timeTag) {
-				// m_segmentArray[segmentCount]와 m_segmentArray[segmentCount + 1]의 교체
-				*tmp_segment = m_segmentArray[j + 1];
-				m_segmentArray[j + 1] = m_segmentArray[j];
-				m_segmentArray[j] = *tmp_segment;
-			}
-		}
-	}*/
 
 	// 임시 버퍼들의 메모리 해제
 	free(tmp_segment);
@@ -1259,14 +1267,14 @@ stringstream timeConvertor(int t) {
 	sec = t % 60;
 
 	if (t / 3600 < 10)
-		s << "0" << hour << " : ";
+		s << "0" << hour << ":";
 	else
-		s << hour << " : ";
+		s << hour << ":";
 
 	if ((t % 3600) / 60 < 10)
-		s << "0" << min << " : ";
+		s << "0" << min << ":";
 	else
-		s << min << " : ";
+		s << min << ":";
 
 	if (t % 60 < 10)
 		s << "0" << sec;
@@ -1852,17 +1860,6 @@ bool CMFC_SyntheticDlg::isDirectionMatch(int timetag) {
 	else return false;
 }
 
-// 현재시간을 string type으로 return하는 함수
-const std::string currentDateTime() {
-	time_t     now = time(0); //현재 시간을 time_t 타입으로 저장
-	struct tm  tstruct;
-	char       buf[80];
-	tstruct = *localtime(&now);
-	strftime(buf, sizeof(buf), "%Y%m%d%H%M%S", &tstruct); // YYYY-MM-DD.HH:mm:ss 형태의 스트링
-
-	return buf;
-}
-
 void CMFC_SyntheticDlg::OnBnClickedBtnSynSave()
 {
 	//실행중인 타이머 종료
@@ -1877,80 +1874,16 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSynSave()
 		m_LoadingProgressCtrl.SetRange(0, 100);
 		m_LoadingProgressCtrl.SetPos(0);
 
-		char *txtBuffer = new char[100];	//텍스트파일 읽을 때 사용할 buffer
+		segment *segmentArray = new segment[BUFFER];
 
-		string path = "./";
-		path.append(getTextFilePath(fileNameNoExtension));
+		int segmentCount = readSegmentTxtFile(segmentArray);
 
-		fp = fopen(path.c_str(), "r");
-
-		//*******************************************텍스트파일을 읽어서 정렬****************************************************************
-		m_segmentArray = new segment[BUFFER];  //(segment*)calloc(BUFFER, sizeof(segment));	//텍스트 파일에서 읽은 segment 정보를 저장할 배열 초기화
-
-		int segmentCount = 0;
-		fseek(fp, 0, SEEK_SET);	//포인터 처음으로 이동
-		fgets(txtBuffer, 99, fp);
-		sscanf(txtBuffer, "%d", &videoStartMsec);	//텍스트 파일 첫줄에 명시된 실제 영상 시작 시간 받아옴
-
-		// frameInfo.txt 파일에서 데이터를 추출 하여 segment array 초기화
-		while (!feof(fp)) {
-			fgets(txtBuffer, 99, fp);
-
-			// txt파일에 있는 프레임 데이터들 segmentArray 버퍼로 복사
-			sscanf(txtBuffer, "%d_%d_%d_%d %d %d %d %d %d %d",
-				&m_segmentArray[segmentCount].timeTag, &m_segmentArray[segmentCount].msec,
-				&m_segmentArray[segmentCount].frameCount, &m_segmentArray[segmentCount].index,
-				&m_segmentArray[segmentCount].left, &m_segmentArray[segmentCount].top,
-				&m_segmentArray[segmentCount].right, &m_segmentArray[segmentCount].bottom,
-				&m_segmentArray[segmentCount].width, &m_segmentArray[segmentCount].height);
-
-			// filename 저장
-			m_segmentArray[segmentCount].fileName
-				.append(to_string(m_segmentArray[segmentCount].timeTag)).append("_")
-				.append(to_string(m_segmentArray[segmentCount].msec)).append("_")
-				.append(to_string(m_segmentArray[segmentCount].frameCount)).append("_")
-				.append(to_string(m_segmentArray[segmentCount].index)).append(".jpg");
-
-			// m_segmentArray의 인덱스 증가
-			segmentCount++;
-		}
-
-		// 버블 정렬 사용하여 m_segmentArray를 TimeTag순으로 정렬
-		segment *tmp_segment = new segment; // 임시 segment 동적생성, 메모리 해제에 용의하게 하기
-		for (int i = 0; i < segmentCount; i++) {
-			for (int j = 0; j < segmentCount - 1; j++) {
-				if (m_segmentArray[j].timeTag > m_segmentArray[j + 1].timeTag) {
-					// m_segmentArray[segmentCount]와 m_segmentArray[segmentCount + 1]의 교체
-					*tmp_segment = m_segmentArray[j + 1];
-					m_segmentArray[j + 1] = m_segmentArray[j];
-					m_segmentArray[j] = *tmp_segment;
-				}
-			}
-		}
-
-		//정렬 확인 코드
-		/*	{
-		for (int i = 0; i < segmentCount; i++)
-		cout << m_segmentArray[i].fileName << endl;
-		}*/
-
-		// 임시 버퍼 메모리 해제
-		delete tmp_segment;
-		delete[] txtBuffer;
-
-		// 텍스트 파일 닫기
-		fclose(fp);
-		//****************************************************************************************************************
-
-		//큐 초기화
-		InitQueue(&segment_queue);
-
-		/************************************/
 		//TimeTag를 Edit box로부터 입력받음
 		unsigned int obj1_TimeTag = m_sliderSearchStartTime.GetPos() * 1000;	//검색할 TimeTag1
 		unsigned int obj2_TimeTag = m_sliderSearchEndTime.GetPos() * 1000;	//검색할 TimeTag2
 
 		if (obj1_TimeTag >= obj2_TimeTag) {
+<<<<<<< HEAD
 			AfxMessageBox("Search start time can't larger than end time");
 			return;
 		}
@@ -1974,8 +1907,16 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSynSave()
 			}
 			else if (m_segmentArray[i].timeTag > obj2_TimeTag)	//탐색 중, obj2_TimeTag을 넘으면  break;
 				break;
+=======
+			AfxMessageBox("Check search time again");
+			return;
 		}
-		/***********/
+
+		if (inputSegmentQueue(obj1_TimeTag, obj2_TimeTag, segmentCount, segmentArray)) {
+			// free(m_segmentArray);
+>>>>>>> master
+		}
+		m_segmentArray = segmentArray;
 
 		//파일로 동영상을 저장하기 위한 준비  
 		VideoWriter outputVideo;
@@ -1995,6 +1936,8 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSynSave()
 				Mat syntheticResult = getSyntheticFrame(bg_copy);
 				if (segment_queue.count == 0) {
 					printf("영상 저장 끝\n");
+					delete[] m_segmentArray;
+
 					outputVideo.release();
 					syntheticResult = NULL;
 					bg_copy = NULL;
