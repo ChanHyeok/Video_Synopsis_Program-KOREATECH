@@ -25,7 +25,7 @@ void Enqueue(Queue *queue, segment data, int index_data)
 {
 	//노드 생성
 	node *now = new node;
-	
+
 	//데이터 설정
 	now->segment_data = data;
 	now->indexOfSegmentArray = index_data;
@@ -44,26 +44,40 @@ void Enqueue(Queue *queue, segment data, int index_data)
 	queue->rear = now;//맨 뒤를 now로 설정   
 	queue->count++;//보관 개수를 1 증가
 
-	// 임시로 생성한 node 메모리 해제
+				   // 임시로 생성한 node 메모리 해제
 }
 
-node Dequeue(Queue *queue)
+// dequeue하면서 segment data들은 반환하도록 함
+segment Dequeue(Queue *queue)
 {
 	segment data;
 	int index_data;
 
 	node nowAddress, *now;
 	now = &nowAddress;
-	if (IsEmpty(queue))//큐가 비었을 때
+	if (IsEmpty(queue)) //큐가 비었을 때
 	{
-		return *now;
+		return data;
 	}
 	now = queue->front;//맨 앞의 노드를 now에 기억
 	data = now->segment_data;//반환할 값은 now의 data로 설정
-	index_data = now->indexOfSegmentArray;
 	queue->front = now->next;//맨 앞은 now의 다음 노드로 설정
 	queue->count--;//보관 개수를 1 감소
-	return *now;
+
+	free(now);
+	return data;
+}
+
+// indexOfSegmentArray의 값을 뽑아내기 위한 함수
+int Getqueue_IndexOfSegmentArray(Queue *queue) {
+	node *now;
+
+	if (IsEmpty(queue)) //큐가 비었을 때
+	{
+		return 0;
+	}
+	now = queue->front;
+	return now->indexOfSegmentArray;
 }
 
 

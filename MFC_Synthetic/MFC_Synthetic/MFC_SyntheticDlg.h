@@ -109,7 +109,8 @@ typedef struct Queue //Queue 구조체 정의
 void InitQueue(Queue *);
 int IsEmpty(Queue *);
 void Enqueue(Queue *, segment, int);
-node Dequeue(Queue *);
+segment Dequeue(Queue *);
+int Getqueue_IndexOfSegmentArray(Queue *queue);
 
 // componentVector 타입이 그대로 저장되는 '원형' Queue
 typedef struct ComponentVectorQueue // Component Vector을 위한 크기 5인 원형 Queue 구조체 정의
@@ -129,8 +130,6 @@ vector<component> GetComponentVectorQueue(ComponentVectorQueue *componentVectorQ
 // MAIN ****
 vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector_Array
 	, ComponentVectorQueue prevHumanDetectedVector_Queue, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, vector<pair<int, int>>*, int*);
-Mat getSyntheticFrame(Mat);
-
 
 // addition function of MAIN
 bool segmentationTimeInputException(CString str_h, CString str_m);
@@ -146,6 +145,7 @@ int readSegmentTxtFile(segment* );
 // connectecComponentLabelling.cpp
 vector<component> connectedComponentsLabelling(Mat frame, int rows, int cols, int, int, int, int);
 bool labelSizeFiltering(int width, int height, int, int, int, int);
+bool IsEnqueueFiltering(segment *segment_array, int cur_index);
 
 // tool_background.cpp, tool_foreground.cpp
 Mat ExtractForegroundToMOG2(Mat frameimg);
