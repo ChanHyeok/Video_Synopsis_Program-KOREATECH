@@ -126,7 +126,7 @@ vector<component> GetComponentVectorQueue(ComponentVectorQueue *componentVectorQ
 
 // MAIN ****
 vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector_Array
-	, ComponentVectorQueue prevHumanDetectedVector_Queue, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, vector<pair<int, int>>*, int*);
+	, ComponentVectorQueue prevHumanDetectedVector_Queue, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, vector<pair<int, int>>*, int*, Mat);
 int IsComparePrevDetection2(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index);
 
 vector<component> humanDetectedProcess(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector, Mat, int, int, unsigned int, FILE *fp, FILE*, vector<pair<int, int>>*, int*);

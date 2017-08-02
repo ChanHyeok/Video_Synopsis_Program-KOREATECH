@@ -68,6 +68,15 @@ bool saveSegmentationData(string video_name, component object, Mat object_frame
 		int stamp;
 		int tempFirst;
 		int tempLast;
+		unsigned int red;
+		unsigned int orange;
+		unsigned int yellow;
+		unsigned int green;
+		unsigned int blue;
+		unsigned int magenta;
+		unsigned int black;
+		unsigned int white;
+		unsigned int gray;
 		char strTemp[255];
 
 		for (i = 0; i < vectorDetailTXTInedx->size(); i++)	//벡터 검색
@@ -83,11 +92,16 @@ bool saveSegmentationData(string video_name, component object, Mat object_frame
 				fgets(strTemp, sizeof(strTemp), txt_fp_detail);
 
 			seek = ftell(txt_fp_detail);//덮어 쓰기를 할 위치
-			fscanf(txt_fp_detail, "%d %d %d\n", &stamp, &tempFirst, &tempLast);
+			fscanf(txt_fp_detail, "%d %d %d %d %d %d %d %d %d %d %d %d\n", &stamp, &tempFirst, &tempLast, &red, &orange, &yellow, &green, &blue, &magenta, &black, &white, &gray);
+			fflush(stdin);
 			fseek(txt_fp_detail, seek, SEEK_SET);//덮어쓸 위치로 이동
 			tempLast = directionChecker(object, ROWS, COLS);//Last 위치 갱신
 			//덮어쓰기
-			fputs((to_string(object.timeTag).append(" ").append(to_string(tempFirst)).append(" ").append(to_string(tempLast)).append("\n")).c_str(), txt_fp_detail);
+			fputs((to_string(object.timeTag).append(" ").append(to_string(tempFirst)).append(" ").append(to_string(tempLast))
+				.append(" ").append(to_string(red)).append(" ").append(to_string(orange)).append(" ").append(to_string(yellow))
+				.append(" ").append(to_string(green)).append(" ").append(to_string(blue)).append(" ").append(to_string(magenta))
+				.append(" ").append(to_string(black )).append(" ").append(to_string(white)).append(" ").append(to_string(gray))
+				.append("\n")).c_str(), txt_fp_detail);
 
 			fseek(txt_fp_detail, 0, SEEK_END);//파일 포인터 끝으로 이동
 		}
@@ -127,7 +141,7 @@ void saveSegmentation_TXT(component object, FILE *fp) {
 		<< " " << object.right - object.left << " " << object.bottom - object.top << '\n';
 	info = ss.str();
 	fprintf(fp, info.c_str());
-
+	fflush(stdout);
 	return;
 }
 
@@ -136,10 +150,10 @@ void saveSegmentation_TXT(component object, FILE *fp) {
 void saveSegmentation_TXT_detail(component object, FILE *fp, int ROWS, int COLS) {
 	string info;
 	stringstream ss;
-	ss << object.timeTag << " " << directionChecker(object, ROWS, COLS) << " 10\n";
+	ss << object.timeTag << " " << directionChecker(object, ROWS, COLS) << " 10 0 0 0 0 0 0 0 0 0\n";
 	info = ss.str();
 	fprintf(fp, info.c_str());
-
+	fflush(stdout);
 	return;
 }
 

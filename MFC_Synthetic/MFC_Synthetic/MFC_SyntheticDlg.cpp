@@ -21,6 +21,7 @@ static char THIS_FILE[] = __FILE__;
 #define BIN_VIDEO_TIMER 3	//Picture Control에 이진 영상을 출력하는 타이머
 #define PROGRESS_BAR_TIMER 4	//로딩바에 사용하는 타이머
 #define MAX_STR_BUFFER_SIZE  128 // 문자열 출력에 사용하는 버퍼 길이
+#define COLORS  9 //색상 가지수
 
 //콤보박스 텍스트
 const char* ALL = "전체";
@@ -311,7 +312,7 @@ void CMFC_SyntheticDlg::OnSysCommand(UINT nID, LPARAM lParam)
 
 	// 프로그램을 중단(x버튼)했을 때
 	else if (nID == SC_CLOSE) {
-		if (MessageBox("프로그램을 종료하시겠습니까??", "Exit", MB_YESNO) == IDYES) {
+		if (MessageBox("프로그램을 종료하시겠습니까?", "Exit", MB_YESNO) == IDYES) {
 			// 종료시 이벤트
 			AfxGetMainWnd()->PostMessage(WM_CLOSE);
 		}
@@ -581,8 +582,7 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 // 시와 분을 입력받아 segmentation을 진행함
 void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 {
-
-	cout << currentDateTime() << endl;
+	cout << "세그멘테이션 시작 시간 : " << currentDateTime() << endl;
 	KillTimer(LOGO_TIMER);
 	KillTimer(VIDEO_TIMER);
 	KillTimer(BIN_VIDEO_TIMER);
@@ -610,9 +610,8 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 			GetDlgItem(IDC_RADIO_PLAY2)->EnableWindow(FALSE);
 		}
 
-		//로딩 숨기기
-		m_LoadingProgressCtrl.ShowWindow(false);
-		cout<<currentDateTime()<<endl;
+		m_LoadingProgressCtrl.ShowWindow(false);	//로딩바 숨기기
+		cout<<"세그멘테이션 종료 시간 : " << currentDateTime()<<endl;
 	}
 	else {	// 범위 외 입력시 예외처리
 	}
@@ -706,7 +705,7 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 			// 영상을 처리하여 타임태그를 새로 부여하고 파일로 저장하기(2)
 			if (humanDetectedVector.size() > 0)
 				humanDetectedVector = humanDetectedProcess2(humanDetectedVector, prevHumanDetectedVector
-				, prevHumanDetectedVector_queue, frame, frameCount, videoStartMsec, currentMsec, fp, &vectorDetailTXTInedx, &detailTXTIndex);
+				, prevHumanDetectedVector_queue, frame, frameCount, videoStartMsec, currentMsec, fp, &vectorDetailTXTInedx, &detailTXTIndex, frame_g);
 
 			// 큐가 full일 경우 한자리 비워주기
 			if (IsComponentVectorQueueFull(&prevHumanDetectedVector_queue))
@@ -759,14 +758,152 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 	frame.release(); frame_g.release();
 	vector<component>().swap(humanDetectedVector);
 	vector<component>().swap(prevHumanDetectedVector);
+	vector<pair<int, int>>().swap(vectorDetailTXTInedx);
 
 	// 텍스트 파일 닫기
 	fclose(fp);
 	fclose(fp_detail);
 }
+const int RED = 0;
+const int ORANGE = 1;
+const int YELLOW = 2;
+const int GREEN = 3;
+const int BLUE = 4;
+const int MAGENTA = 5;
+const int BLACK = 6;
+const int WHITE = 7;
+const int GRAY = 8;
+
+int colorPicker(Vec3b pixel){
+	unsigned char H = pixel[0];
+	unsigned char S = pixel[1];
+	unsigned char V = pixel[2];
+
+	//Black인지 White인지 판별
+	if (V <= 38){
+		return BLACK;
+	}
+	else if (S <= 51 && V >= 204){
+		return WHITE;
+	}
+	else if (S<=51 && V<=191 && V>=76){	//Gray인지 판별
+		return GRAY;
+	}
+	else if (H >= 165 || H <= 8){
+		return RED;
+	}
+	else if (H <= 22){
+		return ORANGE;
+	}
+	else if (H <= 37){
+		return YELLOW;
+	}
+	else if (H <= 85){
+		return GREEN;
+	}
+	else if (H <= 140){
+		return BLUE;
+	}
+	else if (H <= 164){
+		return MAGENTA;
+	}
+}
+
+void saveColorData(FILE * txt_fp_detail, component object, vector<pair<int, int>>* vectorDetailTXTInedx, int colorArray[]){
+	//색상 정보 텍스트 파일 저장
+	//해당 객체 위치로 이동하여 Color 카운트 덮어쓰기
+		int index = -1, i = 0;
+		long seek;
+		int stamp;
+		int tempFirst;
+		int tempLast;
+		unsigned int red;
+		unsigned int orange;
+		unsigned int yellow;
+		unsigned int green;
+		unsigned int blue;
+		unsigned int magenta;
+		unsigned int black;
+		unsigned int white;
+		unsigned int gray;
+
+		char strTemp[255];
+
+		for (i = 0; i< vectorDetailTXTInedx->size(); i++)	//벡터 검색
+		if (vectorDetailTXTInedx->at(i).first == object.timeTag){
+			index = vectorDetailTXTInedx->at(i).second;	//key(timetag)에 대한 value(텍스트 파일에서 몇 번째 라인인지)저장
+			break;
+		}
+
+		//원하는 라인으로 이동
+		if (index != -1){
+			fseek(txt_fp_detail, 0, SEEK_SET);
+			for (i = 0; i < index; i++)
+				fgets(strTemp, sizeof(strTemp), txt_fp_detail);
+
+			seek = ftell(txt_fp_detail);//덮어 쓰기를 할 위치
+			fscanf(txt_fp_detail, "%d %d %d %d %d %d %d %d %d %d %d %d\n", &stamp, &tempFirst, &tempLast, &red, &orange	, &yellow, &green, &blue, &magenta, &black, &white, &gray);
+			fflush(stdin);
+			fseek(txt_fp_detail, seek, SEEK_SET);//덮어쓸 위치로 이동
+		
+			//덮어쓰기
+			fputs((to_string(object.timeTag).append(" ").append(to_string(tempFirst)).append(" ").append(to_string(tempLast))
+				.append(" ").append(to_string(red + colorArray[0])).append(" ").append(to_string(orange + colorArray[1])).append(" ").append(to_string(yellow + colorArray[2]))
+				.append(" ").append(to_string(green + colorArray[3])).append(" ").append(to_string(blue + colorArray[4])).append(" ").append(to_string(magenta + colorArray[5]))
+				.append(" ").append(to_string(black + colorArray[6])).append(" ").append(to_string(white + colorArray[7])).append(" ").append(to_string(gray + colorArray[8]))
+				.append("\n")).c_str(), txt_fp_detail);
+
+			fseek(txt_fp_detail, 0, SEEK_END);//파일 포인터 끝으로 이동
+		}
+}
+//색상 정보를 검출하는 함수
+/*opencv HSV range
+H : 180 S : 255 V : 255
+*/
+void checkColorData(FILE * txt_fp_detail, Mat frame, component object, Mat binary, vector<pair<int, int>>* vectorDetailTXTInedx){
+	Mat temp; frame.copyTo(temp);
+	Mat bg_copy=imread(getBackgroundFilePath(fileNameNoExtension));
+	int colorArray[COLORS] = {0,};
+	cvtColor(temp, temp, CV_BGR2HSV);
+	for (int i = object.top; i < object.bottom; i++) {
+		for (int j = object.left + 1; j < object.right; j++) {
+			Vec3b colorB = bg_copy.at<Vec3b>(Point(j, i));
+			if (abs(colorB[0] - frame.at<cv::Vec3b>(Point(j, i))[0])>15 &&
+				abs(colorB[1] - frame.at<cv::Vec3b>(Point(j, i))[1])>15 &&
+				abs(colorB[2] - frame.at<cv::Vec3b>(Point(j, i))[2])>15 &&
+				binary.data[i*binary.cols+j]==255){
+				colorArray[colorPicker(temp.at<cv::Vec3b>(Point(j, i)))]++;
+				/*if (colorPicker(temp.at<cv::Vec3b>(Point(j, i))) == GRAY){
+					frame.at<Vec3b>(Point(j, i))[0] = 255;
+					frame.at<Vec3b>(Point(j, i))[1] = 255;
+					frame.at<Vec3b>(Point(j, i))[2] = 255;
+				}*/
+			}
+			else{
+			/*	frame.at<Vec3b>(Point(j, i))[0] = 0;
+				frame.at<Vec3b>(Point(j, i))[1] = 0;
+				frame.at<Vec3b>(Point(j, i))[2] = 0;*/
+			}
+		}
+	}
+
+	//printf("%8d : ", object.timeTag);
+	//for (int i = 0; i < COLORS;i++)
+	//printf("%d ",colorArray[i]);
+	//printf("\n");
+
+	saveColorData(txt_fp_detail, object, vectorDetailTXTInedx, colorArray);
+
+	temp = NULL;
+	bg_copy = NULL;
+	temp.release();
+	bg_copy.release();
+	return;
+}
+
 // component vector 큐를 이용한 추가된 함수
 vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector
-	, ComponentVectorQueue prevHumanDetectedVector_Queue, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, vector<pair<int, int>>* vectorDetailTXTInedx, int* detailTxtIndex) {
+	, ComponentVectorQueue prevHumanDetectedVector_Queue, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, vector<pair<int, int>>* vectorDetailTXTInedx, int* detailTxtIndex, Mat binary_frame) {
 	// 현재에서 바로 이전 component 저장
 	vector<component> prevDetectedVector_i = prevHumanDetectedVector;
 
@@ -784,7 +921,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 					humanDetectedVector[humanCount].timeTag = prevTimeTag;
 					saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
 						, prevTimeTag, currentMsec, frameCount, humanCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTInedx, detailTxtIndex);
-
+					checkColorData(fp_detail,frame, humanDetectedVector[humanCount], binary_frame, vectorDetailTXTInedx);
 					findFlag = true;
 				}
 			} // end for
@@ -798,9 +935,10 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 							// 이전 TimeTag를 할당
 							prevTimeTag = prevDetectedVector_i[j].timeTag;
 							humanDetectedVector[humanCount].timeTag = prevTimeTag;
+							
 							saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
 								, prevTimeTag, currentMsec, frameCount, humanCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTInedx, detailTxtIndex);
-
+							checkColorData(fp_detail,frame, humanDetectedVector[humanCount], binary_frame, vectorDetailTXTInedx);
 							//printf("%d번 거르기(!!!)\n", 4 - i);
 							//printf("data :: %d %d %d\n", prevTimeTag, currentMsec, frameCount);
 							findFlag = true;
@@ -811,8 +949,10 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 				if (findFlag == false) { // 새 객체의 출현
 					prevTimeTag = currentMsec;
 					humanDetectedVector[humanCount].timeTag = currentMsec;
+					
 					saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
 						, prevTimeTag, currentMsec, frameCount, humanCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTInedx, detailTxtIndex);
+					checkColorData(fp_detail,frame, humanDetectedVector[humanCount], binary_frame, vectorDetailTXTInedx);
 				}
 			}
 		} // end if ((!prevDetectedVector_i.empty())
@@ -827,9 +967,10 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 						// 이전 TimeTag를 할당
 						prevTimeTag = prevDetectedVector_i[j].timeTag;
 						humanDetectedVector[humanCount].timeTag = prevTimeTag;
+						
 						saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
 							, prevTimeTag, currentMsec, frameCount, humanCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTInedx, detailTxtIndex);
-
+						checkColorData(fp_detail,frame, humanDetectedVector[humanCount], binary_frame, vectorDetailTXTInedx);
 						/*printf("%d번 거르기(@@@)\n", 4 - i);
 						printf("data :: %d %d %d\n", prevTimeTag, currentMsec, frameCount);*/
 						findFlag = true;
@@ -839,8 +980,10 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 			}
 			if (findFlag == false) {
 				humanDetectedVector[humanCount].timeTag = currentMsec;
+				
 				saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
 					, prevTimeTag, currentMsec, frameCount, humanCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTInedx, detailTxtIndex);
+				checkColorData(fp_detail,frame, humanDetectedVector[humanCount], binary_frame, vectorDetailTXTInedx);
 			}
 		} // end else
 	} // end for (humanCount) 
@@ -1148,6 +1291,7 @@ int readSegmentTxtFile(segment* segmentArray) {
 	fseek(fp, 0, SEEK_SET);	//포인터 처음으로 이동
 	fgets(txtBuffer, 99, fp);
 	sscanf(txtBuffer, "%d", &videoStartMsec);	//텍스트 파일 첫줄에 명시된 실제 영상 시작 시간 받아옴
+	fflush(stdin);
 
 	// frameInfo.txt 파일에서 데이터를 추출 하여 segment array 초기화
 	while (!feof(fp)) {
@@ -1160,7 +1304,7 @@ int readSegmentTxtFile(segment* segmentArray) {
 			&segmentArray[segmentCount].left, &segmentArray[segmentCount].top,
 			&segmentArray[segmentCount].right, &segmentArray[segmentCount].bottom,
 			&segmentArray[segmentCount].width, &segmentArray[segmentCount].height);
-
+		fflush(stdin);
 		// filename 저장
 		segmentArray[segmentCount].fileName
 			.append(to_string(segmentArray[segmentCount].timeTag)).append("_")
@@ -1827,6 +1971,7 @@ bool CMFC_SyntheticDlg::isDirectionMatch(int timetag){
 	int tempFirst;
 	int tempLast;
 	while (fscanf(fp_detail, "%d %d %d", &tempTimetag, &tempFirst, &tempLast) != EOF){
+		fflush(stdin);
 		if (tempTimetag == timetag)
 			break;
 	}
