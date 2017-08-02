@@ -145,6 +145,7 @@ BEGIN_MESSAGE_MAP(CMFC_SyntheticDlg, CDialogEx)
 	ON_BN_CLICKED(IDOK, &CMFC_SyntheticDlg::OnBnClickedOk)
 	ON_BN_CLICKED(IDCANCEL, &CMFC_SyntheticDlg::OnBnClickedCancel)
 	ON_BN_CLICKED(IDC_BTN_SYN_SAVE, &CMFC_SyntheticDlg::OnBnClickedBtnSynSave)
+	ON_WM_DRAWITEM()
 END_MESSAGE_MAP()
 
 
@@ -1697,6 +1698,25 @@ void CMFC_SyntheticDlg::layoutInit(){
 	CWnd *pStringDirection = GetDlgItem(IDC_STRING_DIRECTION);
 	CWnd *pStringDirectionStart = GetDlgItem(IDC_STRING_DIRECTION_START);
 	CWnd *pStringDirectionEnd = GetDlgItem(IDC_STRING_DIRECTION_END);
+	CWnd *pStringColor = GetDlgItem(IDC_STRING_COLOR);
+	CButton *pButtonColorR = (CButton *)GetDlgItem(IDC_COLOR_RED);
+	CButton *pButtonColorG = (CButton *)GetDlgItem(IDC_COLOR_GREEN);
+	CButton *pButtonColorB = (CButton *)GetDlgItem(IDC_COLOR_BLUE);
+	CButton *pButtonColorO = (CButton *)GetDlgItem(IDC_COLOR_ORANGE);
+	CButton *pButtonColorY = (CButton *)GetDlgItem(IDC_COLOR_YELLOW);
+	CButton *pButtonColorM = (CButton *)GetDlgItem(IDC_COLOR_MAGENTA);
+	CButton *pButtonColorBLACK = (CButton *)GetDlgItem(IDC_COLOR_BLACK);
+	CButton *pButtonColorWHITE = (CButton *)GetDlgItem(IDC_COLOR_WHITE);
+	CButton *pButtonColorGRAY = (CButton *)GetDlgItem(IDC_COLOR_GRAY);
+	CWnd *pCheckBoxR = GetDlgItem(IDC_CHECK_RED);
+	CWnd *pCheckBoxG = GetDlgItem(IDC_CHECK_GREEN);
+	CWnd *pCheckBoxB = GetDlgItem(IDC_CHECK_BLUE);
+	CWnd *pCheckBoxO = GetDlgItem(IDC_CHECK_ORANGE);
+	CWnd *pCheckBoxY = GetDlgItem(IDC_CHECK_YELLOW);
+	CWnd *pCheckBoxM = GetDlgItem(IDC_CHECK_MAGENTA);
+	CWnd *pCheckBoxBLACK = GetDlgItem(IDC_CHECK_BLACK);
+	CWnd *pCheckBoxWHITE = GetDlgItem(IDC_CHECK_WHITE);
+	CWnd *pCheckBoxGRAY = GetDlgItem(IDC_CHECK_GRAY);
 
 	int box_syntheticX = padding;
 	int box_syntheticY = box_segmentationY + box_segmentationHeight + padding;
@@ -1721,6 +1741,26 @@ void CMFC_SyntheticDlg::layoutInit(){
 	mComboStart.MoveWindow(box_syntheticX + padding + 520, box_syntheticY + box_syntheticHeight*0.4, 100, 20, TRUE);
 	pStringDirectionEnd->MoveWindow(box_syntheticX + padding + 470, box_syntheticY + box_syntheticHeight*0.6, 30, 20, TRUE);
 	mComboEnd.MoveWindow(box_syntheticX + padding + 520, box_syntheticY + box_syntheticHeight*0.6, 100, 20, TRUE);
+
+	pStringColor->MoveWindow(box_syntheticX + padding + 680, box_syntheticY + box_syntheticHeight*0.2, 100, 20, TRUE);
+	pButtonColorR->MoveWindow(box_syntheticX + padding + 680, box_syntheticY + box_syntheticHeight*0.35, 30, 20, TRUE);
+	pCheckBoxR->MoveWindow(box_syntheticX + padding + 730, box_syntheticY + box_syntheticHeight*0.35, 30, 20, TRUE);
+	pButtonColorO->MoveWindow(box_syntheticX + padding + 680, box_syntheticY + box_syntheticHeight*0.5, 30, 20, TRUE);
+	pCheckBoxO->MoveWindow(box_syntheticX + padding + 730, box_syntheticY + box_syntheticHeight*0.5, 30, 20, TRUE);
+	pButtonColorWHITE->MoveWindow(box_syntheticX + padding + 680, box_syntheticY + box_syntheticHeight*0.65, 30, 20, TRUE);
+	pCheckBoxWHITE->MoveWindow(box_syntheticX + padding + 730, box_syntheticY + box_syntheticHeight*0.65, 30, 20, TRUE);
+	pButtonColorG->MoveWindow(box_syntheticX + padding + 780, box_syntheticY + box_syntheticHeight*0.35, 30, 20, TRUE);
+	pCheckBoxG->MoveWindow(box_syntheticX + padding + 830, box_syntheticY + box_syntheticHeight*0.35, 30, 20, TRUE);
+	pButtonColorY->MoveWindow(box_syntheticX + padding + 780, box_syntheticY + box_syntheticHeight*0.5, 30, 20, TRUE);
+	pCheckBoxY->MoveWindow(box_syntheticX + padding + 830, box_syntheticY + box_syntheticHeight*0.5, 30, 20, TRUE);
+	pButtonColorGRAY->MoveWindow(box_syntheticX + padding + 780, box_syntheticY + box_syntheticHeight*0.65, 30, 20, TRUE);
+	pCheckBoxGRAY->MoveWindow(box_syntheticX + padding + 830, box_syntheticY + box_syntheticHeight*0.65, 30, 20, TRUE);
+	pButtonColorB->MoveWindow(box_syntheticX + padding + 880, box_syntheticY + box_syntheticHeight*0.35, 30, 20, TRUE);
+	pCheckBoxB->MoveWindow(box_syntheticX + padding + 920, box_syntheticY + box_syntheticHeight*0.35, 30, 20, TRUE);
+	pButtonColorM->MoveWindow(box_syntheticX + padding + 880, box_syntheticY + box_syntheticHeight*0.5, 30, 20, TRUE);
+	pCheckBoxM->MoveWindow(box_syntheticX + padding + 920, box_syntheticY + box_syntheticHeight*0.5, 30, 20, TRUE);
+	pButtonColorBLACK->MoveWindow(box_syntheticX + padding + 880, box_syntheticY + box_syntheticHeight*0.65, 30, 20, TRUE);
+	pCheckBoxBLACK->MoveWindow(box_syntheticX + padding + 920, box_syntheticY + box_syntheticHeight*0.65, 30, 20, TRUE);
 
 	mButtonSynSave.MoveWindow(box_syntheticX + box_syntheticWidth-110, box_syntheticY + box_syntheticHeight*0.8, 100, 20, TRUE);
 
@@ -2061,4 +2101,116 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSynSave()
 		AfxMessageBox("You can't save without segmentation results");
 	}
 
+}
+
+//버튼 색상
+void CMFC_SyntheticDlg::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
+{
+	CDC dc;
+	RECT rect;
+	UINT state;
+	switch (nIDCtl){
+	case IDC_COLOR_RED:
+		dc.Attach(lpDrawItemStruct->hDC);   // Get the Button DC to CDC
+
+		rect = lpDrawItemStruct->rcItem;     //Store the Button rect to our local rect.
+		dc.Draw3dRect(&rect, RGB(255, 255, 255), RGB(0, 0, 0));
+		dc.FillSolidRect(&rect, RGB(255, 0, 0));//Here you can define the required color to appear on the Button.
+
+		 state = lpDrawItemStruct->itemState;  //This defines the state of the Push button either pressed or not. 
+
+		dc.DrawEdge(&rect, EDGE_SUNKEN, BF_RECT);
+		break;
+	case IDC_COLOR_GREEN:
+		dc.Attach(lpDrawItemStruct->hDC);   // Get the Button DC to CDC
+
+		rect = lpDrawItemStruct->rcItem;     //Store the Button rect to our local rect.
+		dc.Draw3dRect(&rect, RGB(255, 255, 255), RGB(0, 0, 0));
+		dc.FillSolidRect(&rect, RGB(0, 255, 0));//Here you can define the required color to appear on the Button.
+
+		 state = lpDrawItemStruct->itemState;  //This defines the state of the Push button either pressed or not. 
+
+		dc.DrawEdge(&rect, EDGE_SUNKEN, BF_RECT);
+		break;
+	case IDC_COLOR_BLUE:
+		dc.Attach(lpDrawItemStruct->hDC);   // Get the Button DC to CDC
+
+		rect = lpDrawItemStruct->rcItem;     //Store the Button rect to our local rect.
+		dc.Draw3dRect(&rect, RGB(255, 255, 255), RGB(0, 0, 0));
+		dc.FillSolidRect(&rect, RGB(0, 0, 255));//Here you can define the required color to appear on the Button.
+
+		state = lpDrawItemStruct->itemState;  //This defines the state of the Push button either pressed or not. 
+
+		dc.DrawEdge(&rect, EDGE_SUNKEN, BF_RECT);
+		break;
+	case IDC_COLOR_ORANGE:
+		dc.Attach(lpDrawItemStruct->hDC);   // Get the Button DC to CDC
+
+		rect = lpDrawItemStruct->rcItem;     //Store the Button rect to our local rect.
+		dc.Draw3dRect(&rect, RGB(255, 255, 255), RGB(0, 0, 0));
+		dc.FillSolidRect(&rect, RGB(255, 102, 0));//Here you can define the required color to appear on the Button.
+
+		state = lpDrawItemStruct->itemState;  //This defines the state of the Push button either pressed or not. 
+
+		dc.DrawEdge(&rect, EDGE_SUNKEN, BF_RECT);
+		break;
+	case IDC_COLOR_YELLOW:
+		dc.Attach(lpDrawItemStruct->hDC);   // Get the Button DC to CDC
+
+		rect = lpDrawItemStruct->rcItem;     //Store the Button rect to our local rect.
+		dc.Draw3dRect(&rect, RGB(255, 255, 255), RGB(0, 0, 0));
+		dc.FillSolidRect(&rect, RGB(255, 255, 0));//Here you can define the required color to appear on the Button.
+
+		state = lpDrawItemStruct->itemState;  //This defines the state of the Push button either pressed or not. 
+
+		dc.DrawEdge(&rect, EDGE_SUNKEN, BF_RECT);
+		break;
+	case IDC_COLOR_MAGENTA:
+		dc.Attach(lpDrawItemStruct->hDC);   // Get the Button DC to CDC
+
+		rect = lpDrawItemStruct->rcItem;     //Store the Button rect to our local rect.
+		dc.Draw3dRect(&rect, RGB(255, 255, 255), RGB(0, 0, 0));
+		dc.FillSolidRect(&rect, RGB(255, 0, 255));//Here you can define the required color to appear on the Button.
+
+		state = lpDrawItemStruct->itemState;  //This defines the state of the Push button either pressed or not. 
+
+		dc.DrawEdge(&rect, EDGE_SUNKEN, BF_RECT);
+		break;
+	case IDC_COLOR_BLACK:
+		dc.Attach(lpDrawItemStruct->hDC);   // Get the Button DC to CDC
+
+		rect = lpDrawItemStruct->rcItem;     //Store the Button rect to our local rect.
+		dc.Draw3dRect(&rect, RGB(255, 255, 255), RGB(0, 0, 0));
+		dc.FillSolidRect(&rect, RGB(0, 0, 0));//Here you can define the required color to appear on the Button.
+
+		state = lpDrawItemStruct->itemState;  //This defines the state of the Push button either pressed or not. 
+
+		dc.DrawEdge(&rect, EDGE_SUNKEN, BF_RECT);
+		break;
+	case IDC_COLOR_GRAY:
+		dc.Attach(lpDrawItemStruct->hDC);   // Get the Button DC to CDC
+
+		rect = lpDrawItemStruct->rcItem;     //Store the Button rect to our local rect.
+		dc.Draw3dRect(&rect, RGB(255, 255, 255), RGB(0, 0, 0));
+		dc.FillSolidRect(&rect, RGB(153, 153, 153));//Here you can define the required color to appear on the Button.
+
+		state = lpDrawItemStruct->itemState;  //This defines the state of the Push button either pressed or not. 
+
+		dc.DrawEdge(&rect, EDGE_SUNKEN, BF_RECT);
+		break;
+	case IDC_COLOR_WHITE:
+		dc.Attach(lpDrawItemStruct->hDC);   // Get the Button DC to CDC
+
+		rect = lpDrawItemStruct->rcItem;     //Store the Button rect to our local rect.
+		dc.Draw3dRect(&rect, RGB(255, 255, 255), RGB(0, 0, 0));
+		dc.FillSolidRect(&rect, RGB(255, 255, 255));//Here you can define the required color to appear on the Button.
+
+		state = lpDrawItemStruct->itemState;  //This defines the state of the Push button either pressed or not. 
+
+		dc.DrawEdge(&rect, EDGE_SUNKEN, BF_RECT);
+		break;
+	}
+	
+	dc.Detach();  // Detach the Button DC
+	CDialogEx::OnDrawItem(nIDCtl, lpDrawItemStruct);
 }

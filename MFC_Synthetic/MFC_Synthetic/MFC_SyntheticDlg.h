@@ -214,7 +214,7 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	CImage cImage;
-	// afx_msg void OnClose();
+
 	afx_msg void OnCancel();
 	afx_msg void OnDestroy();
 
@@ -262,5 +262,6 @@ public:
 	CButton mButtonSynSave;
 	afx_msg void OnBnClickedBtnSynSave();
 	afx_msg bool inputSegmentQueue(int obj1_TimeTag, int obj2_TimeTag, int segmentCount, segment*);
+	afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
 };
 
