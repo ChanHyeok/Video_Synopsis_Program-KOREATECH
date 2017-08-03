@@ -257,7 +257,7 @@ public:
 	//ÄÞº¸¹Ú½º
 	CComboBox mComboStart;
 	CComboBox mComboEnd;
-	afx_msg bool isDirectionMatch(int);
+	afx_msg bool isDirectionAndColorMatch(int);
 	
 	CButton mButtonSynSave;
 	afx_msg void OnBnClickedBtnSynSave();

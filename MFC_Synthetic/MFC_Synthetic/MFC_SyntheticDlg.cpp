@@ -646,7 +646,7 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 
 	// 얻어낸 객체 프레임의 정보를 써 낼 텍스트 파일 정의s
 	fp = fopen(getTextFilePath(fileNameNoExtension).c_str(), "w");	// 쓰기모드
-	fp_detail = fopen(getDetailTextFilePath(fileNameNoExtension).c_str(), "w+");	// 쓰기모드
+	fopen_s(&fp_detail,getDetailTextFilePath(fileNameNoExtension).c_str(), "w+");	// 쓰기모드
 	fprintf(fp, to_string(videoStartMsec).append("\n").c_str());	//첫줄에 영상시작시간 적어줌
 
 	// vc_source의 시작시간 0으로 초기화
@@ -847,7 +847,7 @@ void saveColorData(FILE * txt_fp_detail, component object, vector<pair<int, int>
 			fscanf(txt_fp_detail, "%d %d %d %d %d %d %d %d %d %d %d %d\n", &stamp, &tempFirst, &tempLast, &red, &orange	, &yellow, &green, &blue, &magenta, &black, &white, &gray);
 			fflush(stdin);
 			fseek(txt_fp_detail, seek, SEEK_SET);//덮어쓸 위치로 이동
-		
+
 			//덮어쓰기
 			fputs((to_string(object.timeTag).append(" ").append(to_string(tempFirst)).append(" ").append(to_string(tempLast))
 				.append(" ").append(to_string(red + colorArray[0])).append(" ").append(to_string(orange + colorArray[1])).append(" ").append(to_string(yellow + colorArray[2]))
@@ -1349,7 +1349,7 @@ bool CMFC_SyntheticDlg::inputSegmentQueue(int obj1_TimeTag, int obj2_TimeTag, in
 		// start timetag와 end timetag 사이면 enqueue
 		// 아직 찾지 못했고 일치하는 타임태그를 찾았을 경우
 		if (segmentArray[i].timeTag >= obj1_TimeTag && segmentArray[i].timeTag <= obj2_TimeTag) {
-			if (segmentArray[i].timeTag == segmentArray[i].msec && isDirectionMatch(segmentArray[i].timeTag)) {
+			if (segmentArray[i].timeTag == segmentArray[i].msec && isDirectionAndColorMatch(segmentArray[i].timeTag)) {
 				//출력해야할 객체의 첫 프레임의 타임태그와 위치를 큐에 삽입
 				Enqueue(&segment_queue, segmentArray[i].timeTag, i);
 			}
@@ -2004,56 +2004,75 @@ bool isDierectionAvailable(int val, int val_cur){
 
 	return result;
 }
-bool CMFC_SyntheticDlg::isDirectionMatch(int timetag){
-	bool isFirstOk = false, isLastOk = false;
+
+bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]){
+	unsigned int first=0,second=0,third=0;
+	int index_first = 0, index_second = 0, index_third=0;
+	for (int i = 0; i < COLORS; i++){
+		if (colorArray[i]>=first){
+			third = second;
+			second = first;
+			first = colorArray[i];
+			index_third = index_second;
+			index_second = index_first;
+			index_first = i;
+
+		}
+		else if (colorArray[i]>=second){
+			third = second;
+			second = colorArray[i];
+			index_third = index_second;
+			index_second = i;
+		}
+		else if (colorArray[i] >= third){
+			third = colorArray[i];
+			index_third = i;
+		}
+	}
+	printf("%d %d %d\n", index_first, index_second, index_third);
+	if (colorCheckArray[index_first] || colorCheckArray[index_second] || colorCheckArray[index_third])
+		return true;
+	else
+		return false;
+}
+bool CMFC_SyntheticDlg::isDirectionAndColorMatch(int timetag){
+	boolean isColorCheckedArray[COLORS] = {
+		IsDlgButtonChecked(IDC_CHECK_RED),
+		IsDlgButtonChecked(IDC_CHECK_ORANGE),
+		IsDlgButtonChecked(IDC_CHECK_YELLOW),
+		IsDlgButtonChecked(IDC_CHECK_GREEN),
+		IsDlgButtonChecked(IDC_CHECK_BLUE),
+		IsDlgButtonChecked(IDC_CHECK_MAGENTA),
+		IsDlgButtonChecked(IDC_CHECK_BLACK),
+		IsDlgButtonChecked(IDC_CHECK_WHITE),
+		IsDlgButtonChecked(IDC_CHECK_GRAY)		
+	};
+
+	bool isFirstOk = false, isLastOk = false, isColorOk = false;
 	int indexFirst = mComboStart.GetCurSel();
 	int indexLast = mComboEnd.GetCurSel();
 
-	FILE* fp_detail = fopen(getDetailTextFilePath(fileNameNoExtension).c_str(), "r");
+	FILE* fp_d;
+	fopen_s(&fp_d,getDetailTextFilePath(fileNameNoExtension).c_str(), "r");
+
 	int tempTimetag;
 	int tempFirst;
 	int tempLast;
-	while (fscanf(fp_detail, "%d %d %d", &tempTimetag, &tempFirst, &tempLast) != EOF){
-		fflush(stdin);
+	unsigned int colorArray[COLORS] = { 0, };
+	
+	while (fscanf_s(fp_d, "%d %d %d %d %d %d %d %d %d %d %d %d\n", &tempTimetag, &tempFirst, &tempLast, &colorArray[0], &colorArray[1], &colorArray[2], &colorArray[3], &colorArray[4], &colorArray[5], &colorArray[6], &colorArray[7], &colorArray[8]) != EOF){
+		printf("%d %d %d %d %d %d %d %d %d %d %d %d\n", tempTimetag, tempFirst, tempLast, colorArray[0], colorArray[1], colorArray[2], colorArray[3], colorArray[4], colorArray[5], colorArray[6], colorArray[7], colorArray[8]);
 		if (tempTimetag == timetag)
 			break;
 	}
-	fclose(fp_detail);
+	fclose(fp_d);
 
 	isFirstOk = isDierectionAvailable(indexFirst, tempFirst);
 	isLastOk = isDierectionAvailable(indexLast, tempLast);
+	printf("%d : ", timetag);
+	isColorOk = isColorAvailable(isColorCheckedArray, colorArray);
 
-	if (isFirstOk && isLastOk)
-		return true;
-	else return false;
-}
-
-bool CMFC_SyntheticDlg::isColorMatch(int timetag){
-	boolean isRChecked = IsDlgButtonChecked(IDC_CHECK_RED);
-	boolean isGChecked = IsDlgButtonChecked(IDC_CHECK_GREEN);
-	boolean isBChecked = IsDlgButtonChecked(IDC_CHECK_BLUE);
-	boolean isOChecked = IsDlgButtonChecked(IDC_CHECK_ORANGE);
-	boolean isYChecked = IsDlgButtonChecked(IDC_CHECK_YELLOW);
-	boolean isMChecked = IsDlgButtonChecked(IDC_CHECK_MAGENTA);
-	boolean isWHITEChecked = IsDlgButtonChecked(IDC_CHECK_WHITE);
-	boolean isGRAYChecked = IsDlgButtonChecked(IDC_CHECK_GRAY);
-	boolean isBLACKChecked = IsDlgButtonChecked(IDC_CHECK_BLACK);
-
-	FILE* fp_detail = fopen(getDetailTextFilePath(fileNameNoExtension).c_str(), "r");
-	int tempTimetag;
-	int tempFirst;
-	int tempLast;
-	while (fscanf(fp_detail, "%d %d %d", &tempTimetag, &tempFirst, &tempLast) != EOF){
-		fflush(stdin);
-		if (tempTimetag == timetag)
-			break;
-	}
-	fclose(fp_detail);
-
-	isFirstOk = isDierectionAvailable(indexFirst, tempFirst);
-	isLastOk = isDierectionAvailable(indexLast, tempLast);
-
-	if (isFirstOk && isLastOk)
+	if (isFirstOk && isLastOk && isColorOk)
 		return true;
 	else return false;
 }

@@ -79,7 +79,7 @@ bool saveSegmentationData(string video_name, component object, Mat object_frame
 		unsigned int gray;
 		char strTemp[255];
 
-		for (i = 0; i < vectorDetailTXTInedx->size(); i++)	//벡터 검색
+		for (i = 0; i < vectorDetailTXTInedx->size(); i++)	//벡터 검색        
 		if (vectorDetailTXTInedx->at(i).first == object.timeTag){
 			index = vectorDetailTXTInedx->at(i).second;	//key(timetag)에 대한 value(텍스트 파일에서 몇 번째 라인인지)저장
 			break;
@@ -125,7 +125,7 @@ void saveSegmentation_JPG(component object, Mat frame, string video_path) {
 
 	// 저장하면서 빨간 사각형을 그리는 함수
 	rectangle(img, Point(0, 0),
-		Point(object.right - object.left - 1, object.bottom - object.top - 1),
+		Point(object.width, object.height),
 		Scalar(0, 0, 255), 2);
 
 	// 해당 이미지를 얻어온 파일이름을 통해 jpg파일로 저장
@@ -150,7 +150,9 @@ void saveSegmentation_TXT(component object, FILE *fp) {
 void saveSegmentation_TXT_detail(component object, FILE *fp, int ROWS, int COLS) {
 	string info;
 	stringstream ss;
+	
 	ss << object.timeTag << " " << directionChecker(object, ROWS, COLS) << " 10 0 0 0 0 0 0 0 0 0\n";
+
 	info = ss.str();
 	fprintf(fp, info.c_str());
 	fflush(stdout);
@@ -202,7 +204,7 @@ Mat loadJPGObjectFile(segment obj, string file_name) {
 
 // ROI영역만 추출하는 함수
 Mat objectCutting(component object, Mat img, unsigned int ROWS, unsigned int COLS) {
-	return img(Rect(object.left, object.top, object.right - object.left, object.bottom - object.top)).clone();
+	return img(Rect(object.left, object.top, object.width, object.height)).clone();
 	//잘린 이미지 반환
 }
 
