@@ -1049,10 +1049,8 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 
 // 합성된 프레임을 가져오는 연산
 Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
-	int *labelMap = (int*)calloc(bgFrame.cols * bgFrame.rows, sizeof(int));	//겹침을 판단하는 용도
-
+	int *labelMap = new int [bgFrame.cols * bgFrame.rows];	//겹침을 판단하는 용도
 	node tempnode;	//DeQueue한 결과를 받을 node
-
 	int countOfObj = segment_queue.count;	//큐 인스턴스의 노드 갯수
 	stringstream ss;
 	synthesisEndFlag = false;
@@ -1164,8 +1162,7 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 	delete[] TimeTag_p;
 	delete[] TimeTag_s;
 
-	labelMap = NULL;
-	free(labelMap);
+	delete[] labelMap;
 	vector<int>().swap(vectorPreNodeIndex);
 	return bgFrame;
 }
