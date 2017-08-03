@@ -1859,6 +1859,17 @@ void CMFC_SyntheticDlg::updateUI(int video_length, int video_cols, int video_row
 	mComboEnd.AddString(_T(RIGHTBELOW));
 	mComboEnd.SetCurSel(0);	//첫 인덱스를 가리킴
 
+	//컬러 체크박스 초기화
+	CheckDlgButton(IDC_CHECK_ALL, TRUE);
+	CheckDlgButton(IDC_CHECK_RED, TRUE);
+	CheckDlgButton(IDC_CHECK_GREEN, TRUE);
+	CheckDlgButton(IDC_CHECK_BLUE, TRUE);
+	CheckDlgButton(IDC_CHECK_ORANGE, TRUE);
+	CheckDlgButton(IDC_CHECK_YELLOW, TRUE);
+	CheckDlgButton(IDC_CHECK_MAGENTA, TRUE);
+	CheckDlgButton(IDC_CHECK_BLACK, TRUE);
+	CheckDlgButton(IDC_CHECK_GRAY, TRUE);
+	CheckDlgButton(IDC_CHECK_WHITE, TRUE);
 }
 
 //동영상 플레이어 슬라이더를 마우스로 잡은 뒤, 놓았을 때 발생하는 콜백
