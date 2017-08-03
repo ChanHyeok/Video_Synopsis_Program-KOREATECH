@@ -146,6 +146,7 @@ BEGIN_MESSAGE_MAP(CMFC_SyntheticDlg, CDialogEx)
 	ON_BN_CLICKED(IDCANCEL, &CMFC_SyntheticDlg::OnBnClickedCancel)
 	ON_BN_CLICKED(IDC_BTN_SYN_SAVE, &CMFC_SyntheticDlg::OnBnClickedBtnSynSave)
 	ON_WM_DRAWITEM()
+	ON_BN_CLICKED(IDC_CHECK_ALL, &CMFC_SyntheticDlg::OnBnClickedCheckAll)
 END_MESSAGE_MAP()
 
 
@@ -1708,6 +1709,7 @@ void CMFC_SyntheticDlg::layoutInit(){
 	CButton *pButtonColorBLACK = (CButton *)GetDlgItem(IDC_COLOR_BLACK);
 	CButton *pButtonColorWHITE = (CButton *)GetDlgItem(IDC_COLOR_WHITE);
 	CButton *pButtonColorGRAY = (CButton *)GetDlgItem(IDC_COLOR_GRAY);
+	CWnd *pCheckBoxAll = GetDlgItem(IDC_CHECK_ALL);
 	CWnd *pCheckBoxR = GetDlgItem(IDC_CHECK_RED);
 	CWnd *pCheckBoxG = GetDlgItem(IDC_CHECK_GREEN);
 	CWnd *pCheckBoxB = GetDlgItem(IDC_CHECK_BLUE);
@@ -1743,6 +1745,7 @@ void CMFC_SyntheticDlg::layoutInit(){
 	mComboEnd.MoveWindow(box_syntheticX + padding + 520, box_syntheticY + box_syntheticHeight*0.6, 100, 20, TRUE);
 
 	pStringColor->MoveWindow(box_syntheticX + padding + 680, box_syntheticY + box_syntheticHeight*0.2, 100, 20, TRUE);
+	pCheckBoxAll->MoveWindow(box_syntheticX + padding + 710, box_syntheticY + box_syntheticHeight*0.2, 30, 20, TRUE);
 	pButtonColorR->MoveWindow(box_syntheticX + padding + 680, box_syntheticY + box_syntheticHeight*0.35, 30, 20, TRUE);
 	pCheckBoxR->MoveWindow(box_syntheticX + padding + 730, box_syntheticY + box_syntheticHeight*0.35, 30, 20, TRUE);
 	pButtonColorO->MoveWindow(box_syntheticX + padding + 680, box_syntheticY + box_syntheticHeight*0.5, 30, 20, TRUE);
@@ -2025,6 +2028,36 @@ bool CMFC_SyntheticDlg::isDirectionMatch(int timetag){
 	else return false;
 }
 
+bool CMFC_SyntheticDlg::isColorMatch(int timetag){
+	boolean isRChecked = IsDlgButtonChecked(IDC_CHECK_RED);
+	boolean isGChecked = IsDlgButtonChecked(IDC_CHECK_GREEN);
+	boolean isBChecked = IsDlgButtonChecked(IDC_CHECK_BLUE);
+	boolean isOChecked = IsDlgButtonChecked(IDC_CHECK_ORANGE);
+	boolean isYChecked = IsDlgButtonChecked(IDC_CHECK_YELLOW);
+	boolean isMChecked = IsDlgButtonChecked(IDC_CHECK_MAGENTA);
+	boolean isWHITEChecked = IsDlgButtonChecked(IDC_CHECK_WHITE);
+	boolean isGRAYChecked = IsDlgButtonChecked(IDC_CHECK_GRAY);
+	boolean isBLACKChecked = IsDlgButtonChecked(IDC_CHECK_BLACK);
+
+	FILE* fp_detail = fopen(getDetailTextFilePath(fileNameNoExtension).c_str(), "r");
+	int tempTimetag;
+	int tempFirst;
+	int tempLast;
+	while (fscanf(fp_detail, "%d %d %d", &tempTimetag, &tempFirst, &tempLast) != EOF){
+		fflush(stdin);
+		if (tempTimetag == timetag)
+			break;
+	}
+	fclose(fp_detail);
+
+	isFirstOk = isDierectionAvailable(indexFirst, tempFirst);
+	isLastOk = isDierectionAvailable(indexLast, tempLast);
+
+	if (isFirstOk && isLastOk)
+		return true;
+	else return false;
+}
+
 void CMFC_SyntheticDlg::OnBnClickedBtnSynSave()
 {
 	//실행중인 타이머 종료
@@ -2213,4 +2246,31 @@ void CMFC_SyntheticDlg::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct
 	
 	dc.Detach();  // Detach the Button DC
 	CDialogEx::OnDrawItem(nIDCtl, lpDrawItemStruct);
+}
+
+
+void CMFC_SyntheticDlg::OnBnClickedCheckAll()
+{
+	if (IsDlgButtonChecked(IDC_CHECK_ALL)){
+		CheckDlgButton(IDC_CHECK_RED, TRUE);
+		CheckDlgButton(IDC_CHECK_GREEN, TRUE);
+		CheckDlgButton(IDC_CHECK_BLUE, TRUE);
+		CheckDlgButton(IDC_CHECK_ORANGE, TRUE);
+		CheckDlgButton(IDC_CHECK_YELLOW, TRUE);
+		CheckDlgButton(IDC_CHECK_MAGENTA, TRUE);
+		CheckDlgButton(IDC_CHECK_BLACK, TRUE);
+		CheckDlgButton(IDC_CHECK_GRAY, TRUE);
+		CheckDlgButton(IDC_CHECK_WHITE, TRUE);
+	}
+	else{
+		CheckDlgButton(IDC_CHECK_RED, FALSE);
+		CheckDlgButton(IDC_CHECK_GREEN, FALSE);
+		CheckDlgButton(IDC_CHECK_BLUE, FALSE);
+		CheckDlgButton(IDC_CHECK_ORANGE, FALSE);
+		CheckDlgButton(IDC_CHECK_YELLOW, FALSE);
+		CheckDlgButton(IDC_CHECK_MAGENTA, FALSE);
+		CheckDlgButton(IDC_CHECK_BLACK, FALSE);
+		CheckDlgButton(IDC_CHECK_GRAY, FALSE);
+		CheckDlgButton(IDC_CHECK_WHITE, FALSE);
+	}
 }
