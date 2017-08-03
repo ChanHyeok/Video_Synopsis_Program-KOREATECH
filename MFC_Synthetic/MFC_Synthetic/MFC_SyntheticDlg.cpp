@@ -35,7 +35,7 @@ const char* LEFTBELOW = "좌하단";
 const char* RIGHTBELOW = "우하단";
 
 // 배경 생성
-const int FRAMES_FOR_MAKE_BACKGROUND = 500;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
+const int FRAMES_FOR_MAKE_BACKGROUND = 1000;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
 const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 1000;	//다음 배경을 만들기 위한 시간간격(동적)
 // fps가 약 23-25 가량 나오는 영상에서 약 1분이 흐른 framecount 값은 1500
 
@@ -1377,7 +1377,7 @@ Mat grayBackgroundInit(VideoCapture *vc_Source, int frame_point) {
 	vc_Source->set(CV_CAP_PROP_POS_MSEC, frame_point);
 
 	vc_Source->read(bg);	//첫 프레임 저장
-/*
+
 	// 테스트 코드 
 	string temp = SEGMENTATION_DATA_DIRECTORY_NAME + "/" + fileNameNoExtension
 		+ "/" + "prevbackground" + fileNameNoExtension;
@@ -1385,15 +1385,17 @@ Mat grayBackgroundInit(VideoCapture *vc_Source, int frame_point) {
 	temp.append("_").append(temp2).append(".jpg");
 
 	int xx = imwrite(temp, bg);
-	*/
-
+	
 	int i = 0;
 	for (i; i < FRAMES_FOR_MAKE_BACKGROUND - 1; i++) {
 		vc_Source->read(frame); //get single frame
 		temporalMedianBG(frame, bg, ROWS * 3, COLS);
+
+		if (i % 100 == 5) {
+		}
 	}
 	// 비디오 파일 이름을 통해서 bg 파일의 이름 만들어서 jpg 파일로 저장
-	/*
+	
 	// 테스트 코드 
 	temp = SEGMENTATION_DATA_DIRECTORY_NAME + "/" + fileNameNoExtension
 		+ "/" + RESULT_BACKGROUND_FILENAME + fileNameNoExtension;
@@ -1401,7 +1403,7 @@ Mat grayBackgroundInit(VideoCapture *vc_Source, int frame_point) {
 	temp.append("_").append(temp2).append(".jpg");
 
 	xx = imwrite(temp, bg);
-	*/
+
 	if (imwrite(getBackgroundFilePath(fileNameNoExtension), bg))
 		printf("Background Init Completed\n");
 	else
@@ -1412,6 +1414,14 @@ Mat grayBackgroundInit(VideoCapture *vc_Source, int frame_point) {
 
 	frame = NULL; bg = NULL;
 	frame.release(); bg.release();
+	// 테스트 코드 
+	temp = SEGMENTATION_DATA_DIRECTORY_NAME + "/" + fileNameNoExtension
+		+ "/" + RESULT_BACKGROUND_FILENAME + fileNameNoExtension;
+	temp2 = to_string(frame_point) + "-" + to_string(frame_point + i);
+	temp.append("_").append(temp2).append(".jpg");
+
+	xx = imwrite(temp, bg_gray);
+	background_gray = bg_gray;
 	return bg_gray;
 }
 

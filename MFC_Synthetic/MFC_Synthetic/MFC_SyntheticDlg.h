@@ -152,7 +152,7 @@ bool labelSizeFiltering(int width, int height, int, int, int, int);
 // tool_background.cpp, tool_foreground.cpp
 Mat ExtractForegroundToMOG2(Mat frameimg);
 Mat ExtractFg(Mat, Mat, int, int);
-int temporalMedianBG(Mat frameimg, Mat bgimg, int rows, int cols);
+Mat temporalMedianBG(Mat frameimg, Mat bgimg, int rows, int cols);
 
 // FileProcessing.cpp
 String getFileName(CString f_path, char find_char, BOOL);
