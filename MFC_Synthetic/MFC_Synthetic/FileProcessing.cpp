@@ -19,6 +19,56 @@ string allocatingComponentFilename(int timeTag, int currentMsec, int frameCount,
 // segment 폴더 안에 Segmentation된 Obj만을 jpg파일로 저장하는 함수
 Mat objectCutting(component object, Mat img, unsigned int ROWS, unsigned int COLS);
 
+
+string readTxt(string path){
+	string result;
+	ifstream in(path);
+	if (in.is_open()){
+		in.seekg(0, ios::end);
+		int size = in.tellg();
+		result.resize(size);
+		in.seekg(0, ios::beg);
+		in.read(&result[0], size);
+		in.close();
+		return result;
+	}
+	else{
+		cout << path << "를 읽어올 수 없습니다" << endl;
+		return NULL;
+	}
+}
+
+boolean rewriteTxt(string path, string text){
+	ofstream out(path,ios::trunc);
+	if (out.is_open()){
+		out << text;
+		out.close();
+		return true;
+	}
+	else{
+		cout << path << "를 읽어올 수 없습니다" << endl;
+		return false;
+	}
+}
+
+boolean appendTxt(string path, string text){
+	ofstream out(path,ios::app);
+	if (out.is_open()){
+		out << text;
+		out.close();
+		return true;
+	}
+	else{
+		cout << path << "를 읽어올 수 없습니다" << endl;
+		return false;
+	}
+}
+
+string lineMaker_detail(int timetag, int first, int last, int c1, int c2, int c3, int c4, int c5, int c6, int c7, int c8,int c9){
+	return to_string(timetag).append(" ").append(to_string(first)).append(" ").append(to_string(last)).append(" ").append(to_string(c1)).append(" ").append(to_string(c2)).append(" ").append(to_string(c3)).append(" ")
+		.append(to_string(c4)).append(" ").append(to_string(c5)).append(" ").append(to_string(c6)).append(" ").append(to_string(c7)).append(" ").append(to_string(c8)).append(" ").append(to_string(c9)).append("\n");
+}
+
 // Video Path에서 file이름만 빼서 확장자를 제거하여 반환하는 함수
 String getFileName(CString f_path, char find_char, BOOL extension) {
 	// 마지막 \ 뒤의 문자열
@@ -45,71 +95,89 @@ String getFileName(CString f_path, char find_char, BOOL extension) {
 }
 
 // 전체 segment 데이터의 파일들을 저장하는 모듈
-bool saveSegmentationData(string video_name, component object, Mat object_frame
-	, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp, FILE * txt_fp_detail, int ROWS, int COLS, vector<pair<int, int>>* vectorDetailTXTInedx, int* detailTxtIndex) {
+bool saveSegmentationData(string fileNameNoExtension, component object, Mat object_frame, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp, int ROWS, int COLS) {
 
 	// object의 파일이름 할당
-	object.fileName = allocatingComponentFilename(timeTag, currentMsec, frameCount, indexOfhumanDetectedVector);
+	object.fileName = allocatingComponentFilename(object.timeTag, currentMsec, frameCount, indexOfhumanDetectedVector);
 
 	// jpg파일로 저장
-	saveSegmentation_JPG(object, object_frame, getObjDirectoryPath(video_name));
+	saveSegmentation_JPG(object, object_frame, getObjDirectoryPath(fileNameNoExtension));
 
 	// txt파일로 저장
 	saveSegmentation_TXT(object, txt_fp);
 
 	//방향 정보 텍스트 파일 저장
 	if (object.timeTag == currentMsec){//현재 오브젝트가 객체의 처음 일 경우
-		saveSegmentation_TXT_detail(object, txt_fp_detail, ROWS, COLS);	//새롭게 텍스트 파일에 기록
-		vectorDetailTXTInedx->push_back(std::make_pair(object.timeTag, (*detailTxtIndex)++));
+		appendTxt(getDetailTextFilePath(fileNameNoExtension).c_str(), lineMaker_detail(object.timeTag, directionChecker(object, ROWS, COLS), 10, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 	}
 	else{	//첫 오브젝트가 아닐 경우 해당 객체 위치로 이동하여 last 위치 덮어쓰기
-		int index = -1,i=0;
-		long seek;
 		int stamp;
 		int tempFirst;
 		int tempLast;
-		unsigned int red;
-		unsigned int orange;
-		unsigned int yellow;
-		unsigned int green;
-		unsigned int blue;
-		unsigned int magenta;
-		unsigned int black;
-		unsigned int white;
-		unsigned int gray;
-		char strTemp[255];
+		int colors[COLORS] = { 0, };
 
-		for (i = 0; i < vectorDetailTXTInedx->size(); i++)	//벡터 검색        
-		if (vectorDetailTXTInedx->at(i).first == object.timeTag){
-			index = vectorDetailTXTInedx->at(i).second;	//key(timetag)에 대한 value(텍스트 파일에서 몇 번째 라인인지)저장
-			break;
+		string txt = readTxt(getDetailTextFilePath(fileNameNoExtension).c_str());
+
+		int posOfTimetag = txt.find(to_string(object.timeTag));
+		int posOfNL = txt.find("\n", posOfTimetag);
+
+		string capture = txt.substr(posOfTimetag, posOfNL - posOfTimetag);
+		char *line = new char[capture.length() + 1];
+		strcpy(line, capture.c_str());
+
+		char *ptr = strtok(line, " ");
+		stamp = atoi(ptr);
+		ptr = strtok(NULL, " ");
+		tempFirst = atoi(ptr);
+		ptr = strtok(NULL, " ");
+		tempLast = atoi(ptr);
+
+		for (int i = 0; i < COLORS; i++){
+			ptr = strtok(NULL, " ");
+			colors[i] = atoi(ptr);
 		}
-
-		//원하는 라인으로 이동
-		if (index != -1){
-			fseek(txt_fp_detail, 0, SEEK_SET);
-			for (i = 0; i < index; i++)
-				fgets(strTemp, sizeof(strTemp), txt_fp_detail);
-
-			seek = ftell(txt_fp_detail);//덮어 쓰기를 할 위치
-			fscanf(txt_fp_detail, "%d %d %d %d %d %d %d %d %d %d %d %d\n", &stamp, &tempFirst, &tempLast, &red, &orange, &yellow, &green, &blue, &magenta, &black, &white, &gray);
-			fflush(stdin);
-			fseek(txt_fp_detail, seek, SEEK_SET);//덮어쓸 위치로 이동
-			tempLast = directionChecker(object, ROWS, COLS);//Last 위치 갱신
-			//덮어쓰기
-			fputs((to_string(object.timeTag).append(" ").append(to_string(tempFirst)).append(" ").append(to_string(tempLast))
-				.append(" ").append(to_string(red)).append(" ").append(to_string(orange)).append(" ").append(to_string(yellow))
-				.append(" ").append(to_string(green)).append(" ").append(to_string(blue)).append(" ").append(to_string(magenta))
-				.append(" ").append(to_string(black )).append(" ").append(to_string(white)).append(" ").append(to_string(gray))
-				.append("\n")).c_str(), txt_fp_detail);
-
-			fseek(txt_fp_detail, 0, SEEK_END);//파일 포인터 끝으로 이동
-		}
-		else
-			perror("No such timetag");
+		txt.erase(posOfTimetag, posOfNL - posOfTimetag + 1);
+		txt.insert(posOfTimetag, lineMaker_detail(stamp, tempFirst, directionChecker(object, ROWS, COLS), colors[0], colors[1], colors[2], colors[3], colors[4], colors[5], colors[6], colors[7], colors[8]));
+		rewriteTxt(getDetailTextFilePath(fileNameNoExtension).c_str(), txt.c_str());
+		delete[] line;
 	}
 
 	return true;
+}
+
+void saveColorData(string fileNameNoExtension, component object, int colorArray[]){
+	//색상 정보 텍스트 파일 저장
+	//해당 객체 위치로 이동하여 Color 카운트 덮어쓰기
+	int stamp;
+	int tempFirst;
+	int tempLast;
+	int colors[COLORS] = { 0, };
+
+	string txt = readTxt(getDetailTextFilePath(fileNameNoExtension).c_str());
+
+	int posOfTimetag = txt.find(to_string(object.timeTag));
+	int posOfNL = txt.find("\n", posOfTimetag);
+
+	string capture = txt.substr(posOfTimetag, posOfNL - posOfTimetag);
+	char *line = new char[capture.length() + 1];
+	strcpy(line, capture.c_str());
+
+	char *ptr = strtok(line, " ");
+	stamp = atoi(ptr);
+	ptr = strtok(NULL, " ");
+	tempFirst = atoi(ptr);
+	ptr = strtok(NULL, " ");
+	tempLast = atoi(ptr);
+
+	for (int i = 0; i < COLORS; i++){
+		ptr = strtok(NULL, " ");
+		colors[i] = atoi(ptr);
+	}
+	txt.erase(posOfTimetag, posOfNL - posOfTimetag + 1);
+	txt.insert(posOfTimetag, lineMaker_detail(stamp, tempFirst, tempLast, colors[0] + colorArray[0], colors[1] + colorArray[1], colors[2] + colorArray[2], colors[3] + colorArray[3], colors[4]+colorArray[4], 
+		colors[5] + colorArray[5], colors[6] + colorArray[6], colors[7] + colorArray[7], colors[8] + colorArray[8]));
+	rewriteTxt(getDetailTextFilePath(fileNameNoExtension).c_str(), txt.c_str());
+	delete[] line;
 }
 
 void saveSegmentation_JPG(component object, Mat frame, string video_path) {
@@ -139,20 +207,6 @@ void saveSegmentation_TXT(component object, FILE *fp) {
 	stringstream ss;
 	ss << object.fileName << " " << object.left << " " << object.top << " " << object.right << " " << object.bottom
 		<< " " << object.right - object.left << " " << object.bottom - object.top << '\n';
-	info = ss.str();
-	fprintf(fp, info.c_str());
-	fflush(stdout);
-	return;
-}
-
-// Segmentation된 Obj의 Data의 방향정보를 txt파일로 저장하는 함수
-// format : FILE_NAME first(입장) last(퇴장)
-void saveSegmentation_TXT_detail(component object, FILE *fp, int ROWS, int COLS) {
-	string info;
-	stringstream ss;
-	
-	ss << object.timeTag << " " << directionChecker(object, ROWS, COLS) << " 10 0 0 0 0 0 0 0 0 0\n";
-
 	info = ss.str();
 	fprintf(fp, info.c_str());
 	fflush(stdout);

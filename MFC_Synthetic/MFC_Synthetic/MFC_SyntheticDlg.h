@@ -3,11 +3,12 @@
 //
 
 #pragma once
-#include <string>
 #include <opencv2/opencv.hpp>
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/highgui.hpp"
 #include <iostream>
+#include <fstream>
+#include <string>
 #include "afxcmn.h"
 #include "afxwin.h"
 #include <time.h>
@@ -16,7 +17,7 @@ using namespace cv;
 
 
 #define BUFFER 8096 // 객체 프레임 데이터를 저장할 버퍼의 크기 
-
+#define COLORS  9 //색상 가지수
 // fileName 상수 관련
 #define RESULT_TEXT_FILENAME  "obj_data_"
 #define RESULT_TEXT_DETAIL_FILENAME  "obj_detail_"
@@ -26,6 +27,16 @@ const string SEGMENTATION_DATA_DIRECTORY_NAME = "data";
 // component vector Queue 관련
 const int MAXSIZE_OF_COMPONENT_VECTOR_QUEUE = 5;
 #define NEXT(index) ((index+1)%MAXSIZE_OF_COMPONENT_VECTOR_QUEUE)
+
+const int RED = 0;
+const int ORANGE = 1;
+const int YELLOW = 2;
+const int GREEN = 3;
+const int BLUE = 4;
+const int MAGENTA = 5;
+const int BLACK = 6;
+const int WHITE = 7;
+const int GRAY = 8;
 
 // segmentation structure
 typedef struct _segment {
@@ -158,7 +169,7 @@ int temporalMedianBG(Mat frameimg, Mat bgimg, int rows, int cols);
 String getFileName(CString f_path, char find_char, BOOL);
 Mat loadJPGObjectFile(segment obj, string file_name);
 bool saveSegmentationData(string video_name, component object, Mat object_frame
-	, int timeTag, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp, FILE*, int, int, vector<pair<int, int>>*, int*);
+	, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp, int, int);
 
 string getTextFilePath(string video_name);
 string getDetailTextFilePath(string video_name);
@@ -169,6 +180,7 @@ string getObjDirectoryPath(string video_name);
 bool isDirectory(string dir_name);
 int makeDataRootDirectory();
 int makeDataSubDirectory(string video_name);
+void saveColorData(string fileNameNoExtension, component object, int colorArray[]);
 
 // tool_synthetic.cpp
 Mat Syn_Background_Foreground(Mat, Mat, Mat, int, int);
