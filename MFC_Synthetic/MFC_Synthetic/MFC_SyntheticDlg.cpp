@@ -775,6 +775,8 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 	// 현재 label의 마지막 수를 저장함
 	int maxLabel = humanDetectedVector.size() - 1;
 
+	bool save_flag = false;
+
 	// 사람을 검출한 양 많큼 반복 (보통 humanCount 갯수 1, 2개 나옴)
 	for (int humanCount = 0; humanCount < humanDetectedVector.size(); humanCount++) {
 		//이전 프레임의 검출된 객체가 있을 경우
@@ -782,7 +784,8 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 			bool findFlag = false;
 			for (int j = 0; j < prevDetectedVector_i.size(); j++) {
 				// 두 프레임이 겹칠 경우에 대한 연산
-				if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, humanCount, j)) {
+				if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, humanCount, j)
+					&& IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j])) {
 					humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
 					humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
 					saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
@@ -800,8 +803,8 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 						(prevHumanDetectedVector_Queue.rear + i) % MAXSIZE_OF_COMPONENT_VECTOR_QUEUE);
 					for (int j = 0; j < prevDetectedVector_i.size(); j++) {
 						// 두 프레임이 겹칠 경우에 대한 연산
-						if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, humanCount, j)) {
-							humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
+						if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, humanCount, j)
+							&& IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j])) {
 							humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
 							saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
 								, currentMsec, frameCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTIndex, detailTxtIndex);
@@ -830,7 +833,8 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 					(prevHumanDetectedVector_Queue.rear + i) % MAXSIZE_OF_COMPONENT_VECTOR_QUEUE);
 				for (int j = 0; j < prevDetectedVector_i.size(); j++) {
 					// 두 프레임이 겹칠 경우에 대한 연산
-					if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, humanCount, j)) {
+					if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, humanCount, j)
+						&& IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j])) {
 						humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
 						humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
 						saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
@@ -858,6 +862,20 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 	return humanDetectedVector;
 }
 
+// 이전과 연속적이어서 저장할 가치가 있는 지를 판별하는 함수
+bool IsSaveComponent(component curr_component, component prev_component) {
+	bool return_flag = true;
+	const int diff_component_height = ROWS / 20; //  ( 480/15 = 32)
+	const int diff_component_width = COLS / 20; //  ( 640/15 = 42)
+	// width와 height 크기를 비교
+	// 추후 색상 데이터를 보는 식으로 하여 강화
+	if (curr_component.label == prev_component.label) {
+		if ((abs(curr_component.width - prev_component.width) > diff_component_width) ||
+			(abs(curr_component.height - prev_component.height) > diff_component_height))
+			return_flag = false;
+	}
+	return return_flag;
+}
 // 현재와 이전에 검출한 결과를 비교, true 면 겹칠 수 없음
 bool IsComparePrevDetection(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index) {
 	return curr_detected[curr_index].left > prev_detected[prev_index].right
@@ -865,10 +883,9 @@ bool IsComparePrevDetection(vector<component> curr_detected, vector<component> p
 		|| curr_detected[curr_index].top > prev_detected[prev_index].bottom
 		|| curr_detected[curr_index].bottom < prev_detected[prev_index].top;
 }
-
 // 합성된 프레임을 가져오는 연산
 Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
-	int *labelMap = (int*)calloc(bgFrame.cols * bgFrame.rows, sizeof(int));	//겹침을 판단하는 용도
+	int *labelMap = new int[bgFrame.cols * bgFrame.rows];	//겹침을 판단하는 용도
 	segment temp_segment; //DeQueue한 결과를 받을 segment
 	int countOfObj = segment_queue.count;	//큐 인스턴스의 노드 갯수
 	synthesisEndFlag = false;
@@ -910,12 +927,7 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 	// 큐에 들어있는 객체 갯수 만큼 DeQueue. 
 	for (int i = 0; i < countOfObj; i++) {
 		//dequeue한 객체를 출력한다.
-		int curIndex;
-		if (isEnqueueFlag == false)
-			curIndex++;
-		else 
-			curIndex = Getqueue_IndexOfSegmentArray(&segment_queue);
-
+		int curIndex = Getqueue_IndexOfSegmentArray(&segment_queue);
 		temp_segment = Dequeue(&segment_queue);
 		BOOL isCross = false;
 
@@ -950,7 +962,7 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 			// 다음 객체가 검출된 프레임이 이전 프레임과 1 차이가 날 때
 			if (m_segmentArray[curIndex].frameCount + 1 == m_segmentArray[curIndex + 1].frameCount) {
 				//타임태그가 같고 인덱스가 같은 경우에만 큐에 넣어서 다음에 이어 출력될 수 있도록 한다.(일반적인 경우)
-				if (isEnqueueFlag = IsEnqueueFiltering(m_segmentArray, curIndex))
+			//	if (isEnqueueFlag = IsEnqueueFiltering(m_segmentArray, curIndex))
 					Enqueue(&segment_queue, temp_segment, curIndex + 1);
 			}
 
@@ -960,11 +972,11 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 					// 세그먼트 카운트의 차이를 비교함
 					if (m_segmentArray[curIndex].frameCount + i	== m_segmentArray[curIndex + 1].frameCount) {
 						// 이전과 타임태그와 인덱스가 모두 같을 때에 다음 인덱스 enqueue시키기
-						if (isEnqueueFlag = IsEnqueueFiltering(m_segmentArray, curIndex)) {
+					//	if (isEnqueueFlag = IsEnqueueFiltering(m_segmentArray, curIndex)) {
 							printf(" 2 이상, 버퍼 이하 만큼 차이 %d %d\n", temp_segment.timeTag, temp_segment.frameCount);
 							Enqueue(&segment_queue, temp_segment, curIndex + 1);
 							break;
-						}
+					//	}
 					}
 				} // end for  (int i = frameIndexGap + 1 ...
 				  // 임시 세그먼트 buffer 크기 이상 차이나는 객체들은 출력되지 않도록 설정
@@ -979,8 +991,7 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 
 	// 합성 중 메모리 해제
 	delete[] TimeTag_p; delete[] TimeTag_s;
-	labelMap = NULL;
-	free(labelMap);
+	delete[] labelMap;
 	vector<int>().swap(vectorPreNodeIndex);
 	return bgFrame;
 }

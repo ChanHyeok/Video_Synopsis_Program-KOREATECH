@@ -134,6 +134,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 // addition function of MAIN
 bool segmentationTimeInputException(CString str_h, CString str_m);
 bool IsComparePrevDetection(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index);
+bool IsSaveComponent(component curr_component, component prev_component);
 Mat morphologicalOperation(Mat);
 stringstream timeConvertor(int t);
 
