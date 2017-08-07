@@ -645,8 +645,8 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 	background_gray = backgroundInit(vc_Source);
 
 	// 얻어낸 객체 프레임의 정보를 써 낼 텍스트 파일 정의
-	if ((fp = fopen(getTextFilePath(fileNameNoExtension).c_str(), "r+" )) == NULL)
-		fp = fopen(getTextFilePath(fileNameNoExtension).c_str(), "w+" );
+	if ((fp = fopen(getTextFilePath(fileNameNoExtension).c_str(), "r+")) == NULL)
+		fp = fopen(getTextFilePath(fileNameNoExtension).c_str(), "w+");
 	fprintf(fp, to_string(videoStartMsec).append("\n").c_str());	//첫줄에 영상시작시간 적어줌
 
 	// vc_source의 시작시간 0으로 초기화
@@ -775,10 +775,10 @@ int colorPicker(Vec3b pixel){
 	if (V <= 38){
 		return BLACK;
 	}
-	else if (S <= 51 && V >= 204){
+	else if (S <= 38 && V >= 166){
 		return WHITE;
 	}
-	else if (S <= 51 && V <= 191 && V >= 76){	//Gray인지 판별
+	else if (S <= 38 && V <= 165 && V >= 39){	//Gray인지 판별
 		return GRAY;
 	}
 	else if (H >= 165 || H <= 8){
@@ -832,7 +832,7 @@ void checkColorData(string fileNameNoExtension, Mat frame, component object, Mat
 		}
 	}
 
-	//printf("%8d : ", object.timeTag);
+	//printf("%10d : ", object.timeTag);
 	//for (int i = 0; i < COLORS;i++)
 	//printf("%d ",colorArray[i]);
 	//printf("\n");
@@ -945,7 +945,7 @@ bool IsComparePrevDetection(vector<component> curr_detected, vector<component> p
 
 // 합성된 프레임을 가져오는 연산
 Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
-	int *labelMap = new int [bgFrame.cols * bgFrame.rows];	//겹침을 판단하는 용도
+	int *labelMap = new int[bgFrame.cols * bgFrame.rows];	//겹침을 판단하는 용도
 	node tempnode;	//DeQueue한 결과를 받을 node
 	int countOfObj = segment_queue.count;	//큐 인스턴스의 노드 갯수
 	stringstream ss;
