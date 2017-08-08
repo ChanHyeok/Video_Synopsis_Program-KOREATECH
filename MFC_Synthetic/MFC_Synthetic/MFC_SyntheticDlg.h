@@ -24,7 +24,7 @@ using namespace cv;
 const string SEGMENTATION_DATA_DIRECTORY_NAME = "data";
 
 // component vector Queue 관련
-const int MAXSIZE_OF_COMPONENT_VECTOR_QUEUE = 8;
+const int MAXSIZE_OF_COMPONENT_VECTOR_QUEUE = 10;
 #define NEXT(index) ((index+1)%MAXSIZE_OF_COMPONENT_VECTOR_QUEUE)
 
 // segment 임시 버퍼 관련
@@ -133,7 +133,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 
 // addition function of MAIN
 bool segmentationTimeInputException(CString str_h, CString str_m);
-bool IsComparePrevDetection(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index);
+bool IsComparePrevComponent(component curr_component, component prev_component);
 bool IsSaveComponent(component curr_component, component prev_component);
 Mat morphologicalOperation(Mat);
 stringstream timeConvertor(int t);

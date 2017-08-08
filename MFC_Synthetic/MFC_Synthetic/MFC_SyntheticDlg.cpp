@@ -775,27 +775,26 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 	// 현재 label의 마지막 수를 저장함
 	int maxLabel = humanDetectedVector.size() - 1;
 
-	bool save_flag = false;
-
 	// 사람을 검출한 양 많큼 반복 (보통 humanCount 갯수 1, 2개 나옴)
 	for (int humanCount = 0; humanCount < humanDetectedVector.size(); humanCount++) {
+		bool save_flag = false;
+		bool findFlag = false;
 		//이전 프레임의 검출된 객체가 있을 경우
-		if (!prevDetectedVector_i.empty()) {
-			bool findFlag = false;
+		if  (!prevDetectedVector_i.empty()) {
 			for (int j = 0; j < prevDetectedVector_i.size(); j++) {
 				// 두 프레임이 겹칠 경우에 대한 연산
-				if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, humanCount, j)
-					&& IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j])) {
+				if (!IsComparePrevComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j])) {
 					humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
 					humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
-					saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
-						, currentMsec, frameCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTIndex, detailTxtIndex);
-
-					findFlag = true;
+				
+					if (IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j]))
+						save_flag = true;
+					
+					findFlag = true; 
 				}
 			} // end for
 
-			  // 이전 객체를 통해서 발견하지 못했음
+			// 이전 객체를 통해서 발견하지 못했음
 			if (findFlag == false) {
 				// 이전 뿐 아니라 그 이전에 데이터에 접근하기
 				for (int i = MAXSIZE_OF_COMPONENT_VECTOR_QUEUE - 3; i >= 0; i--) {
@@ -803,57 +802,56 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 						(prevHumanDetectedVector_Queue.rear + i) % MAXSIZE_OF_COMPONENT_VECTOR_QUEUE);
 					for (int j = 0; j < prevDetectedVector_i.size(); j++) {
 						// 두 프레임이 겹칠 경우에 대한 연산
-						if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, humanCount, j)
-							&& IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j])) {
+						if (!IsComparePrevComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j])) {
+							humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
 							humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
-							saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
-								, currentMsec, frameCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTIndex, detailTxtIndex);
-							findFlag = true;
+						
+							if (IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j]))
+								save_flag = true;
+
+							findFlag = true; 
 						}
 					}
 					if (findFlag == true)
 						break;
 				}
-				// 새 객체가 출현 되었다고 판정함
-				if (findFlag == false) {
-					humanDetectedVector[humanCount].timeTag = currentMsec;
-					humanDetectedVector[humanCount].label = ++maxLabel;
-					saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
-						, currentMsec, frameCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTIndex, detailTxtIndex);
-				}
 			}
 		} // end if ((!prevDetectedVector_i.empty())
 
-		  // 첫 시행이거나 이전 프레임에 검출된 객체가 없다고 판단될 경우에
+		// 첫 시행이거나 이전 프레임에 검출된 객체가 없다고 판단될 경우에
 		else {
-			bool findFlag = false;
 			// 이전 뿐 아니라 그 이전에 데이터에 접근하기
 			for (int i = MAXSIZE_OF_COMPONENT_VECTOR_QUEUE - 3; i >= 0; i--) {
 				prevDetectedVector_i = GetComponentVectorQueue(&prevHumanDetectedVector_Queue,
 					(prevHumanDetectedVector_Queue.rear + i) % MAXSIZE_OF_COMPONENT_VECTOR_QUEUE);
 				for (int j = 0; j < prevDetectedVector_i.size(); j++) {
 					// 두 프레임이 겹칠 경우에 대한 연산
-					if (!IsComparePrevDetection(humanDetectedVector, prevDetectedVector_i, humanCount, j)
-						&& IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j])) {
+					if (!IsComparePrevComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j])) {
 						humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
 						humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
-						saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
-							, currentMsec, frameCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTIndex, detailTxtIndex);
-						findFlag = true;
+
+						if (IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j]))
+							save_flag = true;
+
+						findFlag = true; 
 					}
 				}
 				// 더이상 그 이전에 객체를 고려할 필요가 없음
 				if (findFlag == true)
 					break;
 			}
-			// 새 객체가 출현 되었다고 판정함
-			if (findFlag == false) {
-				humanDetectedVector[humanCount].timeTag = currentMsec;
-				humanDetectedVector[humanCount].label = ++maxLabel;
-				saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
-					, currentMsec, frameCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTIndex, detailTxtIndex);
-			}
 		} // end else
+		// 새 객체가 출현 되었다고 판정함
+		if (findFlag == false) {
+			humanDetectedVector[humanCount].timeTag = currentMsec;
+			humanDetectedVector[humanCount].label = ++maxLabel;
+			save_flag = true;
+		}
+
+		// 파일에 저장할 수 있도록 함
+		if (save_flag == true)
+			saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
+				, currentMsec, frameCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTIndex, detailTxtIndex);
 	} // end for (humanCount) 
 
 	vector<component> vclear;
@@ -865,23 +863,25 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 // 이전과 연속적이어서 저장할 가치가 있는 지를 판별하는 함수
 bool IsSaveComponent(component curr_component, component prev_component) {
 	bool return_flag = true;
-	const int diff_component_height = ROWS / 20; //  ( 480/15 = 32)
-	const int diff_component_width = COLS / 20; //  ( 640/15 = 42)
+	const int diff_component_height = ROWS / 16; //  ( 480/15 = 32)
+	const int diff_component_width = COLS / 16; //  ( 640/15 = 42)
 	// width와 height 크기를 비교
 	// 추후 색상 데이터를 보는 식으로 하여 강화
 	if (curr_component.label == prev_component.label) {
 		if ((abs(curr_component.width - prev_component.width) > diff_component_width) ||
-			(abs(curr_component.height - prev_component.height) > diff_component_height))
+			(abs(curr_component.height - prev_component.height) > diff_component_height)) {
+			printf("%d %d save하지 않음\n", curr_component.timeTag, curr_component.height);
 			return_flag = false;
+		}
 	}
 	return return_flag;
 }
 // 현재와 이전에 검출한 결과를 비교, true 면 겹칠 수 없음
-bool IsComparePrevDetection(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index) {
-	return curr_detected[curr_index].left > prev_detected[prev_index].right
-		|| curr_detected[curr_index].right < prev_detected[prev_index].left
-		|| curr_detected[curr_index].top > prev_detected[prev_index].bottom
-		|| curr_detected[curr_index].bottom < prev_detected[prev_index].top;
+bool IsComparePrevComponent(component curr_component, component prev_component) {
+	return curr_component.left > prev_component.right
+		|| curr_component.right < prev_component.left
+		|| curr_component.top > prev_component.bottom
+		|| curr_component.bottom < prev_component.top;
 }
 // 합성된 프레임을 가져오는 연산
 Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
@@ -956,29 +956,23 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 			TimeTag_s[countOfShowObj] = timetag;
 			countOfShowObj++;
 
-			//다음 프레임에 같은 타임태그를 가진 객체가 있는지 확인한다. 있으면 EnQueue
-			int frameIndexGap = 1;
-
 			// 다음 객체가 검출된 프레임이 이전 프레임과 1 차이가 날 때
 			if (m_segmentArray[curIndex].frameCount + 1 == m_segmentArray[curIndex + 1].frameCount) {
 				//타임태그가 같고 인덱스가 같은 경우에만 큐에 넣어서 다음에 이어 출력될 수 있도록 한다.(일반적인 경우)
-			//	if (isEnqueueFlag = IsEnqueueFiltering(m_segmentArray, curIndex))
-					Enqueue(&segment_queue, temp_segment, curIndex + 1);
+				Enqueue(&segment_queue, temp_segment, curIndex + 1);
 			}
 
 			//다음 객체가 있는 프레임이 객체가 있는 프레임과 2 이상, 버퍼 이하 만큼 차이 날 때
 			else {
-				for (int i = frameIndexGap + 1; i <= MAX_SEGMENT_TEMP_BUFFER + 1; i++) {
+				for (int i = 2; i <= MAX_SEGMENT_TEMP_BUFFER + 1; i++) {
 					// 세그먼트 카운트의 차이를 비교함
 					if (m_segmentArray[curIndex].frameCount + i	== m_segmentArray[curIndex + 1].frameCount) {
-						// 이전과 타임태그와 인덱스가 모두 같을 때에 다음 인덱스 enqueue시키기
-					//	if (isEnqueueFlag = IsEnqueueFiltering(m_segmentArray, curIndex)) {
-							printf(" 2 이상, 버퍼 이하 만큼 차이 %d %d\n", temp_segment.timeTag, temp_segment.frameCount);
-							Enqueue(&segment_queue, temp_segment, curIndex + 1);
-							break;
-					//	}
+					// 이전과 타임태그와 인덱스가 모두 같을 때에 다음 인덱스 enqueue시키기
+						printf(" 2 이상, 버퍼 이하 만큼 차이 %d %d\n", temp_segment.timeTag, temp_segment.frameCount);
+						Enqueue(&segment_queue, temp_segment, curIndex + 1);
+						break;
 					}
-				} // end for  (int i = frameIndexGap + 1 ...
+				} // end for  (int i = 2; i <= MAX_SEGMENT_TEMP_BUFFER + 1 ...
 				  // 임시 세그먼트 buffer 크기 이상 차이나는 객체들은 출력되지 않도록 설정
 			} // end else
 		} // end if (isCross == false)
