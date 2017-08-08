@@ -942,16 +942,19 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 				}
 			}
 		}
+		// 출력된 객체가 없거나 이전 객체와 겹치지 않는 경우
+		if (m_segmentArray[curIndex].printFlag == false && isCross == false) {
+			// 출력여부 플래그 참으로 설정
+			m_segmentArray[curIndex].printFlag = true;
 
-		if (isCross == false) {	//출력된 객체가 없거나 이전 객체와 겹치지 않는 경우
-			//배경에 객체를 올리기
+			// 배경에 객체를 올리기
 			bgFrame = printObjOnBG(bgFrame, m_segmentArray[curIndex], labelMap, fileNameNoExtension);
 
-			//타임태그를 string으로 변환
+			// 타임태그를 string으로 변환
 			int timetagInSec = (m_segmentArray[curIndex].timeTag + videoStartMsec) / 1000;	//영상의 시작시간을 더해준다.
 			string timetag = timeConvertor(timetagInSec).str();
 
-			//타임태그 위치 및 텍스트 정보 저장
+			// 타임태그 위치 및 텍스트 정보 저장
 			TimeTag_p[countOfShowObj] = Point(m_segmentArray[curIndex].left + 5, m_segmentArray[curIndex].top + 50);
 			TimeTag_s[countOfShowObj] = timetag;
 			countOfShowObj++;
@@ -968,7 +971,7 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 					// 세그먼트 카운트의 차이를 비교함
 					if (m_segmentArray[curIndex].frameCount + i	== m_segmentArray[curIndex + 1].frameCount) {
 					// 이전과 타임태그와 인덱스가 모두 같을 때에 다음 인덱스 enqueue시키기
-						printf(" 2 이상, 버퍼 이하 만큼 차이 %d %d\n", temp_segment.timeTag, temp_segment.frameCount);
+					//	printf(" 2 이상, 버퍼 이하 만큼 차이 %d %d\n", temp_segment.timeTag, temp_segment.frameCount);
 						Enqueue(&segment_queue, temp_segment, curIndex + 1);
 						break;
 					}
@@ -978,10 +981,8 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 		} // end if (isCross == false)
 	} // end for (int i = 0; i < countOfObj; i++)
 
-	for (int i = 0; i < countOfShowObj; i++) {
-		if (bgFrame.cols > 50 && bgFrame.rows > 50)
+	for (int i = 0; i < countOfShowObj; i++) 
 		putText(bgFrame, TimeTag_s[i], TimeTag_p[i], FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 1.5);
-	}
 
 	// 합성 중 메모리 해제
 	delete[] TimeTag_p; delete[] TimeTag_s;

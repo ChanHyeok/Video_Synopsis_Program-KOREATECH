@@ -15,7 +15,7 @@ using namespace std;
 using namespace cv;
 
 
-#define BUFFER 8096 // 객체 프레임 데이터를 저장할 버퍼의 크기 
+#define BUFFER 16000 // 객체 프레임 데이터를 저장할 버퍼의 크기 
 
 // fileName 상수 관련
 #define RESULT_TEXT_FILENAME  "obj_data_"
@@ -44,6 +44,7 @@ typedef struct _segment {
 	int width;
 	int height;
 	bool first_timeTagFlag; // 타임태그에 첫번 째 객체임을 판별하는 변수
+	bool printFlag; // 합성영상 출력에 해당 세그먼트가 출력되었는 지 판별해주는 변수
 	_segment() {
 		fileName = "";
 		timeTag = 0;
@@ -57,6 +58,7 @@ typedef struct _segment {
 		width = 0;
 		height = 0;
 		first_timeTagFlag = false;
+		printFlag = false;
 	}
 }segment;
 //component model
