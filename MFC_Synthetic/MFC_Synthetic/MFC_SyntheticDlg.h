@@ -147,18 +147,19 @@ vector<component> GetComponentVectorQueue(ComponentVectorQueue *componentVectorQ
 vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector_Array
 	, ComponentVectorQueue prevHumanDetectedVector_Queue, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, vector<pair<int, int>>*, int*, Mat);
 
-Mat getSyntheticFrame(Mat);
 // addition function of MAIN
 bool segmentationTimeInputException(CString str_h, CString str_m);
 bool IsComparePrevComponent(component curr_component, component prev_component);
 bool IsSaveComponent(component curr_component, component prev_component);
 Mat morphologicalOperation(Mat);
-stringstream timeConvertor(int t);
 
+stringstream timeConvertor(int t);
 bool IsObjectOverlapingDetector(segment, segment);
 Mat backgroundInit(VideoCapture *vc_Source);
 
 int readSegmentTxtFile(segment* );
+
+bool isColorDataOperation(Mat frame, Mat bg, Mat, int i_height, int j_width);
 
 // connectecComponentLabelling.cpp
 vector<component> connectedComponentsLabelling(Mat frame, int rows, int cols, int, int, int, int);

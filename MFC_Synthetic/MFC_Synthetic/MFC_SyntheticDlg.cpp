@@ -741,6 +741,11 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 	fclose(fp_detail);
 }
 
+//색상 정보를 검출하는 함수
+/*opencv HSV range
+H : 180 S : 255 V : 255
+*/
+
 int colorPicker(Vec3b pixel){
 	unsigned char H = pixel[0];
 	unsigned char S = pixel[1];
@@ -778,10 +783,19 @@ int colorPicker(Vec3b pixel){
 		return-1;
 }
 
-//색상 정보를 검출하는 함수
-/*opencv HSV range
-H : 180 S : 255 V : 255
-*/
+bool isColorDataOperation(Mat frame, Mat bg, Mat binary, int i_height , int j_width) {
+	// 배경 불러오기
+	Vec3b colorB = bg.at<Vec3b>(Point(j_width, i_height));
+	
+	// hsv 영역에서 객체와 객체 영역의 배경과의 색깔 경계 값을 한정하기 위한 변수 
+	const int COLOR_THRESHOLD = 15;
+
+	return (abs(colorB[0] - frame.at<cv::Vec3b>(Point(j_width, i_height))[0]) > COLOR_THRESHOLD &&
+		abs(colorB[1] - frame.at<cv::Vec3b>(Point(j_width, i_height))[1]) > COLOR_THRESHOLD &&
+		abs(colorB[2] - frame.at<cv::Vec3b>(Point(j_width, i_height))[2]) > COLOR_THRESHOLD) &&
+		binary.data[i_height*binary.cols + j_width] == 255;
+}
+
 void checkColorData(string fileNameNoExtension, Mat frame, component object, Mat binary){
 	Mat temp; frame.copyTo(temp);
 	Mat bg_copy = imread(getBackgroundFilePath(fileNameNoExtension));
@@ -791,26 +805,11 @@ void checkColorData(string fileNameNoExtension, Mat frame, component object, Mat
 	cvtColor(temp, temp, CV_BGR2HSV);
 	for (int i = object.top; i < object.bottom; i++) {
 		for (int j = object.left + 1; j < object.right; j++) {
-			Vec3b colorB = bg_copy.at<Vec3b>(Point(j, i));
-			if (abs(colorB[0] - frame.at<cv::Vec3b>(Point(j, i))[0])>15 &&
-				abs(colorB[1] - frame.at<cv::Vec3b>(Point(j, i))[1])>15 &&
-				abs(colorB[2] - frame.at<cv::Vec3b>(Point(j, i))[2]) > 15 &&
-				binary.data[i*binary.cols + j] == 255){
+			// 색상 데이터 저장
+			if (isColorDataOperation(frame, bg_copy, binary, i, j) ) 
 				colorArray[colorPicker(temp.at<cv::Vec3b>(Point(j, i)))]++;
-				/*if (colorPicker(temp.at<cv::Vec3b>(Point(j, i))) == GRAY){
-					frame.at<Vec3b>(Point(j, i))[0] = 255;
-					frame.at<Vec3b>(Point(j, i))[1] = 255;
-					frame.at<Vec3b>(Point(j, i))[2] = 255;
-					}*/
-			}
-			else{
-				/*	frame.at<Vec3b>(Point(j, i))[0] = 0;
-					frame.at<Vec3b>(Point(j, i))[1] = 0;
-					frame.at<Vec3b>(Point(j, i))[2] = 0;*/
-			}
 		}
 	}
-
 	//printf("%10d : ", object.timeTag);
 	//for (int i = 0; i < COLORS;i++)
 	//printf("%d ",colorArray[i]);
@@ -818,10 +817,8 @@ void checkColorData(string fileNameNoExtension, Mat frame, component object, Mat
 
 	saveColorData(fileNameNoExtension, object, colorArray);
 
-	temp = NULL;
-	bg_copy = NULL;
-	temp.release();
-	bg_copy.release();
+	temp = NULL; bg_copy = NULL;
+	temp.release(); bg_copy.release();
 	return;
 }
 
@@ -921,7 +918,6 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 
 	return humanDetectedVector;
 }
-
 
 // 이전과 연속적이어서 저장할 가치가 있는 지를 판별하는 함수
 bool IsSaveComponent(component curr_component, component prev_component) {
@@ -1865,7 +1861,6 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 	return;
 }
 
-
 void CMFC_SyntheticDlg::OnBnClickedOk()
 {
 	// TODO: Add your control notification handler code here
@@ -1959,7 +1954,9 @@ bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]){
 		return false;
 }
 
+// 방향과 색깔이 매치하는 지를 확인하는 함수
 bool CMFC_SyntheticDlg::isDirectionAndColorMatch(segment object) {
+	// checkBox의 체크 여부를 가져와서 배열에 저장함
 	boolean isColorCheckedArray[COLORS] = {
 		IsDlgButtonChecked(IDC_CHECK_RED),
 		IsDlgButtonChecked(IDC_CHECK_ORANGE),
@@ -1971,26 +1968,24 @@ bool CMFC_SyntheticDlg::isDirectionAndColorMatch(segment object) {
 		IsDlgButtonChecked(IDC_CHECK_WHITE),
 		IsDlgButtonChecked(IDC_CHECK_GRAY)
 	};
-
-	bool isFirstOk = false, isLastOk = false, isColorOk = false;
-
+	
+	// comboBox의 문자열의 데이터를 가져옴
 	int indexFirst = mComboStart.GetCurSel();
 	int indexLast = mComboEnd.GetCurSel();
 
-	int tempTimetag;
-	int tempFirst;
-	int tempLast;
-
-	int stamp;
-	int label;
-
-	fp_detail = fopen(getDetailTextFilePath(fileNameNoExtension).c_str(), "r");
+	int tempTimetag, stamp, label;
+	int tempFirst, tempLast;
 
 	unsigned int colors[COLORS] = { 0, };
 
+	// fp_detail 파일 열기
+	fp_detail = fopen(getDetailTextFilePath(fileNameNoExtension).c_str(), "r");
+
+	// fp_detail의 데이터 읽어오기
 	string txt = readTxt(getDetailTextFilePath(fileNameNoExtension).c_str());
 	size_t posOfTimetag = txt.find(to_string(object.timeTag).append(" ").append(to_string(object.index)));
 	if (posOfTimetag != string::npos) {
+		unsigned int colors[COLORS] = { 0, };
 		int posOfNL = txt.find("\n", posOfTimetag);
 
 		string capture = txt.substr(posOfTimetag, posOfNL - posOfTimetag);
@@ -2004,6 +1999,7 @@ bool CMFC_SyntheticDlg::isDirectionAndColorMatch(segment object) {
 			if (ptr != NULL) {
 				label = atoi(ptr);
 			}
+			// 객체의 first, end flag 가져오기 
 			ptr = strtok(NULL, " ");
 			if (ptr != NULL) {
 				tempFirst = atoi(ptr);
@@ -2012,6 +2008,7 @@ bool CMFC_SyntheticDlg::isDirectionAndColorMatch(segment object) {
 			if (ptr != NULL) {
 				tempLast = atoi(ptr);
 			}
+			// 색 영역 데이터 가져오기
 			for (int i = 0; i < COLORS; i++) {
 				ptr = strtok(NULL, " ");
 				if (ptr != NULL) {
@@ -2022,18 +2019,12 @@ bool CMFC_SyntheticDlg::isDirectionAndColorMatch(segment object) {
 		delete[] line;
 	}
 
-	while (fscanf(fp_detail, "%d %d %d", &tempTimetag, &tempFirst, &tempLast) != EOF) {
-		if (tempTimetag == object.timeTag)
-			break;
-	}
-
 	fclose(fp_detail);
 
-	isFirstOk = isDierectionAvailable(indexFirst, tempFirst);
-	isLastOk = isDierectionAvailable(indexLast, tempLast);
-	isColorOk = isColorAvailable(isColorCheckedArray, colors);
+	bool isDirectionOk = isDierectionAvailable(indexFirst, tempFirst) && isDierectionAvailable(indexLast, tempLast);
+	bool isColorOk = isColorAvailable(isColorCheckedArray, colors);
 
-	if (isFirstOk && isLastOk && isColorOk)
+	if (isDirectionOk && isColorOk)
 		return true;
 	else return false;
 }
@@ -2225,7 +2216,6 @@ void CMFC_SyntheticDlg::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct
 	dc.Detach();  // Detach the Button DC
 	CDialogEx::OnDrawItem(nIDCtl, lpDrawItemStruct);
 }
-
 
 void CMFC_SyntheticDlg::OnBnClickedCheckAll()
 {

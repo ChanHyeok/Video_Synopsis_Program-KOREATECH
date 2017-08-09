@@ -110,7 +110,9 @@ bool saveSegmentationData(string fileNameNoExtension, component object, Mat obje
 
 	//방향 정보 텍스트 파일 저장
 	if (object.timeTag == currentMsec){//현재 오브젝트가 객체의 처음 일 경우
-		appendTxt(getDetailTextFilePath(fileNameNoExtension).c_str(), lineMaker_detail(object.timeTag,object.label, directionChecker(object, ROWS, COLS), 10, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+		appendTxt(getDetailTextFilePath(fileNameNoExtension).c_str(),
+			lineMaker_detail(object.timeTag, object.label, directionChecker(object, ROWS, COLS), 10
+				, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 	}
 	else{	//첫 오브젝트가 아닐 경우 해당 객체 위치로 이동하여 last 위치 덮어쓰기
 		int stamp;
@@ -143,6 +145,8 @@ bool saveSegmentationData(string fileNameNoExtension, component object, Mat obje
 				if (ptr != NULL){
 					tempLast = atoi(ptr);
 				}
+
+				// 색깔 정보 저장영역
 				for (int i = 0; i < COLORS; i++){
 					ptr = strtok(NULL, " ");
 					if (ptr != NULL){
@@ -150,6 +154,7 @@ bool saveSegmentationData(string fileNameNoExtension, component object, Mat obje
 					}
 				}
 
+				// 지우고 재 저장
 				txt.erase(posOfTimetag, posOfNL - posOfTimetag + 1);
 				txt.insert(posOfTimetag, lineMaker_detail(stamp, label, tempFirst, directionChecker(object, ROWS, COLS), colors[0], colors[1], colors[2], colors[3], colors[4], colors[5], colors[6], colors[7], colors[8]));
 				rewriteTxt(getDetailTextFilePath(fileNameNoExtension).c_str(), txt.c_str());
