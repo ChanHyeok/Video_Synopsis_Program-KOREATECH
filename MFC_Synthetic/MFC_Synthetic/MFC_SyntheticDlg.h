@@ -137,7 +137,8 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 bool segmentationTimeInputException(CString str_h, CString str_m);
 bool IsComparePrevComponent(component curr_component, component prev_component);
 bool IsSaveComponent(component curr_component, component prev_component);
-Mat morphologicalOperation(Mat);
+Mat morphologyOpening(Mat);
+Mat morphologyClosing(Mat);
 stringstream timeConvertor(int t);
 
 bool IsObjectOverlapingDetector(segment, segment);

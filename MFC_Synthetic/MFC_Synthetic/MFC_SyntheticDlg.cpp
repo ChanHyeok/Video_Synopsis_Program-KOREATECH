@@ -35,7 +35,7 @@ const char* LEFTBELOW = "좌하단";
 const char* RIGHTBELOW = "우하단";
 
 // 배경 생성
-const int FRAMES_FOR_MAKE_BACKGROUND = 4000;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
+const int FRAMES_FOR_MAKE_BACKGROUND = 500;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
 const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 1000;	//다음 배경을 만들기 위한 시간간격(동적)
 // fps가 약 23-25 가량 나오는 영상에서 약 1분이 흐른 framecount 값은 1500
 
@@ -46,7 +46,7 @@ int videoStartMsec, fps, totalFrameCount; // 시작 millisecond, 세그먼트 �
 unsigned int videoLength;	//비디오 길이(초)
 int radioChoice, preRadioChoice;	//라디오 버튼 선택 결과 저장 변수. 0 - 원본영상, 1 - 합성영상, 2 - 이진영상
 boolean isPlayBtnClicked, isPauseBtnClicked;
-Mat background_gray, background_loadedFromFile; // 배경 프레임 , 합성 라디오 버튼 클릭 시 로드되는 합성에 사용할 배경 이미지
+Mat background_loadedFromFile; // 배경 프레임 , 합성 라디오 버튼 클릭 시 로드되는 합성에 사용할 배경 이미지
 
 unsigned int COLS, ROWS;
 bool synthesisEndFlag; // 합성이 끝남을 알려주는 플래그
@@ -183,9 +183,6 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	//프로그레스바 숨김
 	m_LoadingProgressCtrl.ShowWindow(false);
 
-	// 배경 변수 초기화
-	background_gray = Mat(ROWS, COLS, CV_8UC1);
-
 	//레이아웃 컨트롤들 초기화 및 위치 지정
 	layoutInit();
 
@@ -284,8 +281,8 @@ void CMFC_SyntheticDlg::loadFile() {
 		totalFrameCount = (int)capture.get(CV_CAP_PROP_FRAME_COUNT);
 		videoLength = (int)((totalFrameCount / (float)fps));	//비디오의 길이를 초단위로 계산
 
-		// 배경생성부분
-		background_gray = backgroundInit(&capture_for_background);
+		// 배경생성 및 파일로 저장(초반 n프레임)
+		backgroundInit(&capture_for_background);
 
 		SetTimer(LOGO_TIMER, 1, NULL);
 
@@ -333,13 +330,11 @@ void CMFC_SyntheticDlg::OnSysCommand(UINT nID, LPARAM lParam)
 void CMFC_SyntheticDlg::OnCancel() {
 	printf("OnCancel\n");
 
-	background_gray = NULL;
 	m_segmentArray = NULL;
 	capture = NULL;
 	capture_for_background = NULL;
 	background_loadedFromFile = NULL;
 	// cpp파일 내 전역변수들 메모리 해제
-	background_gray.release();
 	fileNameExtension.clear();
 	fileNameNoExtension.clear();
 	txt_filename.clear();
@@ -431,7 +426,10 @@ void CMFC_SyntheticDlg::DisplayImage(int IDC_PICTURE_TARGET, Mat targetMat, int 
 	{
 		tempImage = cvCloneImage(&IplImage(targetMat));
 	}
-
+	else {
+		cvReleaseImage(&tempImage);
+		return;
+	}
 	bitmapInfo.bmiHeader.biBitCount = tempImage->depth * tempImage->nChannels;
 
 	CDC* pDC;
@@ -503,7 +501,9 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 	case BIN_VIDEO_TIMER:
 		if (true) {
 			Mat img_labels, stats, centroids;
+			Mat loadBackground(ROWS, COLS, CV_8UC1);
 			capture.read(temp_frame);
+			int curFrameCount = (int)capture.get(CV_CAP_PROP_POS_FRAMES);
 
 			if (temp_frame.empty()) {	//예외처리. 프레임이 없음
 				perror("Empty Frame");
@@ -511,44 +511,63 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 				break;
 			}
 
+			loadBackground = imread(getBackgroundFilePath(fileNameNoExtension), IMREAD_GRAYSCALE);
+			
 			//그레이스케일 변환
 			cvtColor(temp_frame, temp_frame, CV_RGB2GRAY);
+
 			// 전경 추출
-			temp_frame = ExtractFg(temp_frame, background_gray, ROWS, COLS);
+			temp_frame = ExtractFg(temp_frame, loadBackground, ROWS, COLS);
 
-			// 이진화
-			threshold(temp_frame, temp_frame, 5, 255, CV_THRESH_BINARY);
+			//배경 업데이트 및 저장
+			//if (curFrameCount >= FRAMES_FOR_MAKE_BACKGROUND && curFrameCount % 200 == 0){
+			//	temporalMedianBG(temp_frame, loadBackground, ROWS, COLS);	//이전까지의 배경과 현재 프레임을 업데이트			
+			//	if (imwrite(getBackgroundFilePath(fileNameNoExtension), loadBackground)){	//저장
+			//		printf("Background Saving Completed\n");
+			//	}
+			//	else{
+			//		printf("!!Background Saving Failed!!\n");
+			//	}
+			//}
 
-			// 노이즈 제거
-			temp_frame = morphologicalOperation(temp_frame);
+
+			////TODO 손보기
+			//// 이진화
+			//threshold(temp_frame, temp_frame, 20, 255, CV_THRESH_BINARY);
+
+			//// 노이즈 제거
+			temp_frame = morphologyClosing(temp_frame);
+			temp_frame = morphologyOpening(temp_frame);
 			blur(temp_frame, temp_frame, Size(9, 9));
-			temp_frame = morphologicalOperation(temp_frame);
+			temp_frame = morphologyClosing(temp_frame);
+			temp_frame = morphologyOpening(temp_frame);
 
-			threshold(temp_frame, temp_frame, 5, 255, CV_THRESH_BINARY);
+			threshold(temp_frame, temp_frame, 20, 255, CV_THRESH_BINARY);
 
-			int numOfLables = connectedComponentsWithStats(temp_frame, img_labels,
-				stats, centroids, 8, CV_32S);
+			//int numOfLables = connectedComponentsWithStats(temp_frame, img_labels, stats, centroids, 8, CV_32S);
 
-			cvtColor(temp_frame, temp_frame, CV_GRAY2BGR);
+			//cvtColor(temp_frame, temp_frame, CV_GRAY2BGR);
 
-			//라벨링 된 이미지에 각각 직사각형으로 둘러싸기 
-			for (int j = 1; j < numOfLables; j++) {
-				//int area = stats.at<int>(j, CC_STAT_AREA);
-				int left = stats.at<int>(j, CC_STAT_LEFT);
-				int top = stats.at<int>(j, CC_STAT_TOP);
-				int width = stats.at<int>(j, CC_STAT_WIDTH);
-				int height = stats.at<int>(j, CC_STAT_HEIGHT);
-				if (labelSizeFiltering(width, height
-					, m_SliderWMIN.GetPos(), m_SliderWMAX.GetPos(), m_SliderHMIN.GetPos(), m_SliderHMAX.GetPos())) {
-					rectangle(temp_frame, Point(left, top), Point(left + width, top + height),
-						Scalar(0, 0, 255), 1);
-				}
-			}
+			////라벨링 된 이미지에 각각 직사각형으로 둘러싸기 
+			//for (int j = 1; j < numOfLables; j++) {
+			//	//int area = stats.at<int>(j, CC_STAT_AREA);
+			//	int left = stats.at<int>(j, CC_STAT_LEFT);
+			//	int top = stats.at<int>(j, CC_STAT_TOP);
+			//	int width = stats.at<int>(j, CC_STAT_WIDTH);
+			//	int height = stats.at<int>(j, CC_STAT_HEIGHT);
+			//	if (labelSizeFiltering(width, height
+			//		, m_SliderWMIN.GetPos(), m_SliderWMAX.GetPos(), m_SliderHMIN.GetPos(), m_SliderHMAX.GetPos())) {
+			//		rectangle(temp_frame, Point(left, top), Point(left + width, top + height),
+			//			Scalar(0, 0, 255), 1);
+			//	}
+			//}
 
 			DisplayImage(IDC_RESULT_IMAGE, temp_frame, BIN_VIDEO_TIMER);
 			img_labels = NULL;
 			stats = NULL;
 			centroids = NULL;
+			loadBackground = NULL;
+			loadBackground.release();
 			img_labels.release();
 			stats.release();
 			centroids.release();
@@ -641,7 +660,9 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 	unsigned int currentMsec;
 
 	// 배경 초기화
-	background_gray = backgroundInit(vc_Source);
+	//TODO
+	//background_gray;
+	tmp_background = imread(getBackgroundFilePath(fileNameNoExtension));
 
 	// 얻어낸 객체 프레임의 정보를 써 낼 텍스트 파일 정의s
 	fp = fopen(getTextFilePath(fileNameNoExtension).c_str(), "w");	// 쓰기모드
@@ -669,8 +690,9 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 					// int check = imwrite(SEGMENTATION_DATA_DIRECTORY_NAME + "/" + fileNameNoExtension
 					//	+ "/" + RESULT_BACKGROUND_FILENAME + fileNameNoExtension + "_" + to_string(frameCount) + ".jpg", tmp_background);
 
-					cvtColor(tmp_background, background_gray, CV_RGB2GRAY);
-
+					//TODO
+					//cvtColor(tmp_background, background_gray, CV_RGB2GRAY);
+					
 					printf("Background Changed, %d frame\n", frameCount);
 
 					temp_frameCount = FRAMES_FOR_MAKE_BACKGROUND; // temp_frame count 초기화 (배경 생성을 진행한 후 부터로)
@@ -680,18 +702,19 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 			//그레이스케일 변환
 			cvtColor(frame, frame_g, CV_RGB2GRAY);
 
-			// 전경 추출
-			frame_g = ExtractFg(frame_g, background_gray, ROWS, COLS);
+			//TODO
+			//// 전경 추출
+			////frame_g = ExtractFg(frame_g, background_gray, ROWS, COLS);
 
-			// 이진화
-			threshold(frame_g, frame_g, 5, 255, CV_THRESH_BINARY);
+			//// 이진화
+			//threshold(frame_g, frame_g, 5, 255, CV_THRESH_BINARY);
 
-			// 노이즈 제거 및 블러 처리
-			frame_g = morphologicalOperation(frame_g);
-			blur(frame_g, frame_g, Size(9, 9));
-			frame_g = morphologicalOperation(frame_g);
+			//// 노이즈 제거 및 블러 처리
+			//frame_g = morphologicalOperation(frame_g);
+			//blur(frame_g, frame_g, Size(9, 9));
+			//frame_g = morphologicalOperation(frame_g);
 
-			threshold(frame_g, frame_g, 5, 255, CV_THRESH_BINARY);
+			//threshold(frame_g, frame_g, 5, 255, CV_THRESH_BINARY);
 
 			// MAT형으로 라벨링
 			humanDetectedVector = connectedComponentsLabelling(frame_g, ROWS, COLS, WMIN, WMAX, HMIN, HMAX);
@@ -1421,16 +1444,17 @@ Mat backgroundInit(VideoCapture *vc_Source) {
 		vc_Source->read(frame); //get single frame
 		temporalMedianBG(frame, bg, ROWS * 3, COLS);
 	}
-	// 비디오 파일 이름을 통해서 bg 파일의 이름 만들어서 jpg 파일로 저장
-	if (imwrite(getBackgroundFilePath(fileNameNoExtension), bg)){
-		printf("Background Init Completed\n");
-		cout << (int)bg.data[0] << " " << (int)bg.data[1] << " " << (int)bg.data[2] << " " << (int)bg.data[3] << endl;
-	}
-	else
-		printf("!!Background Init Failed!!\n");
 
 	// 만든 배경을 그레이 변환 후 반환
 	cvtColor(bg, bg_gray, CV_RGB2GRAY);
+
+	// 비디오 파일 이름을 통해서 bg 파일의 이름 만들어서 jpg 파일로 저장
+	if (imwrite(getBackgroundFilePath(fileNameNoExtension), bg_gray)){
+		printf("Background Init Completed\n");
+	}
+	else{
+		printf("!!Background Init Failed!!\n");
+	}
 
 	frame = NULL;
 	bg = NULL;
@@ -1689,18 +1713,20 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 			capture.read(temp_frame);
 			//그레이스케일 변환
 			cvtColor(temp_frame, temp_frame, CV_RGB2GRAY);
+			
+			//TODO
 			// 전경 추출
-			temp_frame = ExtractFg(temp_frame, background_gray, ROWS, COLS);
+			//temp_frame = ExtractFg(temp_frame, background_gray, ROWS, COLS);
 
-			// 이진화
-			threshold(temp_frame, temp_frame, 5, 255, CV_THRESH_BINARY);
+			//// 이진화
+			//threshold(temp_frame, temp_frame, 5, 255, CV_THRESH_BINARY);
 
-			// 노이즈 제거
-			temp_frame = morphologicalOperation(temp_frame);
-			blur(temp_frame, temp_frame, Size(9, 9));
-			temp_frame = morphologicalOperation(temp_frame);
+			//// 노이즈 제거
+			//temp_frame = morphologicalOperation(temp_frame);
+			//blur(temp_frame, temp_frame, Size(9, 9));
+			//temp_frame = morphologicalOperation(temp_frame);
 
-			threshold(temp_frame, temp_frame, 5, 255, CV_THRESH_BINARY);
+			//threshold(temp_frame, temp_frame, 5, 255, CV_THRESH_BINARY);
 
 			int numOfLables = connectedComponentsWithStats(temp_frame, img_labels,
 				stats, centroids, 8, CV_32S);
