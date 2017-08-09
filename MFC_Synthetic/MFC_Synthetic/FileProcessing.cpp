@@ -64,8 +64,8 @@ boolean appendTxt(string path, string text){
 	}
 }
 
-string lineMaker_detail(int timetag, int first, int last, int c1, int c2, int c3, int c4, int c5, int c6, int c7, int c8,int c9){
-	return to_string(timetag).append(" ").append(to_string(first)).append(" ").append(to_string(last)).append(" ").append(to_string(c1)).append(" ").append(to_string(c2)).append(" ").append(to_string(c3)).append(" ")
+string lineMaker_detail(int timetag, int label, int first, int last, int c1, int c2, int c3, int c4, int c5, int c6, int c7, int c8,int c9){
+	return to_string(timetag).append(" ").append(to_string(label)).append(" ").append(to_string(first)).append(" ").append(to_string(last)).append(" ").append(to_string(c1)).append(" ").append(to_string(c2)).append(" ").append(to_string(c3)).append(" ")
 		.append(to_string(c4)).append(" ").append(to_string(c5)).append(" ").append(to_string(c6)).append(" ").append(to_string(c7)).append(" ").append(to_string(c8)).append(" ").append(to_string(c9)).append("\n");
 }
 
@@ -108,38 +108,55 @@ bool saveSegmentationData(string fileNameNoExtension, component object, Mat obje
 
 	//방향 정보 텍스트 파일 저장
 	if (object.timeTag == currentMsec){//현재 오브젝트가 객체의 처음 일 경우
-		appendTxt(getDetailTextFilePath(fileNameNoExtension).c_str(), lineMaker_detail(object.timeTag, directionChecker(object, ROWS, COLS), 10, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+		appendTxt(getDetailTextFilePath(fileNameNoExtension).c_str(), lineMaker_detail(object.timeTag,object.label, directionChecker(object, ROWS, COLS), 10, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 	}
 	else{	//첫 오브젝트가 아닐 경우 해당 객체 위치로 이동하여 last 위치 덮어쓰기
 		int stamp;
+		int label;
 		int tempFirst;
 		int tempLast;
 		int colors[COLORS] = { 0, };
 
 		string txt = readTxt(getDetailTextFilePath(fileNameNoExtension).c_str());
+		size_t posOfTimetag = txt.find(to_string(object.timeTag).append(" ").append(to_string(object.label)));
+		if (posOfTimetag != string::npos){
+			int posOfNL = txt.find("\n", posOfTimetag);
 
-		int posOfTimetag = txt.find(to_string(object.timeTag));
-		int posOfNL = txt.find("\n", posOfTimetag);
+			string capture = txt.substr(posOfTimetag, posOfNL - posOfTimetag);
+			char *line = new char[capture.length() + 1];
+			strcpy(line, capture.c_str());
+			char *ptr = strtok(line, " ");
 
-		string capture = txt.substr(posOfTimetag, posOfNL - posOfTimetag);
-		char *line = new char[capture.length() + 1];
-		strcpy(line, capture.c_str());
+			if (ptr != NULL){
+				stamp = atoi(ptr);
+				ptr = strtok(NULL, " ");
+				if (ptr != NULL){
+					label = atoi(ptr);
+				}
+				ptr = strtok(NULL, " ");
+				if (ptr != NULL){
+					tempFirst = atoi(ptr);
+				}
+				ptr = strtok(NULL, " ");
+				if (ptr != NULL){
+					tempLast = atoi(ptr);
+				}
+				for (int i = 0; i < COLORS; i++){
+					ptr = strtok(NULL, " ");
+					if (ptr != NULL){
+						colors[i] = atoi(ptr);
+					}
+				}
 
-		char *ptr = strtok(line, " ");
-		stamp = atoi(ptr);
-		ptr = strtok(NULL, " ");
-		tempFirst = atoi(ptr);
-		ptr = strtok(NULL, " ");
-		tempLast = atoi(ptr);
+				txt.erase(posOfTimetag, posOfNL - posOfTimetag + 1);
+				txt.insert(posOfTimetag, lineMaker_detail(stamp, label, tempFirst, directionChecker(object, ROWS, COLS), colors[0], colors[1], colors[2], colors[3], colors[4], colors[5], colors[6], colors[7], colors[8]));
+				rewriteTxt(getDetailTextFilePath(fileNameNoExtension).c_str(), txt.c_str());
+			}
 
-		for (int i = 0; i < COLORS; i++){
-			ptr = strtok(NULL, " ");
-			colors[i] = atoi(ptr);
+			ptr = NULL;
+			delete ptr;
+			delete[] line;
 		}
-		txt.erase(posOfTimetag, posOfNL - posOfTimetag + 1);
-		txt.insert(posOfTimetag, lineMaker_detail(stamp, tempFirst, directionChecker(object, ROWS, COLS), colors[0], colors[1], colors[2], colors[3], colors[4], colors[5], colors[6], colors[7], colors[8]));
-		rewriteTxt(getDetailTextFilePath(fileNameNoExtension).c_str(), txt.c_str());
-		delete[] line;
 	}
 
 	return true;
@@ -149,35 +166,51 @@ void saveColorData(string fileNameNoExtension, component object, int colorArray[
 	//색상 정보 텍스트 파일 저장
 	//해당 객체 위치로 이동하여 Color 카운트 덮어쓰기
 	int stamp;
+	int label;
 	int tempFirst;
 	int tempLast;
 	int colors[COLORS] = { 0, };
 
 	string txt = readTxt(getDetailTextFilePath(fileNameNoExtension).c_str());
 
-	int posOfTimetag = txt.find(to_string(object.timeTag));
-	int posOfNL = txt.find("\n", posOfTimetag);
+	size_t posOfTimetag = txt.find(to_string(object.timeTag).append(" ").append(to_string(object.label)));
+	if (posOfTimetag != string::npos){
+		int posOfNL = txt.find("\n", posOfTimetag);
 
-	string capture = txt.substr(posOfTimetag, posOfNL - posOfTimetag);
-	char *line = new char[capture.length() + 1];
-	strcpy(line, capture.c_str());
+		string capture = txt.substr(posOfTimetag, posOfNL - posOfTimetag);
+		char *line = new char[capture.length() + 1];
+		strcpy(line, capture.c_str());
 
-	char *ptr = strtok(line, " ");
-	stamp = atoi(ptr);
-	ptr = strtok(NULL, " ");
-	tempFirst = atoi(ptr);
-	ptr = strtok(NULL, " ");
-	tempLast = atoi(ptr);
+		char *ptr = strtok(line, " ");
+		if (ptr != NULL){
+			stamp = atoi(ptr);
+			ptr = strtok(NULL, " ");
+			if (ptr != NULL){
+				label = atoi(ptr);
+			}
+			ptr = strtok(NULL, " ");
+			if (ptr != NULL)
+				tempFirst = atoi(ptr);
+			ptr = strtok(NULL, " ");
+			if (ptr != NULL)
+				tempLast = atoi(ptr);
 
-	for (int i = 0; i < COLORS; i++){
-		ptr = strtok(NULL, " ");
-		colors[i] = atoi(ptr);
+			for (int i = 0; i < COLORS; i++){
+				ptr = strtok(NULL, " ");
+				if (ptr != NULL)
+					colors[i] = atoi(ptr);
+			}
+
+			txt.erase(posOfTimetag, posOfNL - posOfTimetag + 1);
+			txt.insert(posOfTimetag, lineMaker_detail(stamp, label, tempFirst, tempLast, colors[0] + colorArray[0], colors[1] + colorArray[1], colors[2] + colorArray[2], colors[3] + colorArray[3], colors[4] + colorArray[4],
+				colors[5] + colorArray[5], colors[6] + colorArray[6], colors[7] + colorArray[7], colors[8] + colorArray[8]));
+			rewriteTxt(getDetailTextFilePath(fileNameNoExtension).c_str(), txt.c_str());
+		}
+		ptr = NULL;
+		delete ptr;
+		delete[] line;
 	}
-	txt.erase(posOfTimetag, posOfNL - posOfTimetag + 1);
-	txt.insert(posOfTimetag, lineMaker_detail(stamp, tempFirst, tempLast, colors[0] + colorArray[0], colors[1] + colorArray[1], colors[2] + colorArray[2], colors[3] + colorArray[3], colors[4]+colorArray[4], 
-		colors[5] + colorArray[5], colors[6] + colorArray[6], colors[7] + colorArray[7], colors[8] + colorArray[8]));
-	rewriteTxt(getDetailTextFilePath(fileNameNoExtension).c_str(), txt.c_str());
-	delete[] line;
+	return;
 }
 
 void saveSegmentation_JPG(component object, Mat frame, string video_path) {

@@ -778,7 +778,7 @@ int colorPicker(Vec3b pixel){
 	else if (S <= 38 && V >= 166){
 		return WHITE;
 	}
-	else if (S <= 38 && V <= 165 && V >= 39){	//Gray인지 판별
+	else if (S <= 25){	//Gray인지 판별
 		return GRAY;
 	}
 	else if (H >= 165 || H <= 8){
@@ -799,6 +799,8 @@ int colorPicker(Vec3b pixel){
 	else if (H <= 164){
 		return MAGENTA;
 	}
+
+	return-1;
 }
 
 //색상 정보를 검출하는 함수
@@ -893,7 +895,6 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 				if (findFlag == false) { // 새 객체의 출현
 					prevTimeTag = currentMsec;
 					humanDetectedVector[humanCount].timeTag = currentMsec;
-
 					saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame, currentMsec, frameCount, humanCount, fp, ROWS, COLS);
 					checkColorData(fileNameNoExtension, frame, humanDetectedVector[humanCount], binary_frame);
 				}
@@ -922,13 +923,12 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 			}
 			if (findFlag == false) {
 				humanDetectedVector[humanCount].timeTag = currentMsec;
-
 				saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame, currentMsec, frameCount, humanCount, fp, ROWS, COLS);
 				checkColorData(fileNameNoExtension, frame, humanDetectedVector[humanCount], binary_frame);
 			}
 		} // end else
 	} // end for (humanCount) 
-
+	printf("\n");
 	vector<component> vclear;
 	prevDetectedVector_i.swap(vclear);
 
@@ -1244,7 +1244,7 @@ bool CMFC_SyntheticDlg::inputSegmentQueue(int obj1_TimeTag, int obj2_TimeTag, in
 		// start timetag와 end timetag 사이면 enqueue
 		// 아직 찾지 못했고 일치하는 타임태그를 찾았을 경우
 		if (segmentArray[i].timeTag >= obj1_TimeTag && segmentArray[i].timeTag <= obj2_TimeTag) {
-			if (segmentArray[i].timeTag == segmentArray[i].msec && isDirectionAndColorMatch(segmentArray[i].timeTag)) {
+			if (segmentArray[i].timeTag == segmentArray[i].msec && isDirectionAndColorMatch(segmentArray[i])) {
 				//출력해야할 객체의 첫 프레임의 타임태그와 위치를 큐에 삽입
 				Enqueue(&segment_queue, segmentArray[i].timeTag, i);
 			}
@@ -1936,12 +1936,13 @@ bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]){
 		}
 	}
 
-	if (colorCheckArray[index_first] || colorCheckArray[index_second] || colorCheckArray[index_third])
-		return true;
+	//if (colorCheckArray[index_first] || colorCheckArray[index_second] || colorCheckArray[index_third])
+	if (colorCheckArray[index_first] || colorCheckArray[index_second])
+	return true;
 	else
 		return false;
 }
-bool CMFC_SyntheticDlg::isDirectionAndColorMatch(int timetag){
+bool CMFC_SyntheticDlg::isDirectionAndColorMatch(segment object){
 	boolean isColorCheckedArray[COLORS] = {
 		IsDlgButtonChecked(IDC_CHECK_RED),
 		IsDlgButtonChecked(IDC_CHECK_ORANGE),
@@ -1958,24 +1959,51 @@ bool CMFC_SyntheticDlg::isDirectionAndColorMatch(int timetag){
 	int indexFirst = mComboStart.GetCurSel();
 	int indexLast = mComboEnd.GetCurSel();
 
-	FILE* fp_d;
-	if ((fp_d = fopen(getDetailTextFilePath(fileNameNoExtension).c_str(), "r+")) == NULL)
-		fp_d = fopen(getDetailTextFilePath(fileNameNoExtension).c_str(), "w+");
-
-	int tempTimetag;
+	int stamp;
+	int label;
 	int tempFirst;
 	int tempLast;
-	unsigned int colorArray[COLORS] = { 0, };
+	unsigned int colors[COLORS] = { 0, };
 
-	while (fscanf_s(fp_d, "%d %d %d %d %d %d %d %d %d %d %d %d\n", &tempTimetag, &tempFirst, &tempLast, &colorArray[0], &colorArray[1], &colorArray[2], &colorArray[3], &colorArray[4], &colorArray[5], &colorArray[6], &colorArray[7], &colorArray[8]) != EOF){
-		if (tempTimetag == timetag)
-			break;
+	string txt = readTxt(getDetailTextFilePath(fileNameNoExtension).c_str());
+	size_t posOfTimetag = txt.find(to_string(object.timeTag).append(" ").append(to_string(object.index)));
+	if (posOfTimetag != string::npos){
+		int posOfNL = txt.find("\n", posOfTimetag);
+
+		string capture = txt.substr(posOfTimetag, posOfNL - posOfTimetag);
+		char *line = new char[capture.length() + 1];
+		strcpy(line, capture.c_str());
+		char *ptr = strtok(line, " ");
+
+		if (ptr != NULL){
+			stamp = atoi(ptr);
+			ptr = strtok(NULL, " ");
+			if (ptr != NULL){
+				label = atoi(ptr);
+			}
+			ptr = strtok(NULL, " ");
+			if (ptr != NULL){
+				tempFirst = atoi(ptr);
+			}
+			ptr = strtok(NULL, " ");
+			if (ptr != NULL){
+				tempLast = atoi(ptr);
+			}
+			for (int i = 0; i < COLORS; i++){
+				ptr = strtok(NULL, " ");
+				if (ptr != NULL){
+					colors[i] = atoi(ptr);
+				}
+			}
+
+			isFirstOk = isDierectionAvailable(indexFirst, tempFirst);
+			isLastOk = isDierectionAvailable(indexLast, tempLast);
+			isColorOk = isColorAvailable(isColorCheckedArray, colors);
+		}
 	}
-	fclose(fp_d);
-
-	isFirstOk = isDierectionAvailable(indexFirst, tempFirst);
-	isLastOk = isDierectionAvailable(indexLast, tempLast);
-	isColorOk = isColorAvailable(isColorCheckedArray, colorArray);
+	else{
+		perror("해당 문자열 검색 불가능\n");
+	}
 
 	if (isFirstOk && isLastOk && isColorOk)
 		return true;

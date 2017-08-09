@@ -170,7 +170,7 @@ String getFileName(CString f_path, char find_char, BOOL);
 Mat loadJPGObjectFile(segment obj, string file_name);
 bool saveSegmentationData(string video_name, component object, Mat object_frame
 	, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp, int, int);
-
+string readTxt(string path);
 string getTextFilePath(string video_name);
 string getDetailTextFilePath(string video_name);
 string getBackgroundFilePath(string video_name);
@@ -269,7 +269,7 @@ public:
 	//ÄÞº¸¹Ú½º
 	CComboBox mComboStart;
 	CComboBox mComboEnd;
-	afx_msg bool isDirectionAndColorMatch(int);
+	afx_msg bool isDirectionAndColorMatch(segment);
 	
 	CButton mButtonSynSave;
 	afx_msg void OnBnClickedBtnSynSave();
