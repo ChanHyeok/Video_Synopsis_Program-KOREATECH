@@ -24,7 +24,7 @@ using namespace cv;
 const string SEGMENTATION_DATA_DIRECTORY_NAME = "data";
 
 // component vector Queue 관련
-const int MAXSIZE_OF_COMPONENT_VECTOR_QUEUE = 10;
+const int MAXSIZE_OF_COMPONENT_VECTOR_QUEUE = 20;
 #define NEXT(index) ((index+1)%MAXSIZE_OF_COMPONENT_VECTOR_QUEUE)
 
 // segment 임시 버퍼 관련
