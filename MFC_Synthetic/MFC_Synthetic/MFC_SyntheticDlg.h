@@ -15,7 +15,7 @@ using namespace std;
 using namespace cv;
 
 
-#define BUFFER 16000 // 객체 프레임 데이터를 저장할 버퍼의 크기 
+#define BUFFER 32000 // 객체 프레임 데이터를 저장할 버퍼의 크기 
 
 // fileName 상수 관련
 #define RESULT_TEXT_FILENAME  "obj_data_"

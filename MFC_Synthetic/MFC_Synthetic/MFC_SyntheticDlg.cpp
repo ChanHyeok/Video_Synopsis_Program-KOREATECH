@@ -35,7 +35,7 @@ const char* LEFTBELOW = "좌하단";
 const char* RIGHTBELOW = "우하단";
 
 // 배경 생성
-const int FRAMES_FOR_MAKE_BACKGROUND = 350;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
+const int FRAMES_FOR_MAKE_BACKGROUND = 4000;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
 const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 1000;	//다음 배경을 만들기 위한 시간간격(동적)
 // fps가 약 23-25 가량 나오는 영상에서 약 1분이 흐른 framecount 값은 1500
 
@@ -1412,17 +1412,20 @@ Mat backgroundInit(VideoCapture *vc_Source) {
 	Mat frame(ROWS, COLS, CV_8UC3); // Mat(height, width, channel)
 	Mat bg(ROWS, COLS, CV_8UC3);
 	Mat bg_gray(ROWS, COLS, CV_8UC1);
-	// 영상 시작점으로 초기화
-	vc_Source->set(CV_CAP_PROP_POS_MSEC, 0);
-
+	
+	vc_Source->set(CV_CAP_PROP_POS_MSEC, 0);	// 영상 시작점으로 초기화
 	vc_Source->read(bg);	//첫 프레임 저장
+
+	//배경 축적
 	for (int i = 0; i < FRAMES_FOR_MAKE_BACKGROUND - 1; i++) {
 		vc_Source->read(frame); //get single frame
 		temporalMedianBG(frame, bg, ROWS * 3, COLS);
 	}
 	// 비디오 파일 이름을 통해서 bg 파일의 이름 만들어서 jpg 파일로 저장
-	if (imwrite(getBackgroundFilePath(fileNameNoExtension), bg))
+	if (imwrite(getBackgroundFilePath(fileNameNoExtension), bg)){
 		printf("Background Init Completed\n");
+		cout << (int)bg.data[0] << " " << (int)bg.data[1] << " " << (int)bg.data[2] << " " << (int)bg.data[3] << endl;
+	}
 	else
 		printf("!!Background Init Failed!!\n");
 
