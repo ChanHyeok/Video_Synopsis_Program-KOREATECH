@@ -15,14 +15,8 @@
 using namespace std;
 using namespace cv;
 
-
-<<<<<<< HEAD
-#define BUFFER 8096 // 객체 프레임 데이터를 저장할 버퍼의 크기 
-#define COLORS  9 //색상 가지수
-=======
 #define BUFFER 16000 // 객체 프레임 데이터를 저장할 버퍼의 크기 
 
->>>>>>> master
 // fileName 상수 관련
 #define RESULT_TEXT_FILENAME  "obj_data_"
 #define RESULT_TEXT_DETAIL_FILENAME  "obj_detail_"
@@ -33,7 +27,13 @@ const string SEGMENTATION_DATA_DIRECTORY_NAME = "data";
 const int MAXSIZE_OF_COMPONENT_VECTOR_QUEUE = 20;
 #define NEXT(index) ((index+1)%MAXSIZE_OF_COMPONENT_VECTOR_QUEUE)
 
-<<<<<<< HEAD
+// segment 임시 버퍼 관련
+const int MAX_SEGMENT_TEMP_BUFFER = MAXSIZE_OF_COMPONENT_VECTOR_QUEUE;
+
+// 색상 관련
+#define COLORS  9 //색상 가지수
+// enum colors { RED, ORANGE, YELLOW, GREEN, BLUE, MAGENTA, BLACK, WHITE, GRAY };
+
 const int RED = 0;
 const int ORANGE = 1;
 const int YELLOW = 2;
@@ -43,10 +43,6 @@ const int MAGENTA = 5;
 const int BLACK = 6;
 const int WHITE = 7;
 const int GRAY = 8;
-=======
-// segment 임시 버퍼 관련
-const int MAX_SEGMENT_TEMP_BUFFER = MAXSIZE_OF_COMPONENT_VECTOR_QUEUE;
->>>>>>> master
 
 // segmentation structure
 typedef struct _segment {
@@ -149,18 +145,9 @@ vector<component> GetComponentVectorQueue(ComponentVectorQueue *componentVectorQ
 
 // MAIN ****
 vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector_Array
-<<<<<<< HEAD
 	, ComponentVectorQueue prevHumanDetectedVector_Queue, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, vector<pair<int, int>>*, int*, Mat);
-int IsComparePrevDetection2(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index);
-
-vector<component> humanDetectedProcess(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector, Mat, int, int, unsigned int, FILE *fp, FILE*, vector<pair<int, int>>*, int*);
 
 Mat getSyntheticFrame(Mat);
-
-=======
-	, ComponentVectorQueue prevHumanDetectedVector_Queue, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, vector<pair<int, int>>*, int*);
->>>>>>> master
-
 // addition function of MAIN
 bool segmentationTimeInputException(CString str_h, CString str_m);
 bool IsComparePrevComponent(component curr_component, component prev_component);
@@ -187,13 +174,9 @@ int temporalMedianBG(Mat frameimg, Mat bgimg, int rows, int cols);
 String getFileName(CString f_path, char find_char, BOOL);
 Mat loadJPGObjectFile(segment obj, string file_name);
 bool saveSegmentationData(string video_name, component object, Mat object_frame
-<<<<<<< HEAD
-	, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp, int, int);
-string readTxt(string path);
-=======
 	, int currentMsec, int frameCount, FILE *txt_fp, FILE*, int, int, vector<pair<int, int>>*, int*);
+string readTxt(string path);
 
->>>>>>> master
 string getTextFilePath(string video_name);
 string getDetailTextFilePath(string video_name);
 string getBackgroundFilePath(string video_name);
@@ -298,11 +281,7 @@ public:
 	CButton mButtonSynSave;
 	afx_msg void OnBnClickedBtnSynSave();
 	afx_msg bool inputSegmentQueue(int obj1_TimeTag, int obj2_TimeTag, int segmentCount, segment*);
-<<<<<<< HEAD
 	afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
 	afx_msg void OnBnClickedCheckAll();
-=======
-
->>>>>>> master
 };
 

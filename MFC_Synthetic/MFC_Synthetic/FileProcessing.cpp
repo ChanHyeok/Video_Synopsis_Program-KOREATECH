@@ -95,18 +95,12 @@ String getFileName(CString f_path, char find_char, BOOL extension) {
 }
 
 // 전체 segment 데이터의 파일들을 저장하는 모듈
-<<<<<<< HEAD
-bool saveSegmentationData(string fileNameNoExtension, component object, Mat object_frame, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp, int ROWS, int COLS) {
 
-	// object의 파일이름 할당
-	object.fileName = allocatingComponentFilename(object.timeTag, currentMsec, frameCount, indexOfhumanDetectedVector);
-=======
-bool saveSegmentationData(string video_name, component object, Mat object_frame
+bool saveSegmentationData(string fileNameNoExtension, component object, Mat object_frame
 	, int currentMsec, int frameCount, FILE *txt_fp, FILE * txt_fp_detail, int ROWS, int COLS, vector<pair<int, int>>* vectorDetailTXTInedx, int* detailTxtIndex) {
 
 	// object의 파일이름 할당
 	object.fileName = allocatingComponentFilename(object.timeTag, currentMsec, frameCount, object.label);
->>>>>>> master
 
 	// jpg파일로 저장
 	saveSegmentation_JPG(object, object_frame, getObjDirectoryPath(fileNameNoExtension));
@@ -266,7 +260,6 @@ int directionChecker(component object, int ROWS, int COLS){
 		result += 5;
 	}
 	else{	//가운데
-
 	}
 
 	//상
@@ -278,7 +271,6 @@ int directionChecker(component object, int ROWS, int COLS){
 		result += 9;
 	}
 	else{	//가운데
-
 	}
 
 	return result;
