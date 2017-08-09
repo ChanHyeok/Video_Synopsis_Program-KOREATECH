@@ -16,8 +16,13 @@ using namespace std;
 using namespace cv;
 
 
+<<<<<<< HEAD
 #define BUFFER 8096 // 객체 프레임 데이터를 저장할 버퍼의 크기 
 #define COLORS  9 //색상 가지수
+=======
+#define BUFFER 16000 // 객체 프레임 데이터를 저장할 버퍼의 크기 
+
+>>>>>>> master
 // fileName 상수 관련
 #define RESULT_TEXT_FILENAME  "obj_data_"
 #define RESULT_TEXT_DETAIL_FILENAME  "obj_detail_"
@@ -25,9 +30,10 @@ using namespace cv;
 const string SEGMENTATION_DATA_DIRECTORY_NAME = "data";
 
 // component vector Queue 관련
-const int MAXSIZE_OF_COMPONENT_VECTOR_QUEUE = 5;
+const int MAXSIZE_OF_COMPONENT_VECTOR_QUEUE = 20;
 #define NEXT(index) ((index+1)%MAXSIZE_OF_COMPONENT_VECTOR_QUEUE)
 
+<<<<<<< HEAD
 const int RED = 0;
 const int ORANGE = 1;
 const int YELLOW = 2;
@@ -37,6 +43,10 @@ const int MAGENTA = 5;
 const int BLACK = 6;
 const int WHITE = 7;
 const int GRAY = 8;
+=======
+// segment 임시 버퍼 관련
+const int MAX_SEGMENT_TEMP_BUFFER = MAXSIZE_OF_COMPONENT_VECTOR_QUEUE;
+>>>>>>> master
 
 // segmentation structure
 typedef struct _segment {
@@ -51,6 +61,8 @@ typedef struct _segment {
 	int bottom;
 	int width;
 	int height;
+	bool first_timeTagFlag; // 타임태그에 첫번 째 객체임을 판별하는 변수
+	bool printFlag; // 합성영상 출력에 해당 세그먼트가 출력되었는 지 판별해주는 변수
 	_segment() {
 		fileName = "";
 		timeTag = 0;
@@ -63,6 +75,8 @@ typedef struct _segment {
 		bottom = 0;
 		width = 0;
 		height = 0;
+		first_timeTagFlag = false;
+		printFlag = false;
 	}
 }segment;
 //component model
@@ -70,12 +84,9 @@ typedef struct _component {
 	string fileName;
 	unsigned int timeTag;
 	unsigned int label;
-	unsigned int sumOfX;
-	unsigned int sumOfY;
 	unsigned int size;
 	float centerOfX;
 	float centerOfY;
-	unsigned int firstPixel;
 	unsigned int left;
 	unsigned int right;
 	unsigned int top;
@@ -87,12 +98,9 @@ typedef struct _component {
 		fileName = "";
 		timeTag = 0;
 		label = 0;
-		sumOfX = 0;
-		sumOfY = 0;
 		size = 0;
 		centerOfX = 0.0;
 		centerOfY = 0.0;
-		firstPixel = 0;
 		left = 0;
 		right = 0;
 		top = 0;
@@ -103,13 +111,15 @@ typedef struct _component {
 	}
 }component;
 
-// 큐
+// segment를 위한 큐
 typedef struct node //노드 정의
 {
-	unsigned int timeTag;
+	segment segment_data;
 	int indexOfSegmentArray;
 	struct node *next;
 }node;
+
+// segmentQueue
 typedef struct Queue //Queue 구조체 정의
 {
 	node *front; //맨 앞(꺼낼 위치)
@@ -118,9 +128,11 @@ typedef struct Queue //Queue 구조체 정의
 }Queue;
 void InitQueue(Queue *);
 int IsEmpty(Queue *);
-void Enqueue(Queue *, int, int);
-node Dequeue(Queue *);
+void Enqueue(Queue *, segment, int);
+segment Dequeue(Queue *);
+int Getqueue_IndexOfSegmentArray(Queue *queue);
 
+// componentVector 타입이 그대로 저장되는 '원형' Queue
 typedef struct ComponentVectorQueue // Component Vector을 위한 크기 5인 원형 Queue 구조체 정의
 {
 	vector<component> buf[MAXSIZE_OF_COMPONENT_VECTOR_QUEUE]; // 배열 요소요소를 담당하는 벡터
@@ -137,6 +149,7 @@ vector<component> GetComponentVectorQueue(ComponentVectorQueue *componentVectorQ
 
 // MAIN ****
 vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector_Array
+<<<<<<< HEAD
 	, ComponentVectorQueue prevHumanDetectedVector_Queue, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, vector<pair<int, int>>*, int*, Mat);
 int IsComparePrevDetection2(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index);
 
@@ -144,10 +157,14 @@ vector<component> humanDetectedProcess(vector<component> humanDetectedVector, ve
 
 Mat getSyntheticFrame(Mat);
 
+=======
+	, ComponentVectorQueue prevHumanDetectedVector_Queue, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, vector<pair<int, int>>*, int*);
+>>>>>>> master
 
 // addition function of MAIN
 bool segmentationTimeInputException(CString str_h, CString str_m);
-bool IsComparePrevDetection(vector<component> curr_detected, vector<component> prev_detected, int curr_index, int prev_index);
+bool IsComparePrevComponent(component curr_component, component prev_component);
+bool IsSaveComponent(component curr_component, component prev_component);
 Mat morphologicalOperation(Mat);
 stringstream timeConvertor(int t);
 
@@ -159,6 +176,7 @@ int readSegmentTxtFile(segment* );
 // connectecComponentLabelling.cpp
 vector<component> connectedComponentsLabelling(Mat frame, int rows, int cols, int, int, int, int);
 bool labelSizeFiltering(int width, int height, int, int, int, int);
+bool IsEnqueueFiltering(segment *segment_array, int cur_index);
 
 // tool_background.cpp, tool_foreground.cpp
 Mat ExtractForegroundToMOG2(Mat frameimg);
@@ -169,8 +187,13 @@ int temporalMedianBG(Mat frameimg, Mat bgimg, int rows, int cols);
 String getFileName(CString f_path, char find_char, BOOL);
 Mat loadJPGObjectFile(segment obj, string file_name);
 bool saveSegmentationData(string video_name, component object, Mat object_frame
+<<<<<<< HEAD
 	, int currentMsec, int frameCount, int indexOfhumanDetectedVector, FILE *txt_fp, int, int);
 string readTxt(string path);
+=======
+	, int currentMsec, int frameCount, FILE *txt_fp, FILE*, int, int, vector<pair<int, int>>*, int*);
+
+>>>>>>> master
 string getTextFilePath(string video_name);
 string getDetailTextFilePath(string video_name);
 string getBackgroundFilePath(string video_name);
@@ -263,6 +286,7 @@ public:
 
 	CSliderCtrl m_SliderPlayer;
 	afx_msg void OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pResult);
+
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnBnClickedCancel();
 	afx_msg Mat getSyntheticFrame(Mat);
@@ -274,7 +298,11 @@ public:
 	CButton mButtonSynSave;
 	afx_msg void OnBnClickedBtnSynSave();
 	afx_msg bool inputSegmentQueue(int obj1_TimeTag, int obj2_TimeTag, int segmentCount, segment*);
+<<<<<<< HEAD
 	afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
 	afx_msg void OnBnClickedCheckAll();
+=======
+
+>>>>>>> master
 };
 
