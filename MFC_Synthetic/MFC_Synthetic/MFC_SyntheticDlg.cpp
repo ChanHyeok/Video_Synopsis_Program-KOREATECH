@@ -741,48 +741,6 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 	fclose(fp_detail);
 }
 
-//색상 정보를 검출하는 함수
-/*opencv HSV range
-H : 180 S : 255 V : 255
-*/
-
-int colorPicker(Vec3b pixel){
-	unsigned char H = pixel[0];
-	unsigned char S = pixel[1];
-	unsigned char V = pixel[2];
-
-	//Black인지 White인지 판별
-	if (V <= 38){
-		return BLACK;
-	}
-	else if (S <= 38 && V >= 166){
-		return WHITE;
-	}
-	else if (S <= 25){	//Gray인지 판별
-		return GRAY;
-	}
-	else if (H >= 165 || H <= 8){
-		return RED;
-	}
-	else if (H <= 22){
-		return ORANGE;
-	}
-	else if (H <= 37){
-		return YELLOW;
-	}
-	else if (H <= 85){
-		return GREEN;
-	}
-	else if (H <= 140){
-		return BLUE;
-	}
-	else if (H <= 164){
-		return MAGENTA;
-	}
-	else
-		return-1;
-}
-
 bool isColorDataOperation(Mat frame, Mat bg, Mat binary, int i_height , int j_width) {
 	// 배경 불러오기
 	Vec3b colorB = bg.at<Vec3b>(Point(j_width, i_height));
@@ -796,30 +754,43 @@ bool isColorDataOperation(Mat frame, Mat bg, Mat binary, int i_height , int j_wi
 		binary.data[i_height*binary.cols + j_width] == 255;
 }
 
-void checkColorData(string fileNameNoExtension, Mat frame, component object, Mat binary){
+int headColorException(int colorArray[], int i_height, int j_width, int obj_height) {
+	// object의 윗부분 1/3지역에 대해서 검은색 감소시키기
+	if ( (i_height < int(obj_height / 3)) && (j_width % 2)) {
+		return --colorArray[BLACK];
+	}
+	return colorArray[BLACK];
+}
+
+int* getColorArray(Mat frame, component object, Mat binary){
 	Mat temp; frame.copyTo(temp);
 	Mat bg_copy = imread(getBackgroundFilePath(fileNameNoExtension));
-	int colorArray[COLORS] = { 0, };
+	int *colorArray = new int[COLORS];
+	for (int i = 0; i < COLORS; i++)
+		colorArray[i] = 0;
 	
 	//원본 프레임 HSV로 변환하기
 	cvtColor(temp, temp, CV_BGR2HSV);
 	for (int i = object.top; i < object.bottom; i++) {
 		for (int j = object.left + 1; j < object.right; j++) {
 			// 색상 데이터 저장
-			if (isColorDataOperation(frame, bg_copy, binary, i, j) ) 
+			if (isColorDataOperation(frame, bg_copy, binary, i, j)) {
 				colorArray[colorPicker(temp.at<cv::Vec3b>(Point(j, i)))]++;
+
+				// 머리영역에 대해서 검은색 모두 감소
+				// colorArray[BLACK] = headColorException(colorArray, i, j, object.height);
+			}
 		}
 	}
+
 	//printf("%10d : ", object.timeTag);
 	//for (int i = 0; i < COLORS;i++)
-	//printf("%d ",colorArray[i]);
+	//	printf("%d ",colorArray[i]);
 	//printf("\n");
-
-	saveColorData(fileNameNoExtension, object, colorArray);
 
 	temp = NULL; bg_copy = NULL;
 	temp.release(); bg_copy.release();
-	return;
+	return colorArray;
 }
 
 // component vector 큐를 이용한 추가된 함수
@@ -846,8 +817,6 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 					humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
 					humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
 					
-					checkColorData(fileNameNoExtension, frame, humanDetectedVector[humanCount], binary_frame);
-
 					if (IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j]))
 						save_flag = true;
 					
@@ -866,8 +835,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 						if (!IsComparePrevComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j])) {
 							humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
 							humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
-							checkColorData(fileNameNoExtension, frame, humanDetectedVector[humanCount], binary_frame);
-
+						
 							if (IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j]))
 								save_flag = true;
 
@@ -889,8 +857,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 					if (!IsComparePrevComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j])) {														
 						humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
 						humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
-						checkColorData(fileNameNoExtension, frame, humanDetectedVector[humanCount], binary_frame);
-
+						
 						if (IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j]))
 							save_flag = true;
 
@@ -909,9 +876,15 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 		}
 
 		// 파일에 저장할 수 있도록 함
-		if (save_flag == true)
+		if (save_flag == true) {
+			// getColorArray에서 colorArray 객체 생성
+			int *colorArray = getColorArray(frame, humanDetectedVector[humanCount], binary_frame);
 			saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
-				, currentMsec, frameCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTIndex, detailTxtIndex);
+				, currentMsec, frameCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTIndex, detailTxtIndex, colorArray);
+			
+			// getColorArray에서 생성한 colorArray 객체 메모리 해제
+			delete[] colorArray;
+		}
 	} // end for (humanCount) 
 	vector<component> vclear;
 	prevDetectedVector_i.swap(vclear);
@@ -929,7 +902,6 @@ bool IsSaveComponent(component curr_component, component prev_component) {
 	if (curr_component.label == prev_component.label) {
 		if ((abs(curr_component.width - prev_component.width) > diff_component_width) ||
 			(abs(curr_component.height - prev_component.height) > diff_component_height)) {
-			printf("%d %d save하지 않음\n", curr_component.timeTag, curr_component.height);
 			return_flag = false;
 		}
 	}
@@ -1924,7 +1896,40 @@ bool isDierectionAvailable(int val, int val_cur) {
 
 bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]){
 	unsigned int first = 0, second = 0, third = 0;
+	int indexArray[COLORS], max_color;
 	int index_first = 0, index_second = 0, index_third = 0;
+
+	// 정렬된 색깔 배열 초기화
+	unsigned int colorSortedArray[2][COLORS];
+	for (int i = 0; i < COLORS; i++) {
+		colorSortedArray[0][i] = colorArray[i]; // 2차원 배열의 0번째 요소에는 colorArray 복사
+		colorSortedArray[1][i] = i;  // 1번째 요소에는 인덱스 정보 저장(순서대로)
+	}
+
+	// 배열 내림차순 정렬
+	int temp = 0;
+	for (int i = 0; i < COLORS - 1; i++) {
+		for (int j = 0; j < COLORS - 1 - i; j++) {
+			if (colorSortedArray[0][j] < colorSortedArray[0][j + 1]) {
+				// 색상 크기에 대한 정렬
+				temp = colorSortedArray[0][j];
+				colorSortedArray[0][j] = colorSortedArray[0][j+1];
+				colorSortedArray[0][j+1] = temp;
+				
+				// 색깔 인덱스 정보 교환
+				temp = colorSortedArray[1][j];
+				colorSortedArray[1][j] = colorSortedArray[1][j + 1];
+				colorSortedArray[1][j + 1] = temp;
+			}
+		}
+	}
+	
+	// 정렬 확인 코드
+	/*for (int i = 0; i < COLORS; i++) {
+		printf("%d(%d) ", colorSortedArray[0][i], colorSortedArray[1][i]);
+	}
+	printf("\n");*/
+	/*
 	for (int i = 0; i < COLORS; i++){
 		if (colorArray[i] >= first){
 			third = second;
@@ -1946,9 +1951,9 @@ bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]){
 			index_third = i;
 		}
 	}
-
-	//if (colorCheckArray[index_first] || colorCheckArray[index_second] || colorCheckArray[index_third])
-	if (colorCheckArray[index_first] || colorCheckArray[index_second])
+	*/
+	// 첫번째, 두번째 많은 색깔 데이터 접근
+	if (colorCheckArray[colorSortedArray[1][0]] || colorCheckArray[colorSortedArray[1][1]])
 		return true;
 	else
 		return false;
@@ -1985,7 +1990,6 @@ bool CMFC_SyntheticDlg::isDirectionAndColorMatch(segment object) {
 	string txt = readTxt(getDetailTextFilePath(fileNameNoExtension).c_str());
 	size_t posOfTimetag = txt.find(to_string(object.timeTag).append(" ").append(to_string(object.index)));
 	if (posOfTimetag != string::npos) {
-		unsigned int colors[COLORS] = { 0, };
 		int posOfNL = txt.find("\n", posOfTimetag);
 
 		string capture = txt.substr(posOfTimetag, posOfNL - posOfTimetag);
@@ -2026,7 +2030,8 @@ bool CMFC_SyntheticDlg::isDirectionAndColorMatch(segment object) {
 
 	if (isDirectionOk && isColorOk)
 		return true;
-	else return false;
+	else 
+		return false;
 }
 
 void CMFC_SyntheticDlg::OnBnClickedBtnSynSave()

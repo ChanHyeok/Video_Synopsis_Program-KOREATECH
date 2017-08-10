@@ -171,11 +171,17 @@ Mat ExtractForegroundToMOG2(Mat frameimg);
 Mat ExtractFg(Mat, Mat, int, int);
 int temporalMedianBG(Mat frameimg, Mat bgimg, int rows, int cols);
 
+// tool_getColor.cpp
+int getColor_H(int );
+int getColor_S(int );
+int getColor_V(int );
+int colorPicker(Vec3b pixel);
+
 // FileProcessing.cpp
 String getFileName(CString f_path, char find_char, BOOL);
 Mat loadJPGObjectFile(segment obj, string file_name);
 bool saveSegmentationData(string video_name, component object, Mat object_frame
-	, int currentMsec, int frameCount, FILE *txt_fp, FILE*, int, int, vector<pair<int, int>>*, int*);
+	, int currentMsec, int frameCount, FILE *txt_fp, FILE*, int, int, vector<pair<int, int>>*, int*, int[]);
 string readTxt(string path);
 
 string getTextFilePath(string video_name);
