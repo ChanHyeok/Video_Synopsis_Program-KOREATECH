@@ -7,7 +7,7 @@
 #include <opencv\cv.h>
 
 //TemporalMedian 방식으로 배경을 만들어 사용하기
-int temporalMedianBG(Mat frameimg, Mat bgimg, int rows, int cols) {
+Mat temporalMedianBG(Mat frameimg, Mat bgimg, int rows, int cols) {
 	for (int i = 0; i < rows; i++) {
 		for (int j = 0; j < cols; j++) {
 			if (frameimg.data[i * frameimg.cols + j] > bgimg.data[i * bgimg.cols + j]) {//현재 픽셀이 배경 픽셀보다 클 때
@@ -18,5 +18,5 @@ int temporalMedianBG(Mat frameimg, Mat bgimg, int rows, int cols) {
 			}
 		}
 	}
-	return 0;
+	return bgimg;
 }
