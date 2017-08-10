@@ -1117,14 +1117,12 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 		isPauseBtnClicked = false;
 	}
 	else if (radioChoice == 2 && isPlayBtnClicked == false) {//라디오버튼이 이진영상일 경우 - 이진 및 객체 검출 바운더리가 그려진 영상 재생
-		backgroundInit(&capture_for_background);
 		printf("이진영상 재생 버튼 눌림\n");
 		KillTimer(SYN_RESULT_TIMER);
 		KillTimer(VIDEO_TIMER);
 		SetTimer(BIN_VIDEO_TIMER, 1000 / m_sliderFps.GetPos(), NULL);
 		isPlayBtnClicked = true;
 		isPauseBtnClicked = false;
-
 	}
 
 	else if (radioChoice == 1 && isPlayBtnClicked == false) { //라디오버튼이 합성영상일 경우 - 설정에 따라 합성된 영상 재생
@@ -1356,6 +1354,7 @@ void CMFC_SyntheticDlg::SetRadioStatus(UINT value) {
 			break;
 		case 2:
 			radioChoice = 2;
+			backgroundInit(&capture_for_background);
 			SetTimer(LOGO_TIMER, 1, NULL);
 			printf("이진 영상 라디오 버튼 선택됨\n");
 			break;
