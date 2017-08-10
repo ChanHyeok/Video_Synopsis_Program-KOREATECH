@@ -4,6 +4,7 @@
 #include "MFC_Synthetic.h"
 #include "MFC_SyntheticDlg.h"
 #include "afxdialogex.h"
+#include "ProgressDlg.h"
 
 // 메모리 누수를 점검하는 키워드 (http://codes.xenotech.net/38)
 // 점검하기 위해 디버깅 모드로 실행 후, 디버그 로그를 보면 됨
@@ -35,7 +36,7 @@ const char* LEFTBELOW = "좌하단";
 const char* RIGHTBELOW = "우하단";
 
 // 배경 생성
-const int FRAMES_FOR_MAKE_BACKGROUND = 1000;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
+const int FRAMES_FOR_MAKE_BACKGROUND = 500;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
 const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 4000;	//다음 배경을 만들기 위한 시간간격(동적)
 // fps가 약 23-25 가량 나오는 영상에서 약 1분이 흐른 framecount 값은 1500
 
@@ -223,6 +224,7 @@ int CMFC_SyntheticDlg::loadFile(int mode) {
 	if (dlg.DoModal() == 1) {	//다이얼로그 띄움
 		//load한 영상의 이름을 text control에 표시
 		CString cstrImgPath = dlg.GetPathName();	//path
+		videoFilePath = (string)cstrImgPath;
 		String stringFileName = "File Name : ";	//출력할 문자열
 		fileNameExtension.clear();
 		fileNameExtension = getFileName(cstrImgPath, '\\', true);
@@ -260,11 +262,9 @@ int CMFC_SyntheticDlg::loadFile(int mode) {
 			int subObjDirectory_check = makeDataSubDirectory(getObjDirectoryPath(fileNameNoExtension));
 			printf("sub-obj 생성");
 		}
-
 		capture.open((string)cstrImgPath);
-		capture_for_background.open((string)cstrImgPath);
 
-		if (!capture.isOpened() || !capture_for_background.isOpened()) { //예외처리. 해당이름의 파일이 없는 경우
+		if (!capture.isOpened()) { //예외처리. 해당이름의 파일이 없는 경우
 			perror("No Such File!\n");
 			::SendMessage(GetSafeHwnd(), WM_CLOSE, NULL, NULL);	//다이얼 로그 종료
 		}
@@ -277,7 +277,7 @@ int CMFC_SyntheticDlg::loadFile(int mode) {
 		videoLength = (int)((totalFrameCount / (float)fps));	//비디오의 길이를 초단위로 계산
 
 		// 배경생성 및 파일로 저장(초반 n프레임)
-		backgroundInit(&capture_for_background);
+		backgroundInit(videoFilePath);
 
 		SetTimer(LOGO_TIMER, 1, NULL);
 
@@ -336,7 +336,6 @@ void CMFC_SyntheticDlg::OnCancel() {
 
 	m_segmentArray = NULL;
 	capture = NULL;
-	capture_for_background = NULL;
 	background_loadedFromFile = NULL;
 	background_binaryVideo_gray = NULL;
 	// cpp파일 내 전역변수들 메모리 해제
@@ -351,7 +350,6 @@ void CMFC_SyntheticDlg::OnCancel() {
 	// CMFC_SyntheticDlg 클래스의 멤버변수들 메모리 해제
 	capture.release();
 	background_binaryVideo_gray.release();
-	capture_for_background.release();
 
 	KillTimer(LOGO_TIMER);
 	KillTimer(VIDEO_TIMER);
@@ -1300,6 +1298,7 @@ stringstream timeConvertor(int t) {
 
 //load 버튼을 누르면 발생하는 콜백
 void CMFC_SyntheticDlg::OnBnClickedBtnMenuLoad() {
+	SetTimer(LOGO_TIMER, 1, NULL);
 	//실행시 비디오 파일 불러옴
 	if (loadFile(1) != 0){
 		//Slider Control 범위 지정
@@ -1316,8 +1315,6 @@ void CMFC_SyntheticDlg::OnBnClickedBtnMenuLoad() {
 		CheckRadioButton(IDC_RADIO_PLAY1, IDC_RADIO_PLAY3, IDC_RADIO_PLAY1);
 		radioChoice = 0; preRadioChoice = 0; //라디오 버튼의 default는 맨 처음 버튼임
 		mButtonSynSave.EnableWindow(false);
-
-		SetTimer(LOGO_TIMER, 1, NULL);
 	}
 	return;
 }
@@ -1354,7 +1351,6 @@ void CMFC_SyntheticDlg::SetRadioStatus(UINT value) {
 			break;
 		case 2:
 			radioChoice = 2;
-			backgroundInit(&capture_for_background);
 			SetTimer(LOGO_TIMER, 1, NULL);
 			printf("이진 영상 라디오 버튼 선택됨\n");
 			break;
@@ -1438,55 +1434,17 @@ bool CMFC_SyntheticDlg::checkSegmentation()
 	}
 }
 
-Mat CMFC_SyntheticDlg::backgroundInit(VideoCapture *vc_Source) {
-	//로딩
-	m_LoadingProgressCtrl.ShowWindow(true);
-	Mat frame(ROWS, COLS, CV_8UC3); // Mat(height, width, channel)
-	Mat bg(ROWS, COLS, CV_8UC3);
-	Mat bg_gray(ROWS, COLS, CV_8UC1);
-	int totalFrame = (int)vc_Source->get(CV_CAP_PROP_FRAME_COUNT);
-
-	vc_Source->set(CV_CAP_PROP_POS_MSEC, 0);	// 영상 시작점으로 초기화
-	vc_Source->read(bg);
-	cvtColor(bg, bg_gray, CV_RGB2GRAY);
-
-	//배경 축적
-	if (totalFrame < FRAMES_FOR_MAKE_BACKGROUND){
-		m_LoadingProgressCtrl.SetRange(0, totalFrame - 1);
-		for (int i = 0; i < totalFrame - 1; i++) {
-			vc_Source->read(frame); //get single frame
-			cvtColor(frame, frame, CV_RGB2GRAY);
-			temporalMedianBG(frame, bg_gray);
-			m_LoadingProgressCtrl.OffsetPos(1);
-		}
-	}
-	else{
-		m_LoadingProgressCtrl.SetRange(0, FRAMES_FOR_MAKE_BACKGROUND - 1);
-		for (int i = 0; i < FRAMES_FOR_MAKE_BACKGROUND - 1; i++) {
-			vc_Source->read(frame); //get single frame
-			cvtColor(frame, frame, CV_RGB2GRAY);
-			temporalMedianBG(frame, bg_gray);
-			m_LoadingProgressCtrl.OffsetPos(1);
-		}
-	}
-
-
-	// 비디오 파일 이름을 통해서 bg 파일의 이름 만들어서 jpg 파일로 저장
-	if (imwrite(getBackgroundFilePath(fileNameNoExtension), bg_gray)){
-		printf("Background Init Completed\n");
-	}
-	else{
-		printf("Background Init Failed!!\n");
-	}
-
-	//로딩바 숨기기
-	m_LoadingProgressCtrl.ShowWindow(false);
-
-	frame = NULL;
-	bg = NULL;
-	frame.release();
-	bg.release();
-	return bg_gray;
+void CMFC_SyntheticDlg::backgroundInit(string videoFilePath) {
+	printf("%d, %d\n",ROWS, COLS);
+	CProgressDlg ProgressDlg(this);                // this 를 사용하여 부모를 지정.
+	ProgressDlg.CenterWindow();
+	ProgressDlg.videoFilePath = videoFilePath;
+	ProgressDlg.ROWS = ROWS;
+	ProgressDlg.COLS = COLS;
+	ProgressDlg.FRAMES_FOR_MAKE_BACKGROUND = FRAMES_FOR_MAKE_BACKGROUND;
+	ProgressDlg.fileNameNoExtension = fileNameNoExtension;
+	ProgressDlg.DoModal();
+	return ;
 }
 
 void CMFC_SyntheticDlg::layoutInit() {
@@ -1966,7 +1924,6 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSynSave()
 	else { //실행 못하는 경우 segmentation을 진행하라고 출력
 		AfxMessageBox("You can't save without segmentation results");
 	}
-
 }
 
 //FPS 슬라이더 놓았을 경우 바로 재생

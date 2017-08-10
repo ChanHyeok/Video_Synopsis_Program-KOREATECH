@@ -11,6 +11,7 @@
 #include "afxcmn.h"
 #include "afxwin.h"
 #include <time.h>
+
 using namespace std;
 using namespace cv;
 
@@ -189,8 +190,8 @@ public:
 	CImage *cimage_mfc;
 	CStatic m_picture;
 
-	VideoCapture capture, capture_for_background;
-
+	VideoCapture capture;
+	string videoFilePath;
 	boolean isPlayBtnClicked;
 	CRect m_rectCurHist;
 	CEdit *m_pEditBoxStartHour;
@@ -265,7 +266,7 @@ public:
 	CButton mButtonSynSave;
 	afx_msg void OnBnClickedBtnSynSave();
 	afx_msg bool inputSegmentQueue(int obj1_TimeTag, int obj2_TimeTag, int segmentCount, segment*);
-	afx_msg Mat backgroundInit(VideoCapture *vc_Source);
+	afx_msg void backgroundInit(string);
 
 	afx_msg void OnReleasedcaptureSynSliderFps(NMHDR *pNMHDR, LRESULT *pResult);
 };
