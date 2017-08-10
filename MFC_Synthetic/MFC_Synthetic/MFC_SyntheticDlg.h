@@ -267,5 +267,6 @@ public:
 	afx_msg bool inputSegmentQueue(int obj1_TimeTag, int obj2_TimeTag, int segmentCount, segment*);
 	afx_msg Mat backgroundInit(VideoCapture *vc_Source);
 
+	afx_msg void OnReleasedcaptureSynSliderFps(NMHDR *pNMHDR, LRESULT *pResult);
 };
 
