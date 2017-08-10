@@ -35,8 +35,8 @@ const char* LEFTBELOW = "좌하단";
 const char* RIGHTBELOW = "우하단";
 
 // 배경 생성
-const int FRAMES_FOR_MAKE_BACKGROUND = 500;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
-const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 1000;	//다음 배경을 만들기 위한 시간간격(동적)
+const int FRAMES_FOR_MAKE_BACKGROUND = 1000;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
+const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 4000;	//다음 배경을 만들기 위한 시간간격(동적)
 // fps가 약 23-25 가량 나오는 영상에서 약 1분이 흐른 framecount 값은 1500
 
 /***  전역변수  ***/
@@ -505,7 +505,6 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 		if (true) {
 			Mat img_labels, stats, centroids;
 			Mat loadBackground = Mat(ROWS, COLS, CV_8UC1);
-			background_binaryVideo_gray = Mat(ROWS, COLS, CV_8UC1);
 			capture.read(temp_frame);
 			int curFrameCount = (int)capture.get(CV_CAP_PROP_POS_FRAMES);
 			int curFrameCount_nomalized = curFrameCount%FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND;
@@ -525,26 +524,22 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 					temp_frame.copyTo(background_binaryVideo_gray);
 				}
 				else{	//배경 생성
-					background_binaryVideo_gray = temporalMedianBG(temp_frame, background_binaryVideo_gray, ROWS, COLS);
-					namedWindow("image", WINDOW_AUTOSIZE);
-					imshow("image", background_binaryVideo_gray);
+					temporalMedianBG(temp_frame, background_binaryVideo_gray);
 				}
 			}
+			//만든 배경을 저장해야 할 경우
+			else if (curFrameCount_nomalized == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND-1){
+				imwrite(getBackgroundFilePath(fileNameNoExtension), background_binaryVideo_gray);
+			}
 
-			//첫 싸이클이 아니고 배경을 교체해야 할 경우
+			
 			if (curFrameCount >= FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND && curFrameCount_nomalized == 0){
-				
-				background_binaryVideo_gray.copyTo(loadBackground);
 				printf("Background Changed, %d frame\n", curFrameCount);
 			}
-			else if (curFrameCount<FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND){//첫 FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND개의 프레임 동안은 미리 만들어 놓은 배경을 사용
-				loadBackground = imread(getBackgroundFilePath(fileNameNoExtension), IMREAD_GRAYSCALE);
-			}
-			
-			// 전경 추출
-			temp_frame = ExtractFg(temp_frame, loadBackground, ROWS, COLS);
-			
 
+			loadBackground = imread(getBackgroundFilePath(fileNameNoExtension), IMREAD_GRAYSCALE);	//배경 로드
+			
+			temp_frame = ExtractFg(temp_frame, loadBackground, ROWS, COLS);// 전경 추출
 
 			////TODO 손보기
 			//// 이진화
@@ -698,7 +693,7 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 			// 배경을 다시 만들 때 첫번쨰 임시배경을 프레임 중 하나로 선택함(연산을 시작하는 첫번쨰 프레임)
 			if (temp_frameCount >= FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND &&
 				temp_frameCount <= FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND + FRAMES_FOR_MAKE_BACKGROUND) {
-				temporalMedianBG(frame, tmp_background, ROWS * 3, COLS);
+				temporalMedianBG(frame, tmp_background);
 
 				if (temp_frameCount == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND + FRAMES_FOR_MAKE_BACKGROUND) {
 					// 만든 background 적용
@@ -1450,25 +1445,35 @@ Mat backgroundInit(VideoCapture *vc_Source) {
 	Mat frame(ROWS, COLS, CV_8UC3); // Mat(height, width, channel)
 	Mat bg(ROWS, COLS, CV_8UC3);
 	Mat bg_gray(ROWS, COLS, CV_8UC1);
+	int totalFrame = (int)vc_Source->get(CV_CAP_PROP_FRAME_COUNT);
 	
 	vc_Source->set(CV_CAP_PROP_POS_MSEC, 0);	// 영상 시작점으로 초기화
-	vc_Source->read(bg);	//첫 프레임 저장
+	vc_Source->read(bg);
+	cvtColor(bg, bg_gray, CV_RGB2GRAY);
 
 	//배경 축적
-	for (int i = 0; i < FRAMES_FOR_MAKE_BACKGROUND - 1; i++) {
-		vc_Source->read(frame); //get single frame
-		temporalMedianBG(frame, bg, ROWS * 3, COLS);
+	if (totalFrame < FRAMES_FOR_MAKE_BACKGROUND){
+		for (int i = 0; i < totalFrame - 1; i++) {
+			vc_Source->read(frame); //get single frame
+			cvtColor(frame, frame, CV_RGB2GRAY);
+			temporalMedianBG(frame, bg_gray);
+		}
+	}
+	else{
+		for (int i = 0; i < FRAMES_FOR_MAKE_BACKGROUND - 1; i++) {
+			vc_Source->read(frame); //get single frame
+			cvtColor(frame, frame, CV_RGB2GRAY);
+			temporalMedianBG(frame, bg_gray);
+		}
 	}
 
-	// 만든 배경을 그레이 변환 후 반환
-	cvtColor(bg, bg_gray, CV_RGB2GRAY);
 
 	// 비디오 파일 이름을 통해서 bg 파일의 이름 만들어서 jpg 파일로 저장
 	if (imwrite(getBackgroundFilePath(fileNameNoExtension), bg_gray)){
 		printf("Background Init Completed\n");
 	}
 	else{
-		printf("!!Background Init Failed!!\n");
+		printf("Background Init Failed!!\n");
 	}
 
 	frame = NULL;

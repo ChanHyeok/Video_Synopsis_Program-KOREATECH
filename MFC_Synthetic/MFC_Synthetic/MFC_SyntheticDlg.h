@@ -154,7 +154,7 @@ bool IsEnqueueFiltering(segment *segment_array, int cur_index);
 // tool_background.cpp, tool_foreground.cpp
 Mat ExtractForegroundToMOG2(Mat frameimg);
 Mat ExtractFg(Mat, Mat, int, int);
-Mat temporalMedianBG(Mat frameimg, Mat bgimg, int rows, int cols);
+Mat temporalMedianBG(Mat frameimg, Mat bgimg);
 
 // FileProcessing.cpp
 String getFileName(CString f_path, char find_char, BOOL);
