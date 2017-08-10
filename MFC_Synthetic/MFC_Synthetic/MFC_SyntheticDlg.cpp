@@ -754,14 +754,6 @@ bool isColorDataOperation(Mat frame, Mat bg, Mat binary, int i_height , int j_wi
 		binary.data[i_height*binary.cols + j_width] == 255;
 }
 
-int headColorException(int colorArray[], int i_height, int j_width, int obj_height) {
-	// object의 윗부분 1/3지역에 대해서 검은색 감소시키기
-	if ( (i_height < int(obj_height / 3)) && (j_width % 2)) {
-		return --colorArray[BLACK];
-	}
-	return colorArray[BLACK];
-}
-
 int* getColorArray(Mat frame, component object, Mat binary){
 	Mat temp; frame.copyTo(temp);
 	Mat bg_copy = imread(getBackgroundFilePath(fileNameNoExtension));
@@ -776,9 +768,6 @@ int* getColorArray(Mat frame, component object, Mat binary){
 			// 색상 데이터 저장
 			if (isColorDataOperation(frame, bg_copy, binary, i, j)) {
 				colorArray[colorPicker(temp.at<cv::Vec3b>(Point(j, i)))]++;
-
-				// 머리영역에 대해서 검은색 모두 감소
-				// colorArray[BLACK] = headColorException(colorArray, i, j, object.height);
 			}
 		}
 	}
@@ -1034,8 +1023,8 @@ bool IsEnqueueFiltering(segment *segment_array, int cur_index) {
 	// 양 끝 filter_object_num 갯수만큼의 객체를 비교하고자 함
 	// 1일 경우 앞쪽 뒷쪽 한 개씩만
 	const unsigned int filter_object_num = 1;
-	const unsigned int filter_object_height = ROWS / 2; //  ( 480/15 = 32)
-	const unsigned int filter_object_width = COLS / 2; //  ( 640/15 = 42)
+	const unsigned int filter_object_height = ROWS / 15; //  ( 480/15 = 32)
+	const unsigned int filter_object_width = COLS / 15; //  ( 640/15 = 42)
 
 	// 앞의 객체가 없으면 그냥 출력 가능하게 함
 	if ((cur_index < filter_object_num && cur_index >= 0)
@@ -1925,37 +1914,31 @@ bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]){
 	}
 	
 	// 정렬 확인 코드
-	/*for (int i = 0; i < COLORS; i++) {
+	/*for (int i = 0; i < COLORS; i++) 
 		printf("%d(%d) ", colorSortedArray[0][i], colorSortedArray[1][i]);
-	}
 	printf("\n");*/
-	/*
-	for (int i = 0; i < COLORS; i++){
-		if (colorArray[i] >= first){
-			third = second;
-			second = first;
-			first = colorArray[i];
-			index_third = index_second;
-			index_second = index_first;
-			index_first = i;
-
-		}
-		else if (colorArray[i] >= second){
-			third = second;
-			second = colorArray[i];
-			index_third = index_second;
-			index_second = i;
-		}
-		else if (colorArray[i] >= third){
-			third = colorArray[i];
-			index_third = i;
-		}
+	
+	// 먼저 검은색 하나만 체크가 되어 있을 경우에는 필터링(머리부분이 항상 검출되었기 떄문에)
+	int onlyBlackCheckFlag = 0;
+	for (int i = 0; i < COLORS; i++) {
+		if (colorCheckArray[i] == true)
+			onlyBlackCheckFlag++;
 	}
-	*/
-	// 첫번째, 두번째 많은 색깔 데이터 접근
+
+	// 첫번째로 많이 나온 color가 black일 경우에만 true 반환
+	if ((onlyBlackCheckFlag == 1) && (colorCheckArray[BLACK] == true)) {
+		printf("블랙만 체크\n");
+		if (colorCheckArray[colorSortedArray[1][0]])
+			return true;
+		else
+			return false;
+	}
+
+	// 첫번째, 두번째 많은 색깔 데이터 접근(일반적인 경우)
 	if (colorCheckArray[colorSortedArray[1][0]] || colorCheckArray[colorSortedArray[1][1]])
 		return true;
-	else
+
+	else// 이외의 경우 false 반환
 		return false;
 }
 
