@@ -142,9 +142,9 @@ Mat morphologyClosing(Mat);
 stringstream timeConvertor(int t);
 
 bool IsObjectOverlapingDetector(segment, segment);
-Mat backgroundInit(VideoCapture *vc_Source);
 
-int readSegmentTxtFile(segment* );
+
+int readSegmentTxtFile(segment*);
 
 // connectecComponentLabelling.cpp
 vector<component> connectedComponentsLabelling(Mat frame, int rows, int cols, int, int, int, int);
@@ -178,11 +178,11 @@ Mat printObjOnBG(Mat background, segment obj, int* labelMap, string);
 
 // CMFC_SyntheticDlg dialog
 class CMFC_SyntheticDlg : public CDialogEx{
-// Construction
+	// Construction
 public:
 	CMFC_SyntheticDlg(CWnd* pParent = NULL);	// standard constructor
 	//~CMFC_SyntheticDlg();
-// Dialog Data
+	// Dialog Data
 	enum { IDD = IDD_MFC_SYNTHETIC_DIALOG };
 
 	Mat mat_frame;
@@ -196,7 +196,7 @@ public:
 	CEdit *m_pEditBoxStartHour;
 	CEdit *m_pEditBoxStartMinute;
 
-	protected:
+protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
 
 public:
@@ -204,7 +204,7 @@ public:
 	//afx_msg void OnTimer(UINT_PTR nIDEvent);
 
 
-// Implementation
+	// Implementation
 protected:
 	HICON m_hIcon;
 
@@ -230,8 +230,8 @@ public:
 	CSliderCtrl m_sliderFps;
 	int mRadioPlay;
 	afx_msg void OnBnClickedBtnMenuLoad();
-	
-	afx_msg void loadFile();
+
+	afx_msg int loadFile(int);
 
 	afx_msg void SetRadioStatus(UINT value);
 	afx_msg void OnBnClickedBtnPause();
@@ -244,8 +244,8 @@ public:
 	CSliderCtrl m_SliderHMIN;
 	CSliderCtrl m_SliderHMAX;
 	afx_msg void OnBnClickedBtnStop();
-	afx_msg void layoutInit(); 
-	afx_msg void setSliderRange(int,int,int,int);
+	afx_msg void layoutInit();
+	afx_msg void setSliderRange(int, int, int, int);
 	afx_msg void updateUI(int, int, int, int);
 	afx_msg void segmentationOperator(VideoCapture* vc_Source, int, int, int, int, int, int);
 	afx_msg void OnBnClickedBtnRewind();
@@ -261,10 +261,11 @@ public:
 	CComboBox mComboStart;
 	CComboBox mComboEnd;
 	afx_msg bool isDirectionMatch(int);
-	
+
 	CButton mButtonSynSave;
 	afx_msg void OnBnClickedBtnSynSave();
 	afx_msg bool inputSegmentQueue(int obj1_TimeTag, int obj2_TimeTag, int segmentCount, segment*);
+	afx_msg Mat backgroundInit(VideoCapture *vc_Source);
 
 };
 

@@ -187,14 +187,8 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	//레이아웃 컨트롤들 초기화 및 위치 지정
 	layoutInit();
 
-	//로딩
-	m_LoadingProgressCtrl.ShowWindow(true);
-	m_LoadingProgressCtrl.SetRange(0, 100);
-	m_LoadingProgressCtrl.SetPos(0);
-	SetTimer(PROGRESS_BAR_TIMER, 10, NULL);
-
 	//실행시 비디오 파일 불러옴
-	loadFile();
+	loadFile(0);
 
 	//Slider Control 범위 지정
 	setSliderRange(videoLength, COLS, ROWS, 100);
@@ -215,14 +209,13 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	radioChoice = 0; preRadioChoice = 0; //라디오 버튼의 default는 맨 처음 버튼임
 	mButtonSynSave.EnableWindow(false);
 
-	KillTimer(PROGRESS_BAR_TIMER);
-	m_LoadingProgressCtrl.ShowWindow(false);
+	
 	SetTimer(LOGO_TIMER, 1, NULL);
-
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
-void CMFC_SyntheticDlg::loadFile() {
+//mode 0 : 취소시 프로그램 종료. 1 : 취소시 다이얼로그만 종료
+int CMFC_SyntheticDlg::loadFile(int mode) {
 	//파일 다이얼로그 호출해서 segmentation 할 영상 선택	
 	char szFilter[] = "Video (*.avi, *.MP4) | *.avi;*.mp4; | All Files(*.*)|*.*||";	//검색 옵션
 	CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, szFilter, AfxGetMainWnd());	//파일 다이얼로그 생성
@@ -294,9 +287,18 @@ void CMFC_SyntheticDlg::loadFile() {
 		else {
 			GetDlgItem(IDC_RADIO_PLAY2)->EnableWindow(FALSE);
 		}
+
+		return 0;
+	}
+	else if (mode == 0){
+		OnCancel();
+	}
+	else if (mode == 1){
+		return 1;
 	}
 	else
-		OnCancel();
+		perror("Unkown mode error\n");
+	return 1;
 }
 
 void CMFC_SyntheticDlg::OnSysCommand(UINT nID, LPARAM lParam)
@@ -1114,6 +1116,7 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 		isPauseBtnClicked = false;
 	}
 	else if (radioChoice == 2 && isPlayBtnClicked == false) {//라디오버튼이 이진영상일 경우 - 이진 및 객체 검출 바운더리가 그려진 영상 재생
+		backgroundInit(&capture_for_background);
 		printf("이진영상 재생 버튼 눌림\n");
 		KillTimer(SYN_RESULT_TIMER);
 		KillTimer(VIDEO_TIMER);
@@ -1298,32 +1301,26 @@ stringstream timeConvertor(int t) {
 
 //load 버튼을 누르면 발생하는 콜백
 void CMFC_SyntheticDlg::OnBnClickedBtnMenuLoad() {
-	//로딩
-	m_LoadingProgressCtrl.ShowWindow(true);
-	m_LoadingProgressCtrl.SetRange(0, 100);
-	m_LoadingProgressCtrl.SetPos(0);
-	SetTimer(PROGRESS_BAR_TIMER, 10, NULL);
 	//실행시 비디오 파일 불러옴
-	loadFile();
+	if (loadFile(1)!=0){
+		//Slider Control 범위 지정
+		setSliderRange(videoLength, COLS, ROWS, 100);
 
-	//Slider Control 범위 지정
-	setSliderRange(videoLength, COLS, ROWS, 100);
+		//UI 업데이트, control에 default 값 할당
+		updateUI(videoLength, COLS, ROWS, fps);
 
-	//UI 업데이트, control에 default 값 할당
-	updateUI(videoLength, COLS, ROWS, fps);
+		// // Play, Pause버튼 상태 초기화
+		isPlayBtnClicked = false;
+		isPauseBtnClicked = true;
 
-	// // Play, Pause버튼 상태 초기화
-	isPlayBtnClicked = false;
-	isPauseBtnClicked = true;
+		// 라디오 버튼 초기화
+		CheckRadioButton(IDC_RADIO_PLAY1, IDC_RADIO_PLAY3, IDC_RADIO_PLAY1);
+		radioChoice = 0; preRadioChoice = 0; //라디오 버튼의 default는 맨 처음 버튼임
+		mButtonSynSave.EnableWindow(false);
 
-	// 라디오 버튼 초기화
-	CheckRadioButton(IDC_RADIO_PLAY1, IDC_RADIO_PLAY3, IDC_RADIO_PLAY1);
-	radioChoice = 0; preRadioChoice = 0; //라디오 버튼의 default는 맨 처음 버튼임
-	mButtonSynSave.EnableWindow(false);
-
-	KillTimer(PROGRESS_BAR_TIMER);
-	m_LoadingProgressCtrl.ShowWindow(false);
-	SetTimer(LOGO_TIMER, 1, NULL);
+		SetTimer(LOGO_TIMER, 1, NULL);
+	}
+	return;
 }
 
 void CMFC_SyntheticDlg::SetRadioStatus(UINT value) {
@@ -1441,7 +1438,9 @@ bool CMFC_SyntheticDlg::checkSegmentation()
 	}
 }
 
-Mat backgroundInit(VideoCapture *vc_Source) {
+Mat CMFC_SyntheticDlg::backgroundInit(VideoCapture *vc_Source) {
+	//로딩
+	m_LoadingProgressCtrl.ShowWindow(true);
 	Mat frame(ROWS, COLS, CV_8UC3); // Mat(height, width, channel)
 	Mat bg(ROWS, COLS, CV_8UC3);
 	Mat bg_gray(ROWS, COLS, CV_8UC1);
@@ -1453,17 +1452,21 @@ Mat backgroundInit(VideoCapture *vc_Source) {
 
 	//배경 축적
 	if (totalFrame < FRAMES_FOR_MAKE_BACKGROUND){
+		m_LoadingProgressCtrl.SetRange(0, totalFrame-1);
 		for (int i = 0; i < totalFrame - 1; i++) {
 			vc_Source->read(frame); //get single frame
 			cvtColor(frame, frame, CV_RGB2GRAY);
 			temporalMedianBG(frame, bg_gray);
+			m_LoadingProgressCtrl.OffsetPos(1);
 		}
 	}
 	else{
+		m_LoadingProgressCtrl.SetRange(0, FRAMES_FOR_MAKE_BACKGROUND-1);
 		for (int i = 0; i < FRAMES_FOR_MAKE_BACKGROUND - 1; i++) {
 			vc_Source->read(frame); //get single frame
 			cvtColor(frame, frame, CV_RGB2GRAY);
 			temporalMedianBG(frame, bg_gray);
+			m_LoadingProgressCtrl.OffsetPos(1);
 		}
 	}
 
@@ -1475,6 +1478,9 @@ Mat backgroundInit(VideoCapture *vc_Source) {
 	else{
 		printf("Background Init Failed!!\n");
 	}
+
+	//로딩바 숨기기
+	m_LoadingProgressCtrl.ShowWindow(false);
 
 	frame = NULL;
 	bg = NULL;
@@ -1504,7 +1510,7 @@ void CMFC_SyntheticDlg::layoutInit() {
 	int box_MenuHeight = ((dialogHeight - 3 * padding)*0.8 - padding)*0.3;
 
 	pGroupMenu->MoveWindow(box_MenuX, box_MenuY, box_MenuWidth, box_MenuHeight, TRUE);
-	pStringFileName->MoveWindow(box_MenuX + padding, box_MenuY + 2 * padding, 230, 20, TRUE);
+	pStringFileName->MoveWindow(box_MenuX + padding, box_MenuY + 2 * padding, 230, 50, TRUE);
 	pButtonLoad->MoveWindow(box_MenuX + box_MenuWidth - padding - 100, box_MenuY + 3 * padding + 20, 100, 20, TRUE);
 	pRadioBtn1->MoveWindow(box_MenuX + padding, box_MenuY + 4 * padding + 40, 100, 20, TRUE);
 	pRadioBtn3->MoveWindow(box_MenuX + padding + 150, box_MenuY + 4 * padding + 40, 100, 20, TRUE);
