@@ -204,12 +204,19 @@ string getDetailTextFilePath(string video_name) {
 		+ "/" + RESULT_TEXT_DETAIL_FILENAME + video_name + (".txt");
 }
 
-// 배경 파일 이름을 반환하는 함수
+// 기본 배경 파일 이름을 반환하는 함수
 string getBackgroundFilePath(string video_name) {
 	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name
 		+ "/" + RESULT_BACKGROUND_FILENAME + video_name + (".jpg");
 }
-// 배경 파일 이름을 반환하는 함수
+
+// 연산에 사용할 배경 파일 이름을 반환하는 함수
+string getTempBackgroundFilePath(string video_name) {
+	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name
+		+ "/" + RESULT_BACKGROUND_FILENAME + "_T_" + video_name + (".jpg");
+}
+
+// 합성영상 출력시 사용할 컬러 배경 파일 이름을 반환하는 함수
 string getColorBackgroundFilePath(string video_name) {
 	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name
 		+ "/" + RESULT_BACKGROUND_FILENAME+ "_C_" + video_name + (".jpg");

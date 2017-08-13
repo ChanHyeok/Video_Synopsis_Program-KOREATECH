@@ -114,6 +114,7 @@ void CProgressDlg::OnTimer(UINT_PTR nIDEvent)
 		else{
 			KillTimer(PROGRESS_TIMER);
 			if (imwrite(getBackgroundFilePath(fileNameNoExtension), bg_gray)){
+				imwrite(getTempBackgroundFilePath(fileNameNoExtension), bg_gray);
 				m_StaticMessage.SetWindowTextA(_T("배경 생성 성공!"));
 				m_ButtonOK.EnableWindow(true);
 				printf("Background Init Completed\n");

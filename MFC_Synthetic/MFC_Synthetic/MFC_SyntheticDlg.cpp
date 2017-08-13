@@ -531,14 +531,20 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 
 			//만든 배경을 저장해야 할 경우
 			if (curFrameCount_nomalized == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1){
-				imwrite(getBackgroundFilePath(fileNameNoExtension), background_binaryVideo_gray);
+				imwrite(getTempBackgroundFilePath(fileNameNoExtension), background_binaryVideo_gray);
 			}
 
 			if (curFrameCount >= FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND && curFrameCount_nomalized == 0){
 				printf("Background Changed, %d frame\n", curFrameCount);
 			}
 
-			loadBackground = imread(getBackgroundFilePath(fileNameNoExtension), IMREAD_GRAYSCALE);	//배경 로드
+			//새로운 배경이 write되기 전 까지는 base gray배경을 사용
+			if (curFrameCount < FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1){
+				loadBackground = imread(getBackgroundFilePath(fileNameNoExtension), IMREAD_GRAYSCALE);	//배경 로드
+			}
+			else{	//새로운 배경이 만들어진 다음부터는 만들어진 배경을 사용
+				loadBackground = imread(getTempBackgroundFilePath(fileNameNoExtension), IMREAD_GRAYSCALE);	//배경 로드
+			}
 
 			temp_frame = ExtractFg(temp_frame, loadBackground, ROWS, COLS);// 전경 추출
 
@@ -669,8 +675,6 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 	unsigned int currentMsec;
 
 	// 배경 초기화
-	//TODO
-	//background_gray;
 	tmp_background = imread(getBackgroundFilePath(fileNameNoExtension));
 
 	// 얻어낸 객체 프레임의 정보를 써 낼 텍스트 파일 정의s
@@ -707,14 +711,22 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 
 			//만든 배경을 저장해야 할 경우
 			if (curFrameCount_nomalized == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1){
-				imwrite(getBackgroundFilePath(fileNameNoExtension), background_binaryVideo_gray);
+				imwrite(getTempBackgroundFilePath(fileNameNoExtension), background_binaryVideo_gray);
 			}
 
 			if (curFrameCount >= FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND && curFrameCount_nomalized == 0){
 				printf("Background Changed, %d frame\n", curFrameCount);
 			}
 
-			frame_g = ExtractFg(frame_g, imread(getBackgroundFilePath(fileNameNoExtension), IMREAD_GRAYSCALE), ROWS, COLS);// 전경 추출
+			//새로운 배경이 write되기 전 까지는 base gray배경을 사용
+			if (curFrameCount < FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1){
+				frame_g = ExtractFg(frame_g, imread(getBackgroundFilePath(fileNameNoExtension), IMREAD_GRAYSCALE), ROWS, COLS);// 전경 추출
+			}
+			else{	//새로운 배경이 만들어진 다음부터는 만들어진 배경을 사용
+				frame_g = ExtractFg(frame_g, imread(getTempBackgroundFilePath(fileNameNoExtension), IMREAD_GRAYSCALE), ROWS, COLS);// 전경 추출
+			}
+			
+
 
 			////TODO 손보기
 			// 이진화
@@ -1766,6 +1778,43 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 			break;
 		case 2:	//이진 영상 마저 출력
 			printf("b");
+			//TODO
+			//if (releasedPoint)
+
+			//Mat img_labels, stats, centroids;
+			//Mat loadBackground = Mat(ROWS, COLS, CV_8UC1);
+			//capture.read(temp_frame);
+			//int curFrameCount = (int)capture.get(CV_CAP_PROP_POS_FRAMES);
+			//int curFrameCount_nomalized = curFrameCount%FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND;
+			//if (temp_frame.empty()) {	//예외처리. 프레임이 없음
+			//	perror("Empty Frame");
+			//	KillTimer(BIN_VIDEO_TIMER);
+			//	break;
+			//}
+
+			////그레이스케일 변환
+			//cvtColor(temp_frame, temp_frame, CV_RGB2GRAY);
+
+			////다음에 쓸 배경을 만들어야 할 경우
+			//if (curFrameCount_nomalized >= (FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND)){
+			//	if (curFrameCount_nomalized == (FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND)){	//새로 만드는 첫 배경 Init
+			//		printf("Background Making Start : %d frame\n", curFrameCount);
+			//		temp_frame.copyTo(background_binaryVideo_gray);
+			//	}
+			//	else{	//배경 생성
+			//		temporalMedianBG(temp_frame, background_binaryVideo_gray);
+			//	}
+			//}
+
+			////만든 배경을 저장해야 할 경우
+			//if (curFrameCount_nomalized == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1){
+			//	imwrite(getBackgroundFilePath(fileNameNoExtension), background_binaryVideo_gray);
+			//}
+
+			//if (curFrameCount >= FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND && curFrameCount_nomalized == 0){
+			//	printf("Background Changed, %d frame\n", curFrameCount);
+			//}
+
 			SetTimer(BIN_VIDEO_TIMER, 1000 / m_sliderFps.GetPos(), NULL);
 			break;
 		default:

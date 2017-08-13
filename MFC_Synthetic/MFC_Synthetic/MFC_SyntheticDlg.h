@@ -164,6 +164,7 @@ bool saveSegmentationData(string video_name, component object, Mat object_frame
 	, int currentMsec, int frameCount, FILE *txt_fp, FILE*, int, int, vector<pair<int, int>>*, int*);
 
 string getTextFilePath(string video_name);
+string getTempBackgroundFilePath(string);
 string getDetailTextFilePath(string video_name);
 string getBackgroundFilePath(string video_name);
 string getColorBackgroundFilePath(string video_name);
