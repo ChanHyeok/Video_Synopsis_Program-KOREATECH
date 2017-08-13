@@ -1437,14 +1437,19 @@ bool CMFC_SyntheticDlg::checkSegmentation()
 }
 
 void CMFC_SyntheticDlg::backgroundInit(string videoFilePath) {
-	CProgressDlg ProgressDlg(this);                // this 를 사용하여 부모를 지정.
-	ProgressDlg.CenterWindow();
-	ProgressDlg.videoFilePath = videoFilePath;
-	ProgressDlg.ROWS = ROWS;
-	ProgressDlg.COLS = COLS;
-	ProgressDlg.FRAMES_FOR_MAKE_BACKGROUND = FRAMES_FOR_MAKE_BACKGROUND;
-	ProgressDlg.fileNameNoExtension = fileNameNoExtension;
-	ProgressDlg.DoModal();
+	if(!isGrayBackgroundExists(getBackgroundFilePath(fileNameNoExtension))){
+		CProgressDlg ProgressDlg(this);                // this 를 사용하여 부모를 지정.
+		ProgressDlg.CenterWindow();
+		ProgressDlg.videoFilePath = videoFilePath;
+		ProgressDlg.ROWS = ROWS;
+		ProgressDlg.COLS = COLS;
+		ProgressDlg.FRAMES_FOR_MAKE_BACKGROUND = FRAMES_FOR_MAKE_BACKGROUND;
+		ProgressDlg.fileNameNoExtension = fileNameNoExtension;
+		ProgressDlg.DoModal();
+	}
+	else{
+		printf("Init skip : 배경이 존재함\n");
+	}
 	return ;
 }
 

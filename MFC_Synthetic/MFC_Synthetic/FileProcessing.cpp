@@ -236,6 +236,17 @@ bool isDirectory(string dir_name) {
 	return _access(ptr_name, 0) == 0;
 }
 
+//파일 로드시 만드는 회색 배경이 있는 지 확인하는 함수
+bool isGrayBackgroundExists(string name) {
+	if (FILE *file = fopen(name.c_str(), "r")) {
+		fclose(file);
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
 // data 폴더를 생성하는 함수
 int makeDataRootDirectory() {
 	// 세그먼테이션 결과 데이터가 들어있는 폴더가 없는 경우 만들어 줌

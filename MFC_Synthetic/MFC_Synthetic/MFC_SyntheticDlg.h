@@ -169,6 +169,7 @@ string getBackgroundFilePath(string video_name);
 string getColorBackgroundFilePath(string video_name);
 string getDirectoryPath(string video_name);
 string getObjDirectoryPath(string video_name);
+bool isGrayBackgroundExists(string);
 
 bool isDirectory(string dir_name);
 int makeDataRootDirectory();
