@@ -767,7 +767,7 @@ int* getColorArray(Mat frame, component object, Mat binary){
 		for (int j = object.left + 1; j < object.right; j++) {
 			// 색상 데이터 저장
 			if (isColorDataOperation(frame, bg_copy, binary, i, j)) {
-				colorArray[colorPicker(temp.at<cv::Vec3b>(Point(j, i)))]++;
+				colorArray[colorPicker(temp.at<Vec3b>(Point(j, i)))]++;
 			}
 		}
 	}
@@ -1884,34 +1884,22 @@ bool isDierectionAvailable(int val, int val_cur) {
 }
 
 bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]){
-	unsigned int first = 0, second = 0, third = 0;
-	int indexArray[COLORS], max_color;
-	int index_first = 0, index_second = 0, index_third = 0;
-
-	// 정렬된 색깔 배열 초기화
-	unsigned int colorSortedArray[2][COLORS];
-	for (int i = 0; i < COLORS; i++) {
-		colorSortedArray[0][i] = colorArray[i]; // 2차원 배열의 0번째 요소에는 colorArray 복사
-		colorSortedArray[1][i] = i;  // 1번째 요소에는 인덱스 정보 저장(순서대로)
-	}
-
-	// 배열 내림차순 정렬
-	int temp = 0;
-	for (int i = 0; i < COLORS - 1; i++) {
-		for (int j = 0; j < COLORS - 1 - i; j++) {
-			if (colorSortedArray[0][j] < colorSortedArray[0][j + 1]) {
-				// 색상 크기에 대한 정렬
-				temp = colorSortedArray[0][j];
-				colorSortedArray[0][j] = colorSortedArray[0][j+1];
-				colorSortedArray[0][j+1] = temp;
-				
-				// 색깔 인덱스 정보 교환
-				temp = colorSortedArray[1][j];
-				colorSortedArray[1][j] = colorSortedArray[1][j + 1];
-				colorSortedArray[1][j + 1] = temp;
-			}
+	unsigned int first = 0, second = 0;
+	int index_first = 0, index_second = 0;
+	for (int i = 0; i < COLORS; i++){
+		if (colorArray[i] >= first){
+			second = first;
+			first = colorArray[i];
+			index_second = index_first;
+			index_first = i;
+		}
+		else if (colorArray[i] >= second){
+			second = colorArray[i];
+			index_second = i;
 		}
 	}
+
+
 	
 	// 정렬 확인 코드
 	/*for (int i = 0; i < COLORS; i++) 
@@ -1919,25 +1907,17 @@ bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]){
 	printf("\n");*/
 	
 	// 먼저 검은색 하나만 체크가 되어 있을 경우에는 필터링(머리부분이 항상 검출되었기 떄문에)
-	int onlyBlackCheckFlag = 0;
-	for (int i = 0; i < COLORS; i++) {
-		if (colorCheckArray[i] == true)
-			onlyBlackCheckFlag++;
-	}
-
-	// 첫번째로 많이 나온 color가 black일 경우에만 true 반환
-	if ((onlyBlackCheckFlag == 1) && (colorCheckArray[BLACK] == true)) {
-		printf("블랙만 체크\n");
-		if (colorCheckArray[colorSortedArray[1][0]])
+	/*if (colorCheckArray[BLACK] && !colorCheckArray[0] && !colorCheckArray[1] && !colorCheckArray[2] && !colorCheckArray[3] && !colorCheckArray[4] && !colorCheckArray[5] && !colorCheckArray[7] && !colorCheckArray[8]){
+		if (index_first == BLACK) {
+			printf("블랙만 체크\n");
 			return true;
+		}
 		else
 			return false;
-	}
-
-	// 첫번째, 두번째 많은 색깔 데이터 접근(일반적인 경우)
-	if (colorCheckArray[colorSortedArray[1][0]] || colorCheckArray[colorSortedArray[1][1]])
+	}*/
+	
+	if (colorCheckArray[index_first] || colorCheckArray[index_second])
 		return true;
-
 	else// 이외의 경우 false 반환
 		return false;
 }
