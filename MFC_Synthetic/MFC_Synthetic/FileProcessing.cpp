@@ -209,6 +209,11 @@ string getBackgroundFilePath(string video_name) {
 	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name
 		+ "/" + RESULT_BACKGROUND_FILENAME + video_name + (".jpg");
 }
+// 배경 파일 이름을 반환하는 함수
+string getColorBackgroundFilePath(string video_name) {
+	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name
+		+ "/" + RESULT_BACKGROUND_FILENAME+ "_C_" + video_name + (".jpg");
+}
 
 // 세그먼트들이 통합적인 정보들이 저장된 폴더이름을 반환하는 함수 , 폴더 및 경로 :: /data/(비디오 이름)
 string getDirectoryPath(string video_name) {

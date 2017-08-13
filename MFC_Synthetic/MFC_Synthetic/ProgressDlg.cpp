@@ -64,6 +64,12 @@ BOOL CProgressDlg::OnInitDialog()
 
 	//첫 프레임
 	vc_Source.read(bg);
+
+	//첫 프레임 컬러로 저장(이진영상 출력 배경용)
+	if (imwrite(getColorBackgroundFilePath(fileNameNoExtension), bg)){
+		printf("Color Background Saved Completed\n");
+	}
+
 	cvtColor(bg, bg_gray, CV_RGB2GRAY);
 
 	SetTimer(PROGRESS_TIMER, 0, NULL);

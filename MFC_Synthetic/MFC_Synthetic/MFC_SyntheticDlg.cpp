@@ -1348,7 +1348,7 @@ void CMFC_SyntheticDlg::SetRadioStatus(UINT value) {
 			m_sliderSearchStartTime.EnableWindow(TRUE);	//활성화
 			m_sliderSearchEndTime.EnableWindow(TRUE);
 			mButtonSynSave.EnableWindow(true);//저장버튼 활성화
-			background_loadedFromFile = imread(getBackgroundFilePath(fileNameNoExtension));//합성 영상을 출력할 때 바탕이 될 프레임. 영상합성 라디오 버튼 클릭 시 자동으로 파일로부터 로드 됨
+			background_loadedFromFile = imread(getColorBackgroundFilePath(fileNameNoExtension));//합성 영상을 출력할 때 바탕이 될 프레임. 영상합성 라디오 버튼 클릭 시 자동으로 파일로부터 로드 됨
 			printf("합성 기본 배경 로드 완료\n");
 			break;
 		case 2:
@@ -1697,6 +1697,7 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 			Mat img_labels, stats, centroids;
 			capture.read(temp_frame);
 
+			//TODO 배경 얼마간 업데이트하기
 			//TODO 후에 전처리 연산과 같게 하기
 			//그레이스케일 변환
 			cvtColor(temp_frame, temp_frame, CV_RGB2GRAY);
