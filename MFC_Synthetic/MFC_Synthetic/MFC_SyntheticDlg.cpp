@@ -1708,17 +1708,44 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 	*pResult = 0;
 	int releasedPoint = m_SliderPlayer.GetPos();
 	capture.set(CV_CAP_PROP_POS_FRAMES, releasedPoint);
+	
 	if (isPauseBtnClicked == true) {	//일시정지된 상황이라면 한 프레임만 출력해서 화면을 바꿔줌
 		Mat temp_frame;
 		if (radioChoice == 2) {	//radio btn이 이진영상이면, 이진 영상을 출력
 			Mat img_labels, stats, centroids;
-			capture.read(temp_frame);
+			Mat bg_gray;
 
-			//TODO 배경 얼마간 업데이트하기
+			//새로운 배경이 필요하기 전에는 만들어진 base gray배경을 사용
+			if (releasedPoint < FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1){
+				printf("있는거 사용\n");
+				Mat loadedBG = imread(getBackgroundFilePath(fileNameNoExtension), IMREAD_GRAYSCALE);
+				capture.read(temp_frame);
+				//그레이스케일 변환
+				cvtColor(temp_frame, temp_frame, CV_RGB2GRAY);
+				//temp_frame = ExtractFg(temp_frame, loadedBG, ROWS, COLS);// 전경 추출
+				imwrite(getTempBackgroundFilePath(fileNameNoExtension), loadedBG);
+				loadedBG = NULL;
+				loadedBG.release();
+			}
+			else{	//새로운 배경이 필요할때 다시 만들어서 저장함
+				printf("새로 생성\n");
+				int temporalBGCount = FRAMES_FOR_MAKE_BACKGROUND;
+				capture.set(CV_CAP_PROP_POS_FRAMES, releasedPoint - temporalBGCount);
+				capture.read(temp_frame);
+				cvtColor(temp_frame, bg_gray, CV_RGB2GRAY);
+				for (int j = temporalBGCount-1; j >0; j--){
+					capture.read(temp_frame);
+					cvtColor(temp_frame, temp_frame, CV_RGB2GRAY);
+					temporalMedianBG(temp_frame, bg_gray);
+				}
+				imwrite(getTempBackgroundFilePath(fileNameNoExtension), bg_gray);
+				capture.set(CV_CAP_PROP_POS_FRAMES, releasedPoint);
+				capture.read(temp_frame);
+				cvtColor(temp_frame, temp_frame, CV_RGB2GRAY);
+				//temp_frame = ExtractFg(temp_frame, bg_gray, ROWS, COLS);// 전경 추출				//TODO
+			}
+
 			//TODO 후에 전처리 연산과 같게 하기
-			//그레이스케일 변환
-			cvtColor(temp_frame, temp_frame, CV_RGB2GRAY);
-
 			// 전경 추출
 			//temp_frame = ExtractFg(temp_frame, background_gray, ROWS, COLS);
 
@@ -1732,24 +1759,24 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 
 			//threshold(temp_frame, temp_frame, 5, 255, CV_THRESH_BINARY);
 
-			int numOfLables = connectedComponentsWithStats(temp_frame, img_labels,
-				stats, centroids, 8, CV_32S);
+			/*int numOfLables = connectedComponentsWithStats(temp_frame, img_labels,
+				stats, centroids, 8, CV_32S);*/
 
-			cvtColor(temp_frame, temp_frame, CV_GRAY2BGR);
+			//cvtColor(temp_frame, temp_frame, CV_GRAY2BGR);
 
-			//라벨링 된 이미지에 각각 직사각형으로 둘러싸기 
-			for (int j = 1; j < numOfLables; j++) {
-				//int area = stats.at<int>(j, CC_STAT_AREA);
-				int left = stats.at<int>(j, CC_STAT_LEFT);
-				int top = stats.at<int>(j, CC_STAT_TOP);
-				int width = stats.at<int>(j, CC_STAT_WIDTH);
-				int height = stats.at<int>(j, CC_STAT_HEIGHT);
-				if (labelSizeFiltering(width, height
-					, m_SliderWMIN.GetPos(), m_SliderWMAX.GetPos(), m_SliderHMIN.GetPos(), m_SliderHMAX.GetPos())) {
-					rectangle(temp_frame, Point(left, top), Point(left + width, top + height),
-						Scalar(0, 0, 255), 1);
-				}
-			}
+			////라벨링 된 이미지에 각각 직사각형으로 둘러싸기 
+			//for (int j = 1; j < numOfLables; j++) {
+			//	//int area = stats.at<int>(j, CC_STAT_AREA);
+			//	int left = stats.at<int>(j, CC_STAT_LEFT);
+			//	int top = stats.at<int>(j, CC_STAT_TOP);
+			//	int width = stats.at<int>(j, CC_STAT_WIDTH);
+			//	int height = stats.at<int>(j, CC_STAT_HEIGHT);
+			//	if (labelSizeFiltering(width, height
+			//		, m_SliderWMIN.GetPos(), m_SliderWMAX.GetPos(), m_SliderHMIN.GetPos(), m_SliderHMAX.GetPos())) {
+			//		rectangle(temp_frame, Point(left, top), Point(left + width, top + height),
+			//			Scalar(0, 0, 255), 1);
+			//	}
+			//}
 
 			DisplayImage(IDC_RESULT_IMAGE, temp_frame, BIN_VIDEO_TIMER);
 			img_labels = NULL;
@@ -1758,16 +1785,18 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 			img_labels.release();
 			stats.release();
 			centroids.release();
+			bg_gray = NULL;
+			bg_gray.release();
 		}
 		else {
 			capture.read(temp_frame);
 			DisplayImage(IDC_RESULT_IMAGE, temp_frame, NULL);
 		}
+		
 		temp_frame = NULL;
 		temp_frame.release();
 	}
 	else if (isPlayBtnClicked) {	//실행 중이었던 경우 마저 실행한다.
-		printf("c");
 		switch (radioChoice) {
 		case 0:	//원본영상 마저 출력
 			printf("a");
@@ -1777,45 +1806,38 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 			//미구현
 			break;
 		case 2:	//이진 영상 마저 출력
-			printf("b");
-			//TODO
-			//if (releasedPoint)
+			if (true){
+				Mat temp_frame, bg_gray;
 
-			//Mat img_labels, stats, centroids;
-			//Mat loadBackground = Mat(ROWS, COLS, CV_8UC1);
-			//capture.read(temp_frame);
-			//int curFrameCount = (int)capture.get(CV_CAP_PROP_POS_FRAMES);
-			//int curFrameCount_nomalized = curFrameCount%FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND;
-			//if (temp_frame.empty()) {	//예외처리. 프레임이 없음
-			//	perror("Empty Frame");
-			//	KillTimer(BIN_VIDEO_TIMER);
-			//	break;
-			//}
+				//새로운 배경이 필요하기 전에는 만들어진 base gray배경을 사용
+				if (releasedPoint < FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1){
+					printf("있는거 사용\n");
+					Mat loadedBG = imread(getBackgroundFilePath(fileNameNoExtension), IMREAD_GRAYSCALE);
+					imwrite(getTempBackgroundFilePath(fileNameNoExtension), loadedBG);
+					loadedBG = NULL;
+					loadedBG.release();
+				}
+				else{	//새로운 배경이 필요할때 다시 만들어서 저장함
+					printf("새로 생성\n");
+					int temporalBGCount = FRAMES_FOR_MAKE_BACKGROUND;
+					capture.set(CV_CAP_PROP_POS_FRAMES, releasedPoint - temporalBGCount);
+					capture.read(temp_frame);
+					cvtColor(temp_frame, bg_gray, CV_RGB2GRAY);
+					for (int j = temporalBGCount - 1; j > 0; j--){
+						capture.read(temp_frame);
+						cvtColor(temp_frame, temp_frame, CV_RGB2GRAY);
+						temporalMedianBG(temp_frame, bg_gray);
+					}
+					imwrite(getTempBackgroundFilePath(fileNameNoExtension), bg_gray);
+					capture.set(CV_CAP_PROP_POS_FRAMES, releasedPoint);
+				}
 
-			////그레이스케일 변환
-			//cvtColor(temp_frame, temp_frame, CV_RGB2GRAY);
-
-			////다음에 쓸 배경을 만들어야 할 경우
-			//if (curFrameCount_nomalized >= (FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND)){
-			//	if (curFrameCount_nomalized == (FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND)){	//새로 만드는 첫 배경 Init
-			//		printf("Background Making Start : %d frame\n", curFrameCount);
-			//		temp_frame.copyTo(background_binaryVideo_gray);
-			//	}
-			//	else{	//배경 생성
-			//		temporalMedianBG(temp_frame, background_binaryVideo_gray);
-			//	}
-			//}
-
-			////만든 배경을 저장해야 할 경우
-			//if (curFrameCount_nomalized == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1){
-			//	imwrite(getBackgroundFilePath(fileNameNoExtension), background_binaryVideo_gray);
-			//}
-
-			//if (curFrameCount >= FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND && curFrameCount_nomalized == 0){
-			//	printf("Background Changed, %d frame\n", curFrameCount);
-			//}
-
-			SetTimer(BIN_VIDEO_TIMER, 1000 / m_sliderFps.GetPos(), NULL);
+				SetTimer(BIN_VIDEO_TIMER, 1000 / m_sliderFps.GetPos(), NULL);
+				temp_frame = NULL;
+				temp_frame.release();
+				bg_gray = NULL;
+				bg_gray.release();
+			}
 			break;
 		default:
 			break;
