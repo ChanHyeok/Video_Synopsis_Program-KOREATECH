@@ -44,6 +44,8 @@ END_MESSAGE_MAP()
 BOOL CProgressDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
+	SetWindowText(_T("Loading"));
+
 	m_ButtonOK.EnableWindow(false);
 	isBackgroundSaved = false;
 	frame = Mat(ROWS, COLS, CV_8UC3); // Mat(height, width, channel)
