@@ -1310,11 +1310,12 @@ stringstream timeConvertor(int t) {
 	return s;
 }
 
+
 //load 버튼을 누르면 발생하는 콜백
 void CMFC_SyntheticDlg::OnBnClickedBtnMenuLoad() {
 	SetTimer(LOGO_TIMER, 1, NULL);
 	//실행시 비디오 파일 불러옴
-	if (loadFile(1) != 0){
+	if (loadFile(1) == 0){
 		//Slider Control 범위 지정
 		setSliderRange(videoLength, COLS, ROWS, 100);
 
