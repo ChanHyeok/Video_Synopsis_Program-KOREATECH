@@ -16,12 +16,7 @@
 using namespace std;
 using namespace cv;
 
-<<<<<<< HEAD
-
 #define BUFFER 32000 // 객체 프레임 데이터를 저장할 버퍼의 크기 
-=======
-#define BUFFER 16000 // 객체 프레임 데이터를 저장할 버퍼의 크기 
->>>>>>> color_search
 
 // fileName 상수 관련
 #define RESULT_TEXT_FILENAME  "obj_data_"
@@ -157,15 +152,10 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 bool segmentationTimeInputException(CString str_h, CString str_m);
 bool IsComparePrevComponent(component curr_component, component prev_component);
 bool IsSaveComponent(component curr_component, component prev_component);
-<<<<<<< HEAD
 Mat morphologyOpening(Mat);
 Mat morphologyClosing(Mat);
 stringstream timeConvertor(int t);
-=======
-Mat morphologicalOperation(Mat);
->>>>>>> color_search
 
-stringstream timeConvertor(int t);
 bool IsObjectOverlapingDetector(segment, segment);
 
 
@@ -298,16 +288,9 @@ public:
 	//콤보박스
 	CComboBox mComboStart;
 	CComboBox mComboEnd;
-<<<<<<< HEAD
-	afx_msg bool isDirectionMatch(int);
 
-	CButton mButtonSynSave;
-	afx_msg void OnBnClickedBtnSynSave();
-	afx_msg bool inputSegmentQueue(int obj1_TimeTag, int obj2_TimeTag, int segmentCount, segment*);
 	afx_msg void backgroundInit(string);
-
 	afx_msg void OnReleasedcaptureSynSliderFps(NMHDR *pNMHDR, LRESULT *pResult);
-=======
 	afx_msg bool isDirectionAndColorMatch(segment);
 	
 	CButton mButtonSynSave;
@@ -315,6 +298,5 @@ public:
 	afx_msg bool inputSegmentQueue(int obj1_TimeTag, int obj2_TimeTag, int segmentCount, segment*);
 	afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
 	afx_msg void OnBnClickedCheckAll();
->>>>>>> color_search
 };
 

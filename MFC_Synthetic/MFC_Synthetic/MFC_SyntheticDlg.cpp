@@ -147,12 +147,9 @@ BEGIN_MESSAGE_MAP(CMFC_SyntheticDlg, CDialogEx)
 	ON_BN_CLICKED(IDOK, &CMFC_SyntheticDlg::OnBnClickedOk)
 	ON_BN_CLICKED(IDCANCEL, &CMFC_SyntheticDlg::OnBnClickedCancel)
 	ON_BN_CLICKED(IDC_BTN_SYN_SAVE, &CMFC_SyntheticDlg::OnBnClickedBtnSynSave)
-<<<<<<< HEAD
 	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SYN_SLIDER_FPS, &CMFC_SyntheticDlg::OnReleasedcaptureSynSliderFps)
-=======
 	ON_WM_DRAWITEM()
 	ON_BN_CLICKED(IDC_CHECK_ALL, &CMFC_SyntheticDlg::OnBnClickedCheckAll)
->>>>>>> color_search
 END_MESSAGE_MAP()
 
 
@@ -262,12 +259,7 @@ int CMFC_SyntheticDlg::loadFile(int mode) {
 		// obj 디렉토리 생성
 		if (!isDirectory(getObjDirectoryPath(fileNameNoExtension.c_str()))) 
 			int subObjDirectory_check = makeDataSubDirectory(getObjDirectoryPath(fileNameNoExtension));
-<<<<<<< HEAD
-			printf("sub-obj 생성");
-		}
-=======
-		
->>>>>>> color_search
+
 		capture.open((string)cstrImgPath);
 
 		if (!capture.isOpened()) { //예외처리. 해당이름의 파일이 없는 경우
@@ -338,12 +330,6 @@ void CMFC_SyntheticDlg::OnSysCommand(UINT nID, LPARAM lParam)
 
 // 공통 변수 메모리 해제 및 종료연산
 void CMFC_SyntheticDlg::OnCancel() {
-<<<<<<< HEAD
-	printf("OnCancel\n");
-
-=======
-	background_gray = NULL;
->>>>>>> color_search
 	m_segmentArray = NULL;
 	capture = NULL;
 	background_loadedFromFile = NULL;
@@ -652,14 +638,8 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 			GetDlgItem(IDC_RADIO_PLAY2)->EnableWindow(FALSE);
 		}
 
-<<<<<<< HEAD
-		//로딩 숨기기
-		m_LoadingProgressCtrl.ShowWindow(false);
-		cout << currentDateTime() << endl;
-=======
 		m_LoadingProgressCtrl.ShowWindow(false);	//로딩바 숨기기
 		cout << "세그멘테이션 종료 시간 : " << currentDateTime() << endl;
->>>>>>> color_search
 	}
 	else {	// 범위 외 입력시 예외처리
 	}
@@ -731,11 +711,6 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 			if (curFrameCount >= FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND && curFrameCount_nomalized == 0){
 				printf("Background Changed, %d frame\n", curFrameCount);
 			}
-<<<<<<< HEAD
-=======
-			//그레이스케일 변환
-			cvtColor(frame, frame_g, CV_RGB2GRAY);
->>>>>>> color_search
 
 			//새로운 배경이 write되기 전 까지는 base gray배경을 사용
 			if (curFrameCount < FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1){
@@ -772,11 +747,7 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 			// 영상을 처리하여 타임태그를 새로 부여하고 파일로 저장하기(2)
 			if (humanDetectedVector.size() > 0)
 				humanDetectedVector = humanDetectedProcess2(humanDetectedVector, prevHumanDetectedVector
-<<<<<<< HEAD
-				, prevHumanDetectedVector_queue, frame, frameCount, videoStartMsec, currentMsec, fp, &vectorDetailTXTIndex, &detailTXTIndex);
-=======
 				, prevHumanDetectedVector_queue, frame, frameCount, videoStartMsec, currentMsec, fp, &vectorDetailTXTIndex, &detailTXTIndex, frame_g);
->>>>>>> color_search
 
 			// 큐가 full일 경우 한자리 비워주기
 			if (IsComponentVectorQueueFull(&prevHumanDetectedVector_queue))
@@ -883,11 +854,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 				if (!IsComparePrevComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j])) {
 					humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
 					humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
-<<<<<<< HEAD
 
-=======
-					
->>>>>>> color_search
 					if (IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j]))
 						save_flag = true;
 
@@ -911,10 +878,8 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 								save_flag = true;
 
 							findFlag = true;
-<<<<<<< HEAD
-=======
 							break;
->>>>>>> color_search
+
 						}
 					}
 				} // end for (int i = MAXSIZE_OF_COMPONENT_VECTOR_QUEUE ...
@@ -936,10 +901,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 							save_flag = true;
 
 						findFlag = true;
-<<<<<<< HEAD
-=======
 						break;
->>>>>>> color_search
 					}
 				}
 			}
@@ -957,15 +919,11 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 			// getColorArray에서 colorArray 객체 생성
 			int *colorArray = getColorArray(frame, humanDetectedVector[humanCount], binary_frame);
 			saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
-<<<<<<< HEAD
-			, currentMsec, frameCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTIndex, detailTxtIndex);
-=======
 				, currentMsec, frameCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTIndex, detailTxtIndex, colorArray);
 			
 			// getColorArray에서 생성한 colorArray 객체 메모리 해제
 			delete[] colorArray;
 		}
->>>>>>> color_search
 	} // end for (humanCount) 
 	vector<component> vclear;
 	prevDetectedVector_i.swap(vclear);
@@ -1281,37 +1239,6 @@ int readSegmentTxtFile(segment* segmentArray) {
 			segmentCount++;
 		}
 
-<<<<<<< HEAD
-		// txt파일에 있는 프레임 데이터들 segmentArray 버퍼로 복사
-		sscanf(txtBuffer, "%d_%d_%d_%d %d %d %d %d %d %d",
-			&segmentArray[segmentCount].timeTag, &segmentArray[segmentCount].msec,
-			&segmentArray[segmentCount].frameCount, &segmentArray[segmentCount].index,
-			&segmentArray[segmentCount].left, &segmentArray[segmentCount].top,
-			&segmentArray[segmentCount].right, &segmentArray[segmentCount].bottom,
-			&segmentArray[segmentCount].width, &segmentArray[segmentCount].height);
-
-		// filename 저장
-		segmentArray[segmentCount].fileName
-			.append(to_string(segmentArray[segmentCount].timeTag)).append("_")
-			.append(to_string(segmentArray[segmentCount].msec)).append("_")
-			.append(to_string(segmentArray[segmentCount].frameCount)).append("_")
-			.append(to_string(segmentArray[segmentCount].index))
-			.append(".jpg");
-
-		// m_segmentArray의 인덱스 증가
-		segmentCount++;
-	}
-
-	// 버블 정렬 사용하여 m_segmentArray를 TimeTag순으로 정렬
-	segment *tmp_segment = new segment; // 임시 segment 동적생성, 메모리 해제에 용의하게 하기
-	for (int i = 0; i < segmentCount; i++) {
-		for (int j = 0; j < segmentCount - 1; j++) {
-			if (segmentArray[j].timeTag > segmentArray[j + 1].timeTag) {
-				// m_segmentArray[segmentCount]와 m_segmentArray[segmentCount + 1]의 교체
-				*tmp_segment = segmentArray[j + 1];
-				segmentArray[j + 1] = segmentArray[j];
-				segmentArray[j] = *tmp_segment;
-=======
 		// 버블 정렬 사용하여 m_segmentArray를 TimeTag순으로 정렬
 		segment *tmp_segment = new segment; // 임시 segment 동적생성, 메모리 해제에 용의하게 하기
 		for (int i = 0; i < segmentCount; i++) {
@@ -1322,7 +1249,6 @@ int readSegmentTxtFile(segment* segmentArray) {
 					segmentArray[j + 1] = segmentArray[j];
 					segmentArray[j] = *tmp_segment;
 				}
->>>>>>> color_search
 			}
 		}
 
