@@ -3,11 +3,12 @@
 //
 
 #pragma once
-#include <string>
 #include <opencv2/opencv.hpp>
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/highgui.hpp"
 #include <iostream>
+#include <fstream>
+#include <string>
 #include "afxcmn.h"
 #include "afxwin.h"
 #include <time.h>
@@ -15,8 +16,12 @@
 using namespace std;
 using namespace cv;
 
+<<<<<<< HEAD
 
 #define BUFFER 32000 // 객체 프레임 데이터를 저장할 버퍼의 크기 
+=======
+#define BUFFER 16000 // 객체 프레임 데이터를 저장할 버퍼의 크기 
+>>>>>>> color_search
 
 // fileName 상수 관련
 #define RESULT_TEXT_FILENAME  "obj_data_"
@@ -30,6 +35,20 @@ const int MAXSIZE_OF_COMPONENT_VECTOR_QUEUE = 20;
 
 // segment 임시 버퍼 관련
 const int MAX_SEGMENT_TEMP_BUFFER = MAXSIZE_OF_COMPONENT_VECTOR_QUEUE;
+
+// 색상 관련
+#define COLORS  9 //색상 가지수
+// enum colors { RED, ORANGE, YELLOW, GREEN, BLUE, MAGENTA, BLACK, WHITE, GRAY };
+
+const int RED = 0;
+const int ORANGE = 1;
+const int YELLOW = 2;
+const int GREEN = 3;
+const int BLUE = 4;
+const int MAGENTA = 5;
+const int BLACK = 6;
+const int WHITE = 7;
+const int GRAY = 8;
 
 // segmentation structure
 typedef struct _segment {
@@ -132,20 +151,27 @@ vector<component> GetComponentVectorQueue(ComponentVectorQueue *componentVectorQ
 
 // MAIN ****
 vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector_Array
-	, ComponentVectorQueue prevHumanDetectedVector_Queue, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, vector<pair<int, int>>*, int*);
+	, ComponentVectorQueue prevHumanDetectedVector_Queue, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, vector<pair<int, int>>*, int*, Mat);
 
 // addition function of MAIN
 bool segmentationTimeInputException(CString str_h, CString str_m);
 bool IsComparePrevComponent(component curr_component, component prev_component);
 bool IsSaveComponent(component curr_component, component prev_component);
+<<<<<<< HEAD
 Mat morphologyOpening(Mat);
 Mat morphologyClosing(Mat);
 stringstream timeConvertor(int t);
+=======
+Mat morphologicalOperation(Mat);
+>>>>>>> color_search
 
+stringstream timeConvertor(int t);
 bool IsObjectOverlapingDetector(segment, segment);
 
 
 int readSegmentTxtFile(segment*);
+
+bool isColorDataOperation(Mat frame, Mat bg, Mat, int i_height, int j_width);
 
 // connectecComponentLabelling.cpp
 vector<component> connectedComponentsLabelling(Mat frame, int rows, int cols, int, int, int, int);
@@ -157,11 +183,18 @@ Mat ExtractForegroundToMOG2(Mat frameimg);
 Mat ExtractFg(Mat, Mat, int, int);
 Mat temporalMedianBG(Mat frameimg, Mat bgimg);
 
+// tool_getColor.cpp
+int getColor_H(int );
+int getColor_S(int );
+int getColor_V(int );
+int colorPicker(Vec3b pixel);
+
 // FileProcessing.cpp
 String getFileName(CString f_path, char find_char, BOOL);
 Mat loadJPGObjectFile(segment obj, string file_name);
 bool saveSegmentationData(string video_name, component object, Mat object_frame
-	, int currentMsec, int frameCount, FILE *txt_fp, FILE*, int, int, vector<pair<int, int>>*, int*);
+	, int currentMsec, int frameCount, FILE *txt_fp, FILE*, int, int, vector<pair<int, int>>*, int*, int[]);
+string readTxt(string path);
 
 string getTextFilePath(string video_name);
 string getTempBackgroundFilePath(string);
@@ -175,6 +208,7 @@ bool isGrayBackgroundExists(string);
 bool isDirectory(string dir_name);
 int makeDataRootDirectory();
 int makeDataSubDirectory(string video_name);
+void saveColorData(string fileNameNoExtension, component object, int colorArray[]);
 
 // tool_synthetic.cpp
 Mat Syn_Background_Foreground(Mat, Mat, Mat, int, int);
@@ -220,7 +254,7 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	CImage cImage;
-	// afx_msg void OnClose();
+
 	afx_msg void OnCancel();
 	afx_msg void OnDestroy();
 
@@ -264,6 +298,7 @@ public:
 	//콤보박스
 	CComboBox mComboStart;
 	CComboBox mComboEnd;
+<<<<<<< HEAD
 	afx_msg bool isDirectionMatch(int);
 
 	CButton mButtonSynSave;
@@ -272,5 +307,14 @@ public:
 	afx_msg void backgroundInit(string);
 
 	afx_msg void OnReleasedcaptureSynSliderFps(NMHDR *pNMHDR, LRESULT *pResult);
+=======
+	afx_msg bool isDirectionAndColorMatch(segment);
+	
+	CButton mButtonSynSave;
+	afx_msg void OnBnClickedBtnSynSave();
+	afx_msg bool inputSegmentQueue(int obj1_TimeTag, int obj2_TimeTag, int segmentCount, segment*);
+	afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
+	afx_msg void OnBnClickedCheckAll();
+>>>>>>> color_search
 };
 

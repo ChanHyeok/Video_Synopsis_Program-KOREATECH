@@ -23,6 +23,7 @@ static char THIS_FILE[] = __FILE__;
 #define PROGRESS_BAR_TIMER 4	//로딩바에 사용하는 타이머
 #define MAX_STR_BUFFER_SIZE  128 // 문자열 출력에 사용하는 버퍼 길이
 
+
 //콤보박스 텍스트
 const char* ALL = "전체";
 const char* LEFT = "왼쪽";
@@ -52,11 +53,11 @@ Mat background_loadedFromFile, background_binaryVideo_gray; // 배경 프레임 
 
 
 bool synthesisEndFlag; // 합성이 끝남을 알려주는 플래그
+
 // File 관련
-FILE *fp; // frameInfo를 작성할 File Pointer
-FILE *fp_detail; // obj_detail_<>를 작성할 File Pointer. 위치 및 색상 정보 저장
-std::string fileNameExtension(""); // 입력받은 비디오파일 이름
-std::string fileNameNoExtension("");// 확장자가 없는 파일 이름
+FILE *fp, *fp_detail; // frameInfo를 작성할 File Pointer
+std::string fileNameExtension; // 입력받은 비디오파일 이름
+std::string fileNameNoExtension;// 확장자가 없는 파일 이름
 std::string txt_filename = RESULT_TEXT_FILENAME; //txt 파일 이름
 
 /*
@@ -146,7 +147,12 @@ BEGIN_MESSAGE_MAP(CMFC_SyntheticDlg, CDialogEx)
 	ON_BN_CLICKED(IDOK, &CMFC_SyntheticDlg::OnBnClickedOk)
 	ON_BN_CLICKED(IDCANCEL, &CMFC_SyntheticDlg::OnBnClickedCancel)
 	ON_BN_CLICKED(IDC_BTN_SYN_SAVE, &CMFC_SyntheticDlg::OnBnClickedBtnSynSave)
+<<<<<<< HEAD
 	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SYN_SLIDER_FPS, &CMFC_SyntheticDlg::OnReleasedcaptureSynSliderFps)
+=======
+	ON_WM_DRAWITEM()
+	ON_BN_CLICKED(IDC_CHECK_ALL, &CMFC_SyntheticDlg::OnBnClickedCheckAll)
+>>>>>>> color_search
 END_MESSAGE_MAP()
 
 
@@ -235,8 +241,8 @@ int CMFC_SyntheticDlg::loadFile(int mode) {
 		strcat(video_filename_cstr, fileNameExtension.c_str());
 		pStringFileName->SetWindowTextA(video_filename_cstr);
 
-		video_filename_cstr = NULL;
-		free(video_filename_cstr);
+		video_filename_cstr = nullptr;
+		delete[] video_filename_cstr;
 
 		//segmentation 결과를 저장할 텍스트 파일 이름 설정
 		txt_filename = RESULT_TEXT_FILENAME;
@@ -246,22 +252,22 @@ int CMFC_SyntheticDlg::loadFile(int mode) {
 		// 세그먼테이션 데이터(txt, jpg들)를 저장할 디렉토리 유무확인, 없으면 만들어줌
 
 		// root 디렉토리 생성(폴더명 data)
-		if (!isDirectory(SEGMENTATION_DATA_DIRECTORY_NAME.c_str())) {
+		if (!isDirectory(SEGMENTATION_DATA_DIRECTORY_NAME.c_str())) 
 			int rootDirectory_check = makeDataRootDirectory();
-			printf("root 생성");
-		}
 
 		// video 이름 별 디렉토리 생성(폴더명 확장자 없는 파일 이름)
-		if (!isDirectory(getDirectoryPath(fileNameNoExtension.c_str()))) {
+		if (!isDirectory(getDirectoryPath(fileNameNoExtension.c_str())))
 			int subDirectory_check = makeDataSubDirectory(getDirectoryPath(fileNameNoExtension));
-			printf("sub 생성");
-		}
-
+		
 		// obj 디렉토리 생성
-		if (!isDirectory(getObjDirectoryPath(fileNameNoExtension.c_str()))) {
+		if (!isDirectory(getObjDirectoryPath(fileNameNoExtension.c_str()))) 
 			int subObjDirectory_check = makeDataSubDirectory(getObjDirectoryPath(fileNameNoExtension));
+<<<<<<< HEAD
 			printf("sub-obj 생성");
 		}
+=======
+		
+>>>>>>> color_search
 		capture.open((string)cstrImgPath);
 
 		if (!capture.isOpened()) { //예외처리. 해당이름의 파일이 없는 경우
@@ -312,7 +318,7 @@ void CMFC_SyntheticDlg::OnSysCommand(UINT nID, LPARAM lParam)
 
 	// 프로그램을 중단(x버튼)했을 때
 	else if (nID == SC_CLOSE) {
-		if (MessageBox("프로그램을 종료하시겠습니까??", "Exit", MB_YESNO) == IDYES) {
+		if (MessageBox("프로그램을 종료하시겠습니까?", "Exit", MB_YESNO) == IDYES) {
 			// 종료시 이벤트
 			AfxGetMainWnd()->PostMessage(WM_CLOSE);
 		}
@@ -332,8 +338,12 @@ void CMFC_SyntheticDlg::OnSysCommand(UINT nID, LPARAM lParam)
 
 // 공통 변수 메모리 해제 및 종료연산
 void CMFC_SyntheticDlg::OnCancel() {
+<<<<<<< HEAD
 	printf("OnCancel\n");
 
+=======
+	background_gray = NULL;
+>>>>>>> color_search
 	m_segmentArray = NULL;
 	capture = NULL;
 	background_loadedFromFile = NULL;
@@ -344,8 +354,8 @@ void CMFC_SyntheticDlg::OnCancel() {
 	txt_filename.clear();
 
 	background_loadedFromFile.release();
-
-	delete[] m_segmentArray;
+	if (m_segmentArray != nullptr)
+		delete[] m_segmentArray;
 
 	// CMFC_SyntheticDlg 클래스의 멤버변수들 메모리 해제
 	capture.release();
@@ -361,7 +371,6 @@ void CMFC_SyntheticDlg::OnCancel() {
 	PostQuitMessage(0);
 }
 void CMFC_SyntheticDlg::OnDestroy() {
-	printf("OnDestroy\n");
 }
 
 //다이얼로그를 그릴 때 혹은 다시 그릴 때 호출되는 함수
@@ -615,8 +624,7 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 // 시와 분을 입력받아 segmentation을 진행함
 void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 {
-
-	cout << currentDateTime() << endl;
+	cout << "세그멘테이션 시작 시간 : " << currentDateTime() << endl;
 	KillTimer(LOGO_TIMER);
 	KillTimer(VIDEO_TIMER);
 	KillTimer(BIN_VIDEO_TIMER);
@@ -644,9 +652,14 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 			GetDlgItem(IDC_RADIO_PLAY2)->EnableWindow(FALSE);
 		}
 
+<<<<<<< HEAD
 		//로딩 숨기기
 		m_LoadingProgressCtrl.ShowWindow(false);
 		cout << currentDateTime() << endl;
+=======
+		m_LoadingProgressCtrl.ShowWindow(false);	//로딩바 숨기기
+		cout << "세그멘테이션 종료 시간 : " << currentDateTime() << endl;
+>>>>>>> color_search
 	}
 	else {	// 범위 외 입력시 예외처리
 	}
@@ -677,8 +690,9 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 	// 배경 초기화
 	tmp_background = imread(getBackgroundFilePath(fileNameNoExtension));
 
-	// 얻어낸 객체 프레임의 정보를 써 낼 텍스트 파일 정의s
-	fp = fopen(getTextFilePath(fileNameNoExtension).c_str(), "w");	// 쓰기모드
+	// 얻어낸 객체 프레임의 정보를 써 낼 텍스트 파일 정의
+	if ((fp = fopen(getTextFilePath(fileNameNoExtension).c_str(), "r+")) == NULL)
+		fp = fopen(getTextFilePath(fileNameNoExtension).c_str(), "w+");
 	fp_detail = fopen(getDetailTextFilePath(fileNameNoExtension).c_str(), "w+");	// 쓰기모드
 	fprintf(fp, to_string(videoStartMsec).append("\n").c_str());	//첫줄에 영상시작시간 적어줌
 
@@ -717,6 +731,11 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 			if (curFrameCount >= FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND && curFrameCount_nomalized == 0){
 				printf("Background Changed, %d frame\n", curFrameCount);
 			}
+<<<<<<< HEAD
+=======
+			//그레이스케일 변환
+			cvtColor(frame, frame_g, CV_RGB2GRAY);
+>>>>>>> color_search
 
 			//새로운 배경이 write되기 전 까지는 base gray배경을 사용
 			if (curFrameCount < FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1){
@@ -753,7 +772,11 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 			// 영상을 처리하여 타임태그를 새로 부여하고 파일로 저장하기(2)
 			if (humanDetectedVector.size() > 0)
 				humanDetectedVector = humanDetectedProcess2(humanDetectedVector, prevHumanDetectedVector
+<<<<<<< HEAD
 				, prevHumanDetectedVector_queue, frame, frameCount, videoStartMsec, currentMsec, fp, &vectorDetailTXTIndex, &detailTXTIndex);
+=======
+				, prevHumanDetectedVector_queue, frame, frameCount, videoStartMsec, currentMsec, fp, &vectorDetailTXTIndex, &detailTXTIndex, frame_g);
+>>>>>>> color_search
 
 			// 큐가 full일 경우 한자리 비워주기
 			if (IsComponentVectorQueueFull(&prevHumanDetectedVector_queue))
@@ -762,29 +785,12 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 			// 큐에 매 수행마다 벡터를 무조건 넣어줘야함
 			PutComponentVectorQueue(&prevHumanDetectedVector_queue, humanDetectedVector);
 
-			// 확인 코드
-			/*
-			for (int i = 3; i < 5; i++) {
-			vector<component> prevDetectedVector_i = GetComponentVectorQueue(&prevHumanDetectedVector_queue
-			, (prevHumanDetectedVector_queue.rear + i) % 5);
-			for (int j = 0; j < prevDetectedVector_i.size(); j++) {
-			printf("queue[%d] = %d %d %d %d\n", i, prevDetectedVector_i[j].top, prevDetectedVector_i[j].bottom
-			, prevDetectedVector_i[j].left, prevDetectedVector_i[j].right);
-			}
-			vector<component> vclear;
-			prevDetectedVector_i.swap(vclear);
-			}
-			printf("\n");
-			*/
-
 			// 벡터 메모리 해제를 빈 벡터 생성(prevHumanDetectedVector 메모리 해제)
 			vector<component> vclear;
 			prevHumanDetectedVector.swap(vclear);
 
 			vclear.clear();
 			prevHumanDetectedVector.clear();
-
-
 
 			// 현재 검출한 데이터를 이전 데이터에 저장하기
 			prevHumanDetectedVector = humanDetectedVector;
@@ -806,14 +812,58 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 	frame.release(); frame_g.release();
 	vector<component>().swap(humanDetectedVector);
 	vector<component>().swap(prevHumanDetectedVector);
+	vector<pair<int, int>>().swap(vectorDetailTXTIndex);
 
 	// 텍스트 파일 닫기
 	fclose(fp);
 	fclose(fp_detail);
 }
+
+bool isColorDataOperation(Mat frame, Mat bg, Mat binary, int i_height , int j_width) {
+	// 배경 불러오기
+	Vec3b colorB = bg.at<Vec3b>(Point(j_width, i_height));
+	
+	// hsv 영역에서 객체와 객체 영역의 배경과의 색깔 경계 값을 한정하기 위한 변수 
+	const int COLOR_THRESHOLD = 15;
+
+	return (abs(colorB[0] - frame.at<cv::Vec3b>(Point(j_width, i_height))[0]) > COLOR_THRESHOLD &&
+		abs(colorB[1] - frame.at<cv::Vec3b>(Point(j_width, i_height))[1]) > COLOR_THRESHOLD &&
+		abs(colorB[2] - frame.at<cv::Vec3b>(Point(j_width, i_height))[2]) > COLOR_THRESHOLD) &&
+		binary.data[i_height*binary.cols + j_width] == 255;
+}
+
+int* getColorArray(Mat frame, component object, Mat binary){
+	Mat temp; frame.copyTo(temp);
+	Mat bg_copy = imread(getBackgroundFilePath(fileNameNoExtension));
+	int *colorArray = new int[COLORS];
+	for (int i = 0; i < COLORS; i++)
+		colorArray[i] = 0;
+	
+	//원본 프레임 HSV로 변환하기
+	cvtColor(temp, temp, CV_BGR2HSV);
+	for (int i = object.top; i < object.bottom; i++) {
+		for (int j = object.left + 1; j < object.right; j++) {
+			// 색상 데이터 저장
+			if (isColorDataOperation(frame, bg_copy, binary, i, j)) {
+				colorArray[colorPicker(temp.at<Vec3b>(Point(j, i)))]++;
+			}
+		}
+	}
+
+	//printf("%10d : ", object.timeTag);
+	//for (int i = 0; i < COLORS;i++)
+	//	printf("%d ",colorArray[i]);
+	//printf("\n");
+
+	temp = NULL; bg_copy = NULL;
+	temp.release(); bg_copy.release();
+	return colorArray;
+}
+
 // component vector 큐를 이용한 추가된 함수
 vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector
-	, ComponentVectorQueue prevHumanDetectedVector_Queue, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, vector<pair<int, int>>* vectorDetailTXTIndex, int* detailTxtIndex) {
+	, ComponentVectorQueue prevHumanDetectedVector_Queue, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, vector<pair<int, int>>* vectorDetailTXTIndex, int* detailTxtIndex, Mat binary_frame) {
+
 	// 현재에서 바로 이전 component 저장
 	// prevDetectedVector를 바로 큐에 있는 이전 vector로 지정할 시 
 	// 파일 저장할 시 frameCount를 매기는 데에 오류가 생김(오류 발생 원인은 아직까지도 불명)
@@ -833,7 +883,11 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 				if (!IsComparePrevComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j])) {
 					humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
 					humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
+<<<<<<< HEAD
 
+=======
+					
+>>>>>>> color_search
 					if (IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j]))
 						save_flag = true;
 
@@ -857,12 +911,14 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 								save_flag = true;
 
 							findFlag = true;
+<<<<<<< HEAD
+=======
+							break;
+>>>>>>> color_search
 						}
 					}
-					if (findFlag == true)
-						break;
-				}
-			}
+				} // end for (int i = MAXSIZE_OF_COMPONENT_VECTOR_QUEUE ...
+			} // end if (findFlag == false) 
 		} // end if ((!prevDetectedVector_i.empty())
 
 		// 첫 시행이거나 이전 프레임에 검출된 객체가 없다고 판단될 경우에
@@ -872,22 +928,23 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 				prevDetectedVector_i = GetComponentVectorQueue(&prevHumanDetectedVector_Queue,
 					(prevHumanDetectedVector_Queue.rear + i) % MAXSIZE_OF_COMPONENT_VECTOR_QUEUE);
 				for (int j = 0; j < prevDetectedVector_i.size(); j++) {
-					// 두 프레임이 겹칠 경우에 대한 연산
-					if (!IsComparePrevComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j])) {
+					if (!IsComparePrevComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j])) {														
 						humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
 						humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
-
+						
 						if (IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j]))
 							save_flag = true;
 
 						findFlag = true;
+<<<<<<< HEAD
+=======
+						break;
+>>>>>>> color_search
 					}
 				}
-				// 더이상 그 이전에 객체를 고려할 필요가 없음
-				if (findFlag == true)
-					break;
 			}
 		} // end else
+
 		// 새 객체가 출현 되었다고 판정함
 		if (findFlag == false) {
 			humanDetectedVector[humanCount].timeTag = currentMsec;
@@ -896,11 +953,20 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 		}
 
 		// 파일에 저장할 수 있도록 함
-		if (save_flag == true)
+		if (save_flag == true) {
+			// getColorArray에서 colorArray 객체 생성
+			int *colorArray = getColorArray(frame, humanDetectedVector[humanCount], binary_frame);
 			saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
+<<<<<<< HEAD
 			, currentMsec, frameCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTIndex, detailTxtIndex);
+=======
+				, currentMsec, frameCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTIndex, detailTxtIndex, colorArray);
+			
+			// getColorArray에서 생성한 colorArray 객체 메모리 해제
+			delete[] colorArray;
+		}
+>>>>>>> color_search
 	} // end for (humanCount) 
-
 	vector<component> vclear;
 	prevDetectedVector_i.swap(vclear);
 
@@ -917,7 +983,6 @@ bool IsSaveComponent(component curr_component, component prev_component) {
 	if (curr_component.label == prev_component.label) {
 		if ((abs(curr_component.width - prev_component.width) > diff_component_width) ||
 			(abs(curr_component.height - prev_component.height) > diff_component_height)) {
-			printf("%d %d save하지 않음\n", curr_component.timeTag, curr_component.height);
 			return_flag = false;
 		}
 	}
@@ -930,6 +995,7 @@ bool IsComparePrevComponent(component curr_component, component prev_component) 
 		|| curr_component.top > prev_component.bottom
 		|| curr_component.bottom < prev_component.top;
 }
+
 // 합성된 프레임을 가져오는 연산
 Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 	int *labelMap = new int[bgFrame.cols * bgFrame.rows];	//겹침을 판단하는 용도
@@ -1049,8 +1115,8 @@ bool IsEnqueueFiltering(segment *segment_array, int cur_index) {
 	// 양 끝 filter_object_num 갯수만큼의 객체를 비교하고자 함
 	// 1일 경우 앞쪽 뒷쪽 한 개씩만
 	const unsigned int filter_object_num = 1;
-	const unsigned int filter_object_height = ROWS / 2; //  ( 480/15 = 32)
-	const unsigned int filter_object_width = COLS / 2; //  ( 640/15 = 42)
+	const unsigned int filter_object_height = ROWS / 15; //  ( 480/15 = 32)
+	const unsigned int filter_object_width = COLS / 15; //  ( 640/15 = 42)
 
 	// 앞의 객체가 없으면 그냥 출력 가능하게 함
 	if ((cur_index < filter_object_num && cur_index >= 0)
@@ -1184,18 +1250,38 @@ int readSegmentTxtFile(segment* segmentArray) {
 
 	// 읽어들일 텍스트 파일의 경로를 불러옴
 	string path = "./" + getTextFilePath(fileNameNoExtension);
-
-	fp = fopen(path.c_str(), "r");
-
 	int segmentCount = 0;
-	fseek(fp, 0, SEEK_SET);	//포인터 처음으로 이동
-	fgets(txtBuffer, 99, fp);
-	sscanf(txtBuffer, "%d", &videoStartMsec);	//텍스트 파일 첫줄에 명시된 실제 영상 시작 시간 받아옴
+	if (fp = fopen(path.c_str(), "r")){
 
-	// frameInfo.txt 파일에서 데이터를 추출 하여 segment array 초기화
-	while (!feof(fp)) {
+		fseek(fp, 0, SEEK_SET);	//포인터 처음으로 이동
 		fgets(txtBuffer, 99, fp);
+		sscanf(txtBuffer, "%d", &videoStartMsec);	//텍스트 파일 첫줄에 명시된 실제 영상 시작 시간 받아옴
+		fflush(stdin);
 
+		// frameInfo.txt 파일에서 데이터를 추출 하여 segment array 초기화
+		while (!feof(fp)) {
+			fgets(txtBuffer, 99, fp);
+
+			// txt파일에 있는 프레임 데이터들 segmentArray 버퍼로 복사
+			sscanf(txtBuffer, "%d_%d_%d_%d %d %d %d %d %d %d",
+				&segmentArray[segmentCount].timeTag, &segmentArray[segmentCount].msec,
+				&segmentArray[segmentCount].frameCount, &segmentArray[segmentCount].index,
+				&segmentArray[segmentCount].left, &segmentArray[segmentCount].top,
+				&segmentArray[segmentCount].right, &segmentArray[segmentCount].bottom,
+				&segmentArray[segmentCount].width, &segmentArray[segmentCount].height);
+			fflush(stdin);
+			// filename 저장
+			segmentArray[segmentCount].fileName
+				.append(to_string(segmentArray[segmentCount].timeTag)).append("_")
+				.append(to_string(segmentArray[segmentCount].msec)).append("_")
+				.append(to_string(segmentArray[segmentCount].frameCount)).append("_")
+				.append(to_string(segmentArray[segmentCount].index)).append(".jpg");
+
+			// m_segmentArray의 인덱스 증가
+			segmentCount++;
+		}
+
+<<<<<<< HEAD
 		// txt파일에 있는 프레임 데이터들 segmentArray 버퍼로 복사
 		sscanf(txtBuffer, "%d_%d_%d_%d %d %d %d %d %d %d",
 			&segmentArray[segmentCount].timeTag, &segmentArray[segmentCount].msec,
@@ -1225,16 +1311,31 @@ int readSegmentTxtFile(segment* segmentArray) {
 				*tmp_segment = segmentArray[j + 1];
 				segmentArray[j + 1] = segmentArray[j];
 				segmentArray[j] = *tmp_segment;
+=======
+		// 버블 정렬 사용하여 m_segmentArray를 TimeTag순으로 정렬
+		segment *tmp_segment = new segment; // 임시 segment 동적생성, 메모리 해제에 용의하게 하기
+		for (int i = 0; i < segmentCount; i++) {
+			for (int j = 0; j < segmentCount - 1; j++) {
+				if (segmentArray[j].timeTag > segmentArray[j + 1].timeTag) {
+					// m_segmentArray[segmentCount]와 m_segmentArray[segmentCount + 1]의 교체
+					*tmp_segment = segmentArray[j + 1];
+					segmentArray[j + 1] = segmentArray[j];
+					segmentArray[j] = *tmp_segment;
+				}
+>>>>>>> color_search
 			}
 		}
+
+		// 임시 버퍼들의 메모리 해제
+		delete tmp_segment;
+		delete[] txtBuffer;
+
+		// 텍스트 파일 닫기
+		fclose(fp);
 	}
-
-	// 임시 버퍼들의 메모리 해제
-	free(tmp_segment);
-	free(txtBuffer);
-
-	// 텍스트 파일 닫기
-	fclose(fp);
+	else{
+		perror("텍스트 파일 읽기 오류");
+	}
 
 	return segmentCount;
 }
@@ -1248,7 +1349,7 @@ bool CMFC_SyntheticDlg::inputSegmentQueue(int obj1_TimeTag, int obj2_TimeTag, in
 		// start timetag와 end timetag 사이면 enqueue
 		// 아직 찾지 못했고 일치하는 타임태그를 찾았을 경우
 		if (segmentArray[i].timeTag >= obj1_TimeTag && segmentArray[i].timeTag <= obj2_TimeTag) {
-			if (segmentArray[i].timeTag == segmentArray[i].msec && isDirectionMatch(segmentArray[i].timeTag)) {
+			if (segmentArray[i].timeTag == segmentArray[i].msec && isDirectionAndColorMatch(segmentArray[i])) {
 				//출력해야할 객체의 첫 프레임의 타임태그와 위치를 큐에 삽입
 				segmentArray[i].first_timeTagFlag = true;
 				Enqueue(&segment_queue, segmentArray[i], i);
@@ -1582,6 +1683,26 @@ void CMFC_SyntheticDlg::layoutInit() {
 	CWnd *pStringDirection = GetDlgItem(IDC_STRING_DIRECTION);
 	CWnd *pStringDirectionStart = GetDlgItem(IDC_STRING_DIRECTION_START);
 	CWnd *pStringDirectionEnd = GetDlgItem(IDC_STRING_DIRECTION_END);
+	CWnd *pStringColor = GetDlgItem(IDC_STRING_COLOR);
+	CButton *pButtonColorR = (CButton *)GetDlgItem(IDC_COLOR_RED);
+	CButton *pButtonColorG = (CButton *)GetDlgItem(IDC_COLOR_GREEN);
+	CButton *pButtonColorB = (CButton *)GetDlgItem(IDC_COLOR_BLUE);
+	CButton *pButtonColorO = (CButton *)GetDlgItem(IDC_COLOR_ORANGE);
+	CButton *pButtonColorY = (CButton *)GetDlgItem(IDC_COLOR_YELLOW);
+	CButton *pButtonColorM = (CButton *)GetDlgItem(IDC_COLOR_MAGENTA);
+	CButton *pButtonColorBLACK = (CButton *)GetDlgItem(IDC_COLOR_BLACK);
+	CButton *pButtonColorWHITE = (CButton *)GetDlgItem(IDC_COLOR_WHITE);
+	CButton *pButtonColorGRAY = (CButton *)GetDlgItem(IDC_COLOR_GRAY);
+	CWnd *pCheckBoxAll = GetDlgItem(IDC_CHECK_ALL);
+	CWnd *pCheckBoxR = GetDlgItem(IDC_CHECK_RED);
+	CWnd *pCheckBoxG = GetDlgItem(IDC_CHECK_GREEN);
+	CWnd *pCheckBoxB = GetDlgItem(IDC_CHECK_BLUE);
+	CWnd *pCheckBoxO = GetDlgItem(IDC_CHECK_ORANGE);
+	CWnd *pCheckBoxY = GetDlgItem(IDC_CHECK_YELLOW);
+	CWnd *pCheckBoxM = GetDlgItem(IDC_CHECK_MAGENTA);
+	CWnd *pCheckBoxBLACK = GetDlgItem(IDC_CHECK_BLACK);
+	CWnd *pCheckBoxWHITE = GetDlgItem(IDC_CHECK_WHITE);
+	CWnd *pCheckBoxGRAY = GetDlgItem(IDC_CHECK_GRAY);
 
 	int box_syntheticX = padding;
 	int box_syntheticY = box_segmentationY + box_segmentationHeight + padding;
@@ -1606,6 +1727,27 @@ void CMFC_SyntheticDlg::layoutInit() {
 	mComboStart.MoveWindow(box_syntheticX + padding + 520, box_syntheticY + box_syntheticHeight*0.4, 100, 20, TRUE);
 	pStringDirectionEnd->MoveWindow(box_syntheticX + padding + 470, box_syntheticY + box_syntheticHeight*0.6, 30, 20, TRUE);
 	mComboEnd.MoveWindow(box_syntheticX + padding + 520, box_syntheticY + box_syntheticHeight*0.6, 100, 20, TRUE);
+
+	pStringColor->MoveWindow(box_syntheticX + padding + 680, box_syntheticY + box_syntheticHeight*0.2, 100, 20, TRUE);
+	pCheckBoxAll->MoveWindow(box_syntheticX + padding + 710, box_syntheticY + box_syntheticHeight*0.2, 30, 20, TRUE);
+	pButtonColorR->MoveWindow(box_syntheticX + padding + 680, box_syntheticY + box_syntheticHeight*0.35, 30, 20, TRUE);
+	pCheckBoxR->MoveWindow(box_syntheticX + padding + 730, box_syntheticY + box_syntheticHeight*0.35, 30, 20, TRUE);
+	pButtonColorO->MoveWindow(box_syntheticX + padding + 680, box_syntheticY + box_syntheticHeight*0.5, 30, 20, TRUE);
+	pCheckBoxO->MoveWindow(box_syntheticX + padding + 730, box_syntheticY + box_syntheticHeight*0.5, 30, 20, TRUE);
+	pButtonColorWHITE->MoveWindow(box_syntheticX + padding + 680, box_syntheticY + box_syntheticHeight*0.65, 30, 20, TRUE);
+	pCheckBoxWHITE->MoveWindow(box_syntheticX + padding + 730, box_syntheticY + box_syntheticHeight*0.65, 30, 20, TRUE);
+	pButtonColorG->MoveWindow(box_syntheticX + padding + 780, box_syntheticY + box_syntheticHeight*0.35, 30, 20, TRUE);
+	pCheckBoxG->MoveWindow(box_syntheticX + padding + 830, box_syntheticY + box_syntheticHeight*0.35, 30, 20, TRUE);
+	pButtonColorY->MoveWindow(box_syntheticX + padding + 780, box_syntheticY + box_syntheticHeight*0.5, 30, 20, TRUE);
+	pCheckBoxY->MoveWindow(box_syntheticX + padding + 830, box_syntheticY + box_syntheticHeight*0.5, 30, 20, TRUE);
+	pButtonColorGRAY->MoveWindow(box_syntheticX + padding + 780, box_syntheticY + box_syntheticHeight*0.65, 30, 20, TRUE);
+	pCheckBoxGRAY->MoveWindow(box_syntheticX + padding + 830, box_syntheticY + box_syntheticHeight*0.65, 30, 20, TRUE);
+	pButtonColorB->MoveWindow(box_syntheticX + padding + 880, box_syntheticY + box_syntheticHeight*0.35, 30, 20, TRUE);
+	pCheckBoxB->MoveWindow(box_syntheticX + padding + 920, box_syntheticY + box_syntheticHeight*0.35, 30, 20, TRUE);
+	pButtonColorM->MoveWindow(box_syntheticX + padding + 880, box_syntheticY + box_syntheticHeight*0.5, 30, 20, TRUE);
+	pCheckBoxM->MoveWindow(box_syntheticX + padding + 920, box_syntheticY + box_syntheticHeight*0.5, 30, 20, TRUE);
+	pButtonColorBLACK->MoveWindow(box_syntheticX + padding + 880, box_syntheticY + box_syntheticHeight*0.65, 30, 20, TRUE);
+	pCheckBoxBLACK->MoveWindow(box_syntheticX + padding + 920, box_syntheticY + box_syntheticHeight*0.65, 30, 20, TRUE);
 
 	mButtonSynSave.MoveWindow(box_syntheticX + box_syntheticWidth - 110, box_syntheticY + box_syntheticHeight*0.8, 100, 20, TRUE);
 
@@ -1655,15 +1797,6 @@ void CMFC_SyntheticDlg::updateUI(int video_length, int video_cols, int video_row
 	SetDlgItemText(IDC_STRING_CUR_TIME, _T("00 : 00 : 00"));
 	SetDlgItemText(IDC_STRING_TOTAL_TIME, _T(timeConvertor(video_length).str().c_str()));
 
-	//SetDlgItemText(IDC_SEG_STRING_VAL_MIN_W, _T("0"));
-	//SetDlgItemText(IDC_SEG_STRING_VAL_MAX_W, _T("0"));
-	//SetDlgItemText(IDC_SEG_STRING_VAL_MIN_H, _T("0"));
-	//SetDlgItemText(IDC_SEG_STRING_VAL_MAX_H, _T("0"));
-	//m_SliderWMIN.SetPos(0);
-	//m_SliderWMAX.SetPos(0);
-	//m_SliderHMIN.SetPos(0);
-	//m_SliderHMAX.SetPos(0);
-
 	// detection slider text
 	SetDlgItemText(IDC_SEG_STRING_VAL_MIN_W, _T(to_string(video_cols / 5).c_str()));
 	SetDlgItemText(IDC_SEG_STRING_VAL_MAX_W, _T(to_string(video_cols / 2).c_str()));
@@ -1701,6 +1834,17 @@ void CMFC_SyntheticDlg::updateUI(int video_length, int video_cols, int video_row
 	mComboEnd.AddString(_T(RIGHTBELOW));
 	mComboEnd.SetCurSel(0);	//첫 인덱스를 가리킴
 
+	//컬러 체크박스 초기화
+	CheckDlgButton(IDC_CHECK_ALL, TRUE);
+	CheckDlgButton(IDC_CHECK_RED, TRUE);
+	CheckDlgButton(IDC_CHECK_GREEN, TRUE);
+	CheckDlgButton(IDC_CHECK_BLUE, TRUE);
+	CheckDlgButton(IDC_CHECK_ORANGE, TRUE);
+	CheckDlgButton(IDC_CHECK_YELLOW, TRUE);
+	CheckDlgButton(IDC_CHECK_MAGENTA, TRUE);
+	CheckDlgButton(IDC_CHECK_BLACK, TRUE);
+	CheckDlgButton(IDC_CHECK_GRAY, TRUE);
+	CheckDlgButton(IDC_CHECK_WHITE, TRUE);
 }
 
 //동영상 플레이어 슬라이더를 마우스로 잡은 뒤, 놓았을 때 발생하는 콜백
@@ -1847,13 +1991,11 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 	return;
 }
 
-
 void CMFC_SyntheticDlg::OnBnClickedOk()
 {
 	// TODO: Add your control notification handler code here
 	//CDialogEx::OnOK();
 }
-
 
 void CMFC_SyntheticDlg::OnBnClickedCancel()
 {
@@ -1909,27 +2051,119 @@ bool isDierectionAvailable(int val, int val_cur) {
 
 	return result;
 }
-bool CMFC_SyntheticDlg::isDirectionMatch(int timetag) {
-	bool isFirstOk = false, isLastOk = false;
+
+bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]){
+	unsigned int first = 0, second = 0;
+	int index_first = 0, index_second = 0;
+	for (int i = 0; i < COLORS; i++){
+		if (colorArray[i] >= first){
+			second = first;
+			first = colorArray[i];
+			index_second = index_first;
+			index_first = i;
+		}
+		else if (colorArray[i] >= second){
+			second = colorArray[i];
+			index_second = i;
+		}
+	}
+
+
+	
+	// 정렬 확인 코드
+	/*for (int i = 0; i < COLORS; i++) 
+		printf("%d(%d) ", colorSortedArray[0][i], colorSortedArray[1][i]);
+	printf("\n");*/
+	
+	// 먼저 검은색 하나만 체크가 되어 있을 경우에는 필터링(머리부분이 항상 검출되었기 떄문에)
+	/*if (colorCheckArray[BLACK] && !colorCheckArray[0] && !colorCheckArray[1] && !colorCheckArray[2] && !colorCheckArray[3] && !colorCheckArray[4] && !colorCheckArray[5] && !colorCheckArray[7] && !colorCheckArray[8]){
+		if (index_first == BLACK) {
+			printf("블랙만 체크\n");
+			return true;
+		}
+		else
+			return false;
+	}*/
+	
+	if (colorCheckArray[index_first] || colorCheckArray[index_second])
+		return true;
+	else// 이외의 경우 false 반환
+		return false;
+}
+
+// 방향과 색깔이 매치하는 지를 확인하는 함수
+bool CMFC_SyntheticDlg::isDirectionAndColorMatch(segment object) {
+	// checkBox의 체크 여부를 가져와서 배열에 저장함
+	boolean isColorCheckedArray[COLORS] = {
+		IsDlgButtonChecked(IDC_CHECK_RED),
+		IsDlgButtonChecked(IDC_CHECK_ORANGE),
+		IsDlgButtonChecked(IDC_CHECK_YELLOW),
+		IsDlgButtonChecked(IDC_CHECK_GREEN),
+		IsDlgButtonChecked(IDC_CHECK_BLUE),
+		IsDlgButtonChecked(IDC_CHECK_MAGENTA),
+		IsDlgButtonChecked(IDC_CHECK_BLACK),
+		IsDlgButtonChecked(IDC_CHECK_WHITE),
+		IsDlgButtonChecked(IDC_CHECK_GRAY)
+	};
+	
+	// comboBox의 문자열의 데이터를 가져옴
 	int indexFirst = mComboStart.GetCurSel();
 	int indexLast = mComboEnd.GetCurSel();
 
-	FILE* fp_detail = fopen(getDetailTextFilePath(fileNameNoExtension).c_str(), "r");
-	int tempTimetag;
-	int tempFirst;
-	int tempLast;
-	while (fscanf(fp_detail, "%d %d %d", &tempTimetag, &tempFirst, &tempLast) != EOF) {
-		if (tempTimetag == timetag)
-			break;
+	int tempTimetag, stamp, label;
+	int tempFirst, tempLast;
+
+	unsigned int colors[COLORS] = { 0, };
+
+	// fp_detail 파일 열기
+	fp_detail = fopen(getDetailTextFilePath(fileNameNoExtension).c_str(), "r");
+
+	// fp_detail의 데이터 읽어오기
+	string txt = readTxt(getDetailTextFilePath(fileNameNoExtension).c_str());
+	size_t posOfTimetag = txt.find(to_string(object.timeTag).append(" ").append(to_string(object.index)));
+	if (posOfTimetag != string::npos) {
+		int posOfNL = txt.find("\n", posOfTimetag);
+
+		string capture = txt.substr(posOfTimetag, posOfNL - posOfTimetag);
+		char *line = new char[capture.length() + 1];
+		strcpy(line, capture.c_str());
+		char *ptr = strtok(line, " ");
+
+		if (ptr != NULL) {
+			stamp = atoi(ptr);
+			ptr = strtok(NULL, " ");
+			if (ptr != NULL) {
+				label = atoi(ptr);
+			}
+			// 객체의 first, end flag 가져오기 
+			ptr = strtok(NULL, " ");
+			if (ptr != NULL) {
+				tempFirst = atoi(ptr);
+			}
+			ptr = strtok(NULL, " ");
+			if (ptr != NULL) {
+				tempLast = atoi(ptr);
+			}
+			// 색 영역 데이터 가져오기
+			for (int i = 0; i < COLORS; i++) {
+				ptr = strtok(NULL, " ");
+				if (ptr != NULL) {
+					colors[i] = atoi(ptr);
+				}
+			}
+		}
+		delete[] line;
 	}
+
 	fclose(fp_detail);
 
-	isFirstOk = isDierectionAvailable(indexFirst, tempFirst);
-	isLastOk = isDierectionAvailable(indexLast, tempLast);
+	bool isDirectionOk = isDierectionAvailable(indexFirst, tempFirst) && isDierectionAvailable(indexLast, tempLast);
+	bool isColorOk = isColorAvailable(isColorCheckedArray, colors);
 
-	if (isFirstOk && isLastOk)
+	if (isDirectionOk && isColorOk)
 		return true;
-	else return false;
+	else 
+		return false;
 }
 
 void CMFC_SyntheticDlg::OnBnClickedBtnSynSave()
@@ -1977,7 +2211,8 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSynSave()
 				Mat bg_copy; background_loadedFromFile.copyTo(bg_copy);
 				// 불러온 배경을 이용하여 합성을 진행
 				Mat syntheticResult = getSyntheticFrame(bg_copy);
-				if (segment_queue.count == 0) {
+				if (segment_queue.count == 0){
+
 					printf("영상 저장 끝\n");
 					delete[] m_segmentArray;
 
@@ -2028,5 +2263,143 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSynSliderFps(NMHDR *pNMHDR, LRESULT *pR
 		default:
 			break;
 		}
+	}
+}
+
+//버튼 색상
+void CMFC_SyntheticDlg::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
+{
+	CDC dc;
+	RECT rect;
+	UINT state;
+	switch (nIDCtl){
+	case IDC_COLOR_RED:
+		dc.Attach(lpDrawItemStruct->hDC);   // Get the Button DC to CDC
+
+		rect = lpDrawItemStruct->rcItem;     //Store the Button rect to our local rect.
+		dc.Draw3dRect(&rect, RGB(255, 255, 255), RGB(0, 0, 0));
+		dc.FillSolidRect(&rect, RGB(255, 0, 0));//Here you can define the required color to appear on the Button.
+
+		state = lpDrawItemStruct->itemState;  //This defines the state of the Push button either pressed or not. 
+
+		dc.DrawEdge(&rect, EDGE_SUNKEN, BF_RECT);
+		break;
+	case IDC_COLOR_GREEN:
+		dc.Attach(lpDrawItemStruct->hDC);   // Get the Button DC to CDC
+
+		rect = lpDrawItemStruct->rcItem;     //Store the Button rect to our local rect.
+		dc.Draw3dRect(&rect, RGB(255, 255, 255), RGB(0, 0, 0));
+		dc.FillSolidRect(&rect, RGB(0, 255, 0));//Here you can define the required color to appear on the Button.
+
+		state = lpDrawItemStruct->itemState;  //This defines the state of the Push button either pressed or not. 
+
+		dc.DrawEdge(&rect, EDGE_SUNKEN, BF_RECT);
+		break;
+	case IDC_COLOR_BLUE:
+		dc.Attach(lpDrawItemStruct->hDC);   // Get the Button DC to CDC
+
+		rect = lpDrawItemStruct->rcItem;     //Store the Button rect to our local rect.
+		dc.Draw3dRect(&rect, RGB(255, 255, 255), RGB(0, 0, 0));
+		dc.FillSolidRect(&rect, RGB(0, 0, 255));//Here you can define the required color to appear on the Button.
+
+		state = lpDrawItemStruct->itemState;  //This defines the state of the Push button either pressed or not. 
+
+		dc.DrawEdge(&rect, EDGE_SUNKEN, BF_RECT);
+		break;
+	case IDC_COLOR_ORANGE:
+		dc.Attach(lpDrawItemStruct->hDC);   // Get the Button DC to CDC
+
+		rect = lpDrawItemStruct->rcItem;     //Store the Button rect to our local rect.
+		dc.Draw3dRect(&rect, RGB(255, 255, 255), RGB(0, 0, 0));
+		dc.FillSolidRect(&rect, RGB(255, 102, 0));//Here you can define the required color to appear on the Button.
+
+		state = lpDrawItemStruct->itemState;  //This defines the state of the Push button either pressed or not. 
+
+		dc.DrawEdge(&rect, EDGE_SUNKEN, BF_RECT);
+		break;
+	case IDC_COLOR_YELLOW:
+		dc.Attach(lpDrawItemStruct->hDC);   // Get the Button DC to CDC
+
+		rect = lpDrawItemStruct->rcItem;     //Store the Button rect to our local rect.
+		dc.Draw3dRect(&rect, RGB(255, 255, 255), RGB(0, 0, 0));
+		dc.FillSolidRect(&rect, RGB(255, 255, 0));//Here you can define the required color to appear on the Button.
+
+		state = lpDrawItemStruct->itemState;  //This defines the state of the Push button either pressed or not. 
+
+		dc.DrawEdge(&rect, EDGE_SUNKEN, BF_RECT);
+		break;
+	case IDC_COLOR_MAGENTA:
+		dc.Attach(lpDrawItemStruct->hDC);   // Get the Button DC to CDC
+
+		rect = lpDrawItemStruct->rcItem;     //Store the Button rect to our local rect.
+		dc.Draw3dRect(&rect, RGB(255, 255, 255), RGB(0, 0, 0));
+		dc.FillSolidRect(&rect, RGB(255, 0, 255));//Here you can define the required color to appear on the Button.
+
+		state = lpDrawItemStruct->itemState;  //This defines the state of the Push button either pressed or not. 
+
+		dc.DrawEdge(&rect, EDGE_SUNKEN, BF_RECT);
+		break;
+	case IDC_COLOR_BLACK:
+		dc.Attach(lpDrawItemStruct->hDC);   // Get the Button DC to CDC
+
+		rect = lpDrawItemStruct->rcItem;     //Store the Button rect to our local rect.
+		dc.Draw3dRect(&rect, RGB(255, 255, 255), RGB(0, 0, 0));
+		dc.FillSolidRect(&rect, RGB(0, 0, 0));//Here you can define the required color to appear on the Button.
+
+		state = lpDrawItemStruct->itemState;  //This defines the state of the Push button either pressed or not. 
+
+		dc.DrawEdge(&rect, EDGE_SUNKEN, BF_RECT);
+		break;
+	case IDC_COLOR_GRAY:
+		dc.Attach(lpDrawItemStruct->hDC);   // Get the Button DC to CDC
+
+		rect = lpDrawItemStruct->rcItem;     //Store the Button rect to our local rect.
+		dc.Draw3dRect(&rect, RGB(255, 255, 255), RGB(0, 0, 0));
+		dc.FillSolidRect(&rect, RGB(153, 153, 153));//Here you can define the required color to appear on the Button.
+
+		state = lpDrawItemStruct->itemState;  //This defines the state of the Push button either pressed or not. 
+
+		dc.DrawEdge(&rect, EDGE_SUNKEN, BF_RECT);
+		break;
+	case IDC_COLOR_WHITE:
+		dc.Attach(lpDrawItemStruct->hDC);   // Get the Button DC to CDC
+
+		rect = lpDrawItemStruct->rcItem;     //Store the Button rect to our local rect.
+		dc.Draw3dRect(&rect, RGB(255, 255, 255), RGB(0, 0, 0));
+		dc.FillSolidRect(&rect, RGB(255, 255, 255));//Here you can define the required color to appear on the Button.
+
+		state = lpDrawItemStruct->itemState;  //This defines the state of the Push button either pressed or not. 
+
+		dc.DrawEdge(&rect, EDGE_SUNKEN, BF_RECT);
+		break;
+	}
+
+	dc.Detach();  // Detach the Button DC
+	CDialogEx::OnDrawItem(nIDCtl, lpDrawItemStruct);
+}
+
+void CMFC_SyntheticDlg::OnBnClickedCheckAll()
+{
+	if (IsDlgButtonChecked(IDC_CHECK_ALL)){
+		CheckDlgButton(IDC_CHECK_RED, TRUE);
+		CheckDlgButton(IDC_CHECK_GREEN, TRUE);
+		CheckDlgButton(IDC_CHECK_BLUE, TRUE);
+		CheckDlgButton(IDC_CHECK_ORANGE, TRUE);
+		CheckDlgButton(IDC_CHECK_YELLOW, TRUE);
+		CheckDlgButton(IDC_CHECK_MAGENTA, TRUE);
+		CheckDlgButton(IDC_CHECK_BLACK, TRUE);
+		CheckDlgButton(IDC_CHECK_GRAY, TRUE);
+		CheckDlgButton(IDC_CHECK_WHITE, TRUE);
+	}
+	else{
+		CheckDlgButton(IDC_CHECK_RED, FALSE);
+		CheckDlgButton(IDC_CHECK_GREEN, FALSE);
+		CheckDlgButton(IDC_CHECK_BLUE, FALSE);
+		CheckDlgButton(IDC_CHECK_ORANGE, FALSE);
+		CheckDlgButton(IDC_CHECK_YELLOW, FALSE);
+		CheckDlgButton(IDC_CHECK_MAGENTA, FALSE);
+		CheckDlgButton(IDC_CHECK_BLACK, FALSE);
+		CheckDlgButton(IDC_CHECK_GRAY, FALSE);
+		CheckDlgButton(IDC_CHECK_WHITE, FALSE);
 	}
 }
