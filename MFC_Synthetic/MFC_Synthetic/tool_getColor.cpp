@@ -21,39 +21,57 @@ int getColor_V(int v) {
 H : 180 S : 255 V : 255
 */
 
-int colorPicker(Vec3b pixel) {
-	unsigned char H = pixel[0];
-	unsigned char S = pixel[1];
-	unsigned char V = pixel[2];
+int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
+	// 검출된 색깔의 갯수 (0일 경우 에러)
+	int color_point = 1;
+	
+	// HSV, RGB 값 각각 할당하기
+	unsigned char H = pixel_hsv[0];
+	unsigned char S = pixel_hsv[1];
+	unsigned char V = pixel_hsv[2];
 
-	//Black인지 White인지 판별
-	if (V <= 38) {
-		return BLACK;
-	}
-	else if (S <= 38 && V >= 166) {
-		return WHITE;
-	}
-	else if (S <= 25) {	//Gray인지 판별
-		return GRAY;
-	}
-	else if (H >= 165 || H <= 8) {
-		return RED;
+	unsigned char R = pixel_rgb[0];
+	unsigned char G = pixel_rgb[1];
+	unsigned char B = pixel_rgb[2];
+
+	// HSV 채널로 충분히 검출이 가능한 색상들
+	if (H >= 165 || H <= 8) {
+		colorArray[RED]++;
 	}
 	else if (H <= 22) {
-		return ORANGE;
+		colorArray[ORANGE]++;
 	}
 	else if (H <= 37) {
-		return YELLOW;
+		colorArray[YELLOW]++;
 	}
 	else if (H <= 85) {
-		return GREEN;
+		colorArray[GREEN]++;
 	}
 	else if (H <= 140) {
-		return BLUE;
+		colorArray[BLUE]++;
 	}
 	else if (H <= 164) {
-		return MAGENTA;
+		colorArray[MAGENTA]++;
 	}
 	else
-		return-1;
+		color_point--;
+
+	// RGB를 이용하여 검출을 할 색상들(Black, Gray, White)
+	if (R >= 0 && R <= 50 && G >= 0 && G <= 50 && B >= 0 && B <= 50) {
+		colorArray[BLACK]++;
+		color_point++;
+	}
+	if (R >= 60 && R <= 120 && G >= 60 && G <= 120 && B >= 60 && B <= 120) {
+		colorArray[WHITE]++;
+		color_point++;
+	}
+	if (R >= 30 && R <= 50 && G >= 30 && G <= 50 && B >= 30 && B <= 50) {	// Gray인지 판별
+		colorArray[GRAY]++;
+		color_point++;
+	}
+
+	else
+		return color_point;
+
+	return color_point;
 }

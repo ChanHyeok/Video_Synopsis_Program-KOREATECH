@@ -37,12 +37,8 @@ const char* LEFTBELOW = "좌하단";
 const char* RIGHTBELOW = "우하단";
 
 // 배경 생성
-<<<<<<< HEAD
 const int FRAMES_FOR_MAKE_BACKGROUND = 1000;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
-=======
-const int FRAMES_FOR_MAKE_BACKGROUND = 2000;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
->>>>>>> master
-const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 4000;	//다음 배경을 만들기 위한 시간간격(동적)
+const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 2000;	//다음 배경을 만들기 위한 시간간격(동적)
 // fps가 약 23-25 가량 나오는 영상에서 약 1분이 흐른 framecount 값은 1500
 
 /***  전역변수  ***/
@@ -810,23 +806,49 @@ bool isColorDataOperation(Mat frame, Mat bg, Mat binary, int i_height , int j_wi
 int* getColorArray(Mat frame, component object, Mat binary){
 	Mat temp; frame.copyTo(temp);
 	Mat bg_copy = imread(getBackgroundFilePath(fileNameNoExtension));
+	
+	// color 배열 초기화, 동적생성, segmentation 저장 이후 메모리 해제함
 	int *colorArray = new int[COLORS];
-	int cnt = 0;
 	for (int i = 0; i < COLORS; i++)
 		colorArray[i] = 0;
 	
-	//원본 프레임 HSV로 변환하기
-	cvtColor(temp, temp, CV_BGR2HSV);
+	//원본 프레임 각각 RGB, HSV로 변환하기
+	Mat frame_hsv, frame_rgb;
+	cvtColor(temp, frame_hsv, CV_BGR2HSV);
+	cvtColor(temp, frame_rgb, CV_BGR2HSV);
+
+	int temp_color_array[6] = { 0, };
+	// 한 프레임에서 color을 추출하는 연산을 하는 횟수
+	int get_color_data_count = 0, total_frame_count = 0;
 	for (int i = object.top; i < object.bottom; i++) {
 		for (int j = object.left + 1; j < object.right; j++) {
+			total_frame_count++;
 			// 색상 데이터 저장
 			if (isColorDataOperation(frame, bg_copy, binary, i, j)) {
-				cnt++;
-				Vec3b color = temp.at<Vec3b>(Point(j, i));
-				colorArray[colorPicker(temp.at<Vec3b>(Point(j, i)))]++;
+				get_color_data_count++;
+				Vec3b color_hsv = frame_hsv.at<Vec3b>(Point(j, i));
+				Vec3b color_rgb = frame_rgb.at<Vec3b>(Point(j, i));
+				int color_check = colorPicker(color_hsv, color_rgb, colorArray);
+				
+				temp_color_array[0] += color_hsv[0];
+				temp_color_array[1] += color_hsv[1];
+				temp_color_array[2] += color_hsv[2];
+				temp_color_array[3] += color_rgb[0];
+				temp_color_array[4] += color_rgb[1];
+				temp_color_array[5] += color_rgb[2];
 			}
 		}
 	}
+	double rate_of_color_operation = (double)get_color_data_count / (double)total_frame_count;
+
+	// 확인 코드
+	printf("timatag = %d) [", object.timeTag);
+	for (int i = 0; i < 6; i++) {
+		double color_value = (double)temp_color_array[i] / (double)get_color_data_count;
+		printf("%.0lf ", color_value);
+	}
+	printf("] rate = %.2lf \n", rate_of_color_operation);
+
 
 	//printf("%10d : ", object.timeTag);
 	//for (int i = 0; i < COLORS;i++)
@@ -941,8 +963,8 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 // 이전과 연속적이어서 저장할 가치가 있는 지를 판별하는 함수
 bool IsSaveComponent(component curr_component, component prev_component) {
 	bool return_flag = true;
-	const int diff_component_height = ROWS / 16; //  ( 480/15 = 32)
-	const int diff_component_width = COLS / 16; //  ( 640/15 = 42)
+	const int diff_component_height = prev_component.height* 0.2; //  ( 480/15 = 32)
+	const int diff_component_width = prev_component.width * 0.2; //  ( 640/15 = 42)
 	// width와 height 크기를 비교
 	// 추후 색상 데이터를 보는 식으로 하여 강화
 	if (curr_component.label == prev_component.label) {

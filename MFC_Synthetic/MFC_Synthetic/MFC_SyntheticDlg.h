@@ -177,7 +177,7 @@ Mat temporalMedianBG(Mat frameimg, Mat bgimg);
 int getColor_H(int );
 int getColor_S(int );
 int getColor_V(int );
-int colorPicker(Vec3b pixel);
+int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray);
 
 // FileProcessing.cpp
 String getFileName(CString f_path, char find_char, BOOL);
