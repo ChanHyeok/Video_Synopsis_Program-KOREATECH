@@ -37,8 +37,8 @@ const char* LEFTBELOW = "좌하단";
 const char* RIGHTBELOW = "우하단";
 
 // 배경 생성
-const int FRAMES_FOR_MAKE_BACKGROUND = 2000;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
-const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 4000;	//다음 배경을 만들기 위한 시간간격(동적)
+const int FRAMES_FOR_MAKE_BACKGROUND = 1000;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
+const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 2000;	//다음 배경을 만들기 위한 시간간격(동적)
 // fps가 약 23-25 가량 나오는 영상에서 약 1분이 흐른 framecount 값은 1500
 
 /***  전역변수  ***/
@@ -831,17 +831,51 @@ int* getColorArray(Mat frame, component object, Mat binary){
 	return colorArray;
 }
 
+int labelProcessing(int prev_max_label) {
+	// 최대 레이블 번호가 가질 수 있는 값은 상수로 정의
+	const int MAX_LABLE_VALUE = 10;
+	prev_max_label += 1;
+	if (prev_max_label > MAX_LABLE_VALUE)
+		prev_max_label = 1;
+	return prev_max_label;
+
+	/*
+	int maxLabel = humanDetectedVector.size() - 1;
+	// 현재까지 부여된 레이블들을 저장하는 벡터
+	vector<int> label_vector;
+	for (int humanCount = 0; humanCount < humanDetectedVector.size(); humanCount++) {
+		if (humanDetectedVector[humanCount].count != 0)
+			label_vector.push_back(humanDetectedVector[humanCount].label);
+	}
+	
+	// 벡터 반복자 생성
+	vector<int>::iterator it;
+	it = find(label_vector.begin(), label_vector.end(), maxLabel);
+	if (it == label_vector.end())
+		return maxLabel;
+
+	// 현재 있는 레이블 벡터 중에 i를 찾아서 없으면 그냥 매겨버림
+	for (int i = 1; i < MAX_LABEL_VALUE; i++) {
+		it = find(label_vector.begin(), label_vector.end(), i);
+		if (it == label_vector.end()) {
+			maxLabel = i;
+			break;
+		}
+	}
+	return maxLabel;
+	*/
+}
+
 // component vector 큐를 이용한 추가된 함수
 vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector
 	, ComponentVectorQueue prevHumanDetectedVector_Queue, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, vector<pair<int, int>>* vectorDetailTXTIndex, int* detailTxtIndex, Mat binary_frame) {
-
 	// 현재에서 바로 이전 component 저장
 	// prevDetectedVector를 바로 큐에 있는 이전 vector로 지정할 시 
 	// 파일 저장할 시 frameCount를 매기는 데에 오류가 생김(오류 발생 원인은 아직까지도 불명)
 	vector<component> prevDetectedVector_i = prevHumanDetectedVector;
 
-	// 현재 label의 마지막 수를 저장함
-	int maxLabel = humanDetectedVector.size() - 1;
+	// 최대 레이블 정의
+	int max_label = 0;
 
 	// 사람을 검출한 양 많큼 반복 (보통 humanCount 갯수 1, 2개 나옴)
 	for (int humanCount = 0; humanCount < humanDetectedVector.size(); humanCount++) {
@@ -855,8 +889,11 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 					humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
 					humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
 
+					if (max_label < humanDetectedVector[humanCount].label)
+						max_label = humanDetectedVector[humanCount].label;
+
 					if (IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j]))
-						save_flag = true;
+						humanDetectedVector[humanCount].isSave = true;
 
 					findFlag = true;
 				}
@@ -874,8 +911,11 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 							humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
 							humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
 
+							if (max_label < humanDetectedVector[humanCount].label)
+								max_label = humanDetectedVector[humanCount].label;
+
 							if (IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j]))
-								save_flag = true;
+								humanDetectedVector[humanCount].isSave = true;
 
 							findFlag = true;
 							break;
@@ -897,8 +937,11 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 						humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
 						humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
 						
+						if (max_label < humanDetectedVector[humanCount].label)
+							max_label = humanDetectedVector[humanCount].label;
+
 						if (IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j]))
-							save_flag = true;
+							humanDetectedVector[humanCount].isSave = true;
 
 						findFlag = true;
 						break;
@@ -909,22 +952,33 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 
 		// 새 객체가 출현 되었다고 판정함
 		if (findFlag == false) {
+			humanDetectedVector[humanCount].count = 0;
 			humanDetectedVector[humanCount].timeTag = currentMsec;
-			humanDetectedVector[humanCount].label = ++maxLabel;
-			save_flag = true;
+			humanDetectedVector[humanCount].isSave = true;
 		}
+	} // end for (humanCount) 
 
-		// 파일에 저장할 수 있도록 함
-		if (save_flag == true) {
+	for (int humanCount = 0; humanCount < humanDetectedVector.size(); humanCount++) {
+		if (humanDetectedVector[humanCount].isSave == true) {
+			// 파일에 저장하기 전에는 새 객체에 대해서는 레이블을 재 지정함
+			if (humanDetectedVector[humanCount].timeTag == currentMsec) {
+				int temp_label = labelProcessing(max_label);
+				humanDetectedVector[humanCount].label = temp_label;
+				printf("timetag))%d label))%d\n", currentMsec, humanDetectedVector[humanCount].label);
+			}
+
+			// 갯수 하나 증가
+			humanDetectedVector[humanCount].count++;
+
 			// getColorArray에서 colorArray 객체 생성
 			int *colorArray = getColorArray(frame, humanDetectedVector[humanCount], binary_frame);
 			saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
 				, currentMsec, frameCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTIndex, detailTxtIndex, colorArray);
-			
+
 			// getColorArray에서 생성한 colorArray 객체 메모리 해제
 			delete[] colorArray;
 		}
-	} // end for (humanCount) 
+	}
 	vector<component> vclear;
 	prevDetectedVector_i.swap(vclear);
 
@@ -934,10 +988,13 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 // 이전과 연속적이어서 저장할 가치가 있는 지를 판별하는 함수
 bool IsSaveComponent(component curr_component, component prev_component) {
 	bool return_flag = true;
-	const int diff_component_height = ROWS / 16; //  ( 480/15 = 32)
-	const int diff_component_width = COLS / 16; //  ( 640/15 = 42)
+
+	// prev의 width와 height에 약 25%정도 크기일 경우로 연산
+	const int diff_component_height = prev_component.height * 0.25;
+	const int diff_component_width = prev_component.width * 0.25;
+
 	// width와 height 크기를 비교
-	// 추후 색상 데이터를 보는 식으로 하여 강화
+	// TO DO:: 추후 색상 데이터를 보는 식으로 하여 강화
 	if (curr_component.label == prev_component.label) {
 		if ((abs(curr_component.width - prev_component.width) > diff_component_width) ||
 			(abs(curr_component.height - prev_component.height) > diff_component_height)) {

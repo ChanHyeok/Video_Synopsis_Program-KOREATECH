@@ -54,12 +54,9 @@ vector<component> connectedComponentsLabelling(Mat frame, int rows, int cols, in
 		// height, width를 미리 지정
 		int height = stats.at<int>(i, CC_STAT_HEIGHT);
 		int width = stats.at<int>(i, CC_STAT_WIDTH);
-		//printf("%d %d %d\n", i, width, height);
 		// 영역박스 그리기, 레이블 크기를 필터링 하여(사람크기에 해당될 만큼)
 		if (labelSizeFiltering(width, height, WMIN, WMAX,HMIN,HMAX)) {
-			// 유효한 레이블 인덱스를 저장
-			componentArray[index].label = index;
-
+			componentArray[index].label = 0;
 			// Component에 데이터 저장
 			componentArray[index] = dataAllocateAtComponent(stats, componentArray[index], i);
 			// Rect타입 변수에 레이블된 오브젝트 저장

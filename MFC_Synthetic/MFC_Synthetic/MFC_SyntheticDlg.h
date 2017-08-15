@@ -91,6 +91,8 @@ typedef struct _component {
 	int width;
 	int height;
 	int area;
+	int count; // 한 타임태그의 저장된 객체의 갯수
+	bool isSave;
 	_component() {
 		fileName = "";
 		timeTag = 0;
@@ -105,6 +107,8 @@ typedef struct _component {
 		width = 0;
 		height = 0;
 		area = 0;
+		count = 0;
+		isSave = false;
 	}
 }component;
 
@@ -158,7 +162,7 @@ stringstream timeConvertor(int t);
 
 bool IsObjectOverlapingDetector(segment, segment);
 
-
+int labelProcessing(int );
 int readSegmentTxtFile(segment*);
 
 bool isColorDataOperation(Mat frame, Mat bg, Mat, int i_height, int j_width);
