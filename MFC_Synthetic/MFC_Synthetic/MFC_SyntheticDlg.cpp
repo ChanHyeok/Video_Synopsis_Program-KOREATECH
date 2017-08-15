@@ -37,8 +37,8 @@ const char* LEFTBELOW = "좌하단";
 const char* RIGHTBELOW = "우하단";
 
 // 배경 생성
-const int FRAMES_FOR_MAKE_BACKGROUND = 2000;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
-const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 4000;	//다음 배경을 만들기 위한 시간간격(동적)
+const int FRAMES_FOR_MAKE_BACKGROUND = 1000;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
+const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 2000;	//다음 배경을 만들기 위한 시간간격(동적)
 // fps가 약 23-25 가량 나오는 영상에서 약 1분이 흐른 framecount 값은 1500
 
 /***  전역변수  ***/
@@ -969,9 +969,15 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Mat bgFrame) {
 		// 합성이 끝났다고 판정하여 플래그를 true로 변경
 		synthesisEndFlag = true;
 
+		// 버튼 초기화
+		isPlayBtnClicked = false;
+
 		// 동적 해제
 		free(labelMap);
-		delete[] m_segmentArray;
+
+		// pause가 눌리지 않고 끝까지 재생되었을 경우에
+		if (isPauseBtnClicked == false)
+			delete[] m_segmentArray;
 
 		// 빈 프레임 반환
 		Mat nullFrame(ROWS, COLS, CV_8UC1);
