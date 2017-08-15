@@ -12,10 +12,11 @@
 #include "afxcmn.h"
 #include "afxwin.h"
 #include <time.h>
+
 using namespace std;
 using namespace cv;
 
-#define BUFFER 16000 // 객체 프레임 데이터를 저장할 버퍼의 크기 
+#define BUFFER 32000 // 객체 프레임 데이터를 저장할 버퍼의 크기 
 
 // fileName 상수 관련
 #define RESULT_TEXT_FILENAME  "obj_data_"
@@ -151,13 +152,14 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 bool segmentationTimeInputException(CString str_h, CString str_m);
 bool IsComparePrevComponent(component curr_component, component prev_component);
 bool IsSaveComponent(component curr_component, component prev_component);
-Mat morphologicalOperation(Mat);
-
+Mat morphologyOpening(Mat);
+Mat morphologyClosing(Mat);
 stringstream timeConvertor(int t);
-bool IsObjectOverlapingDetector(segment, segment);
-Mat backgroundInit(VideoCapture *vc_Source);
 
-int readSegmentTxtFile(segment* );
+bool IsObjectOverlapingDetector(segment, segment);
+
+
+int readSegmentTxtFile(segment*);
 
 bool isColorDataOperation(Mat frame, Mat bg, Mat, int i_height, int j_width);
 
@@ -169,7 +171,7 @@ bool IsEnqueueFiltering(segment *segment_array, int cur_index);
 // tool_background.cpp, tool_foreground.cpp
 Mat ExtractForegroundToMOG2(Mat frameimg);
 Mat ExtractFg(Mat, Mat, int, int);
-int temporalMedianBG(Mat frameimg, Mat bgimg, int rows, int cols);
+Mat temporalMedianBG(Mat frameimg, Mat bgimg);
 
 // tool_getColor.cpp
 int getColor_H(int );
@@ -185,10 +187,13 @@ bool saveSegmentationData(string video_name, component object, Mat object_frame
 string readTxt(string path);
 
 string getTextFilePath(string video_name);
+string getTempBackgroundFilePath(string);
 string getDetailTextFilePath(string video_name);
 string getBackgroundFilePath(string video_name);
+string getColorBackgroundFilePath(string video_name);
 string getDirectoryPath(string video_name);
 string getObjDirectoryPath(string video_name);
+bool isGrayBackgroundExists(string);
 
 bool isDirectory(string dir_name);
 int makeDataRootDirectory();
@@ -201,25 +206,25 @@ Mat printObjOnBG(Mat background, segment obj, int* labelMap, string);
 
 // CMFC_SyntheticDlg dialog
 class CMFC_SyntheticDlg : public CDialogEx{
-// Construction
+	// Construction
 public:
 	CMFC_SyntheticDlg(CWnd* pParent = NULL);	// standard constructor
 	//~CMFC_SyntheticDlg();
-// Dialog Data
+	// Dialog Data
 	enum { IDD = IDD_MFC_SYNTHETIC_DIALOG };
 
 	Mat mat_frame;
 	CImage *cimage_mfc;
 	CStatic m_picture;
 
-	VideoCapture capture, capture_for_background;
-
+	VideoCapture capture;
+	string videoFilePath;
 	boolean isPlayBtnClicked;
 	CRect m_rectCurHist;
 	CEdit *m_pEditBoxStartHour;
 	CEdit *m_pEditBoxStartMinute;
 
-	protected:
+protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
 
 public:
@@ -227,7 +232,7 @@ public:
 	//afx_msg void OnTimer(UINT_PTR nIDEvent);
 
 
-// Implementation
+	// Implementation
 protected:
 	HICON m_hIcon;
 
@@ -253,8 +258,8 @@ public:
 	CSliderCtrl m_sliderFps;
 	int mRadioPlay;
 	afx_msg void OnBnClickedBtnMenuLoad();
-	
-	afx_msg void loadFile();
+
+	afx_msg int loadFile(int);
 
 	afx_msg void SetRadioStatus(UINT value);
 	afx_msg void OnBnClickedBtnPause();
@@ -267,8 +272,8 @@ public:
 	CSliderCtrl m_SliderHMIN;
 	CSliderCtrl m_SliderHMAX;
 	afx_msg void OnBnClickedBtnStop();
-	afx_msg void layoutInit(); 
-	afx_msg void setSliderRange(int,int,int,int);
+	afx_msg void layoutInit();
+	afx_msg void setSliderRange(int, int, int, int);
 	afx_msg void updateUI(int, int, int, int);
 	afx_msg void segmentationOperator(VideoCapture* vc_Source, int, int, int, int, int, int);
 	afx_msg void OnBnClickedBtnRewind();
@@ -283,6 +288,9 @@ public:
 	//콤보박스
 	CComboBox mComboStart;
 	CComboBox mComboEnd;
+
+	afx_msg void backgroundInit(string);
+	afx_msg void OnReleasedcaptureSynSliderFps(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg bool isDirectionAndColorMatch(segment);
 	
 	CButton mButtonSynSave;

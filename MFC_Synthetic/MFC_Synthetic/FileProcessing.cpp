@@ -263,10 +263,22 @@ string getDetailTextFilePath(string video_name) {
 		+ "/" + RESULT_TEXT_DETAIL_FILENAME + video_name + (".txt");
 }
 
-// 배경 파일 이름을 반환하는 함수
+// 기본 배경 파일 이름을 반환하는 함수
 string getBackgroundFilePath(string video_name) {
 	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name
 		+ "/" + RESULT_BACKGROUND_FILENAME + video_name + (".jpg");
+}
+
+// 연산에 사용할 배경 파일 이름을 반환하는 함수
+string getTempBackgroundFilePath(string video_name) {
+	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name
+		+ "/" + RESULT_BACKGROUND_FILENAME + "_T_" + video_name + (".jpg");
+}
+
+// 합성영상 출력시 사용할 컬러 배경 파일 이름을 반환하는 함수
+string getColorBackgroundFilePath(string video_name) {
+	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name
+		+ "/" + RESULT_BACKGROUND_FILENAME+ "_C_" + video_name + (".jpg");
 }
 
 // 세그먼트들이 통합적인 정보들이 저장된 폴더이름을 반환하는 함수 , 폴더 및 경로 :: /data/(비디오 이름)
@@ -288,6 +300,17 @@ bool isDirectory(string dir_name) {
 
 	// 폴더가 있을 경우에는 _access(ptr, 0) 값을 0을 반환하여 true, 그렇지 않으면 false.
 	return _access(ptr_name, 0) == 0;
+}
+
+//파일 로드시 만드는 회색 배경이 있는 지 확인하는 함수
+bool isGrayBackgroundExists(string name) {
+	if (FILE *file = fopen(name.c_str(), "r")) {
+		fclose(file);
+		return true;
+	}
+	else {
+		return false;
+	}
 }
 
 // data 폴더를 생성하는 함수

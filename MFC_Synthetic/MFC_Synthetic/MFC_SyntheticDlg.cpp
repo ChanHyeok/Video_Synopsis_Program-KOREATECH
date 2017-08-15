@@ -37,7 +37,11 @@ const char* LEFTBELOW = "좌하단";
 const char* RIGHTBELOW = "우하단";
 
 // 배경 생성
+<<<<<<< HEAD
 const int FRAMES_FOR_MAKE_BACKGROUND = 1000;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
+=======
+const int FRAMES_FOR_MAKE_BACKGROUND = 2000;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
+>>>>>>> master
 const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 4000;	//다음 배경을 만들기 위한 시간간격(동적)
 // fps가 약 23-25 가량 나오는 영상에서 약 1분이 흐른 framecount 값은 1500
 
