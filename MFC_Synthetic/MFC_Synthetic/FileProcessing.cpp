@@ -195,8 +195,20 @@ void saveSegmentation_JPG(component object, Mat frame, string video_path) {
 void saveSegmentation_TXT(component object, FILE *fp) {
 	string info;
 	stringstream ss;
+	unsigned int color_array_for_txt_save[6] = { 0, };
+	for (int c = 0; c < 6; c++) {
+		if (c < 3)
+			color_array_for_txt_save[c] = object.hsv_avarage[c];
+		else
+			color_array_for_txt_save[c] = object.rgb_avarage[c-3];
+	}
+
+
 	ss << object.fileName << " " << object.left << " " << object.top << " " << object.right << " " << object.bottom
-		<< " " << object.right - object.left << " " << object.bottom - object.top << '\n';
+		<< " " << object.right - object.left << " " << object.bottom - object.top << " "
+		<< color_array_for_txt_save[0] << " " << color_array_for_txt_save[1] << " " << color_array_for_txt_save[2] << " "
+		<< color_array_for_txt_save[3] << " " << color_array_for_txt_save[4] << " " << color_array_for_txt_save[5]
+		<< '\n';
 	info = ss.str();
 	fprintf(fp, info.c_str());
 	fflush(stdout);

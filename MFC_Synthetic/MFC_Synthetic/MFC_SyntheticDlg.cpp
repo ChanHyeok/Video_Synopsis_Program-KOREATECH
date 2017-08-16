@@ -214,7 +214,6 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	radioChoice = 0; preRadioChoice = 0; //라디오 버튼의 default는 맨 처음 버튼임
 	mButtonSynSave.EnableWindow(false);
 
-
 	SetTimer(LOGO_TIMER, 1, NULL);
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -807,7 +806,8 @@ bool isColorDataOperation(Mat frame, Mat bg, Mat binary, int i_height , int j_wi
 		binary.data[i_height*binary.cols + j_width] == 255;
 }
 
-int* getColorArray(Mat frame, component object, Mat binary, int frameCount, int currentMsec){
+// colorArray를 구성하면서, component의 색 정보를 확인함
+int* getColorArray(Mat frame, component *object, Mat binary, int frameCount, int currentMsec){
 	Mat temp; frame.copyTo(temp);
 	Mat bg_copy = imread(getBackgroundFilePath(fileNameNoExtension));
 	
@@ -821,30 +821,29 @@ int* getColorArray(Mat frame, component object, Mat binary, int frameCount, int 
 	cvtColor(temp, frame_hsv, CV_BGR2HSV);
 	cvtColor(temp, frame_rgb, CV_BGR2HSV);
 
-	int temp_color_array[6] = { 0, };
+	int sum_of_color_array[6] = { 0 , };
+
 	// 한 프레임에서 color을 추출하는 연산을 하는 횟수
 	int get_color_data_count = 0, total_frame_count = 0;
-	for (int i = object.top; i < object.bottom; i++) {
+	for (int i = object->top; i < object->bottom; i++) {
 		Vec3b* ptr_temp = temp.ptr<Vec3b>(i);
 		Vec3b* ptr_color_hsv = frame_hsv.ptr<Vec3b>(i);
 		Vec3b* ptr_color_rgb = frame_rgb.ptr<Vec3b>(i);
 
-		for (int j = object.left + 1; j < object.right; j++) {
+		for (int j = object->left + 1; j < object->right; j++) {
 			total_frame_count++;
 			// 색상 데이터 저장
 			if (isColorDataOperation(frame, bg_copy, binary, i, j)) {
 				get_color_data_count++;
-				Vec3b color_hsv = frame_hsv.at<Vec3b>(Point(j, i));
-				Vec3b color_rgb = frame_rgb.at<Vec3b>(Point(j, i));
-				int color_check = colorPicker(ptr_color_hsv[j], ptr_color_rgb[j], colorArray);
+				int color_check = colorPicker(ptr_color_hsv[j], ptr_color_rgb[j], colorArray);	
 				
-				temp_color_array[0] += color_hsv[0];
-				temp_color_array[1] += color_hsv[1];
-				temp_color_array[2] += color_hsv[2];
-				temp_color_array[3] += color_rgb[0];
-				temp_color_array[4] += color_rgb[1];
-				temp_color_array[5] += color_rgb[2];
-			
+				// 한 component의 color 평균을 구하기 위해 임시 배열에 합을 구함
+				for (int c = 0; c < 6; c++) {
+					if (c < 3)
+						sum_of_color_array[c] += ptr_color_hsv[j][c];
+					else
+						sum_of_color_array[c] += ptr_color_rgb[j][c-3];
+				}
 			}
 			else {
 				ptr_temp[j] = Vec3b(0, 0, 0);
@@ -852,10 +851,23 @@ int* getColorArray(Mat frame, component object, Mat binary, int frameCount, int 
 
 		}
 	}
+	// 한 픽셀의 전체 프레임 대비 유효 색영역을 백분율로 계산
 	double rate_of_color_operation = (double)get_color_data_count / (double)total_frame_count;
 
+	// object의 색영역 평균 요소에 데이터 삽입
+	for (int c = 0; c < 6; c++) {
+		if (c < 3)
+			object->hsv_avarage[c] = sum_of_color_array[c] / get_color_data_count;
+		else
+			object->rgb_avarage[c-3] = sum_of_color_array[c] / get_color_data_count;
+	}
+
+	if (rate_of_color_operation > 0.22) 
+		object->save_available = true;
+
 	// color를 위한 obj를 jpg파일로 저장
-	component temp_object = object;
+	// 추후 삭제
+	component temp_object = *object;
 	temp_object.fileName = allocatingComponentFilename(temp_object.timeTag, currentMsec, frameCount, temp_object.label);
 	saveSegmentation_JPG(temp_object, temp, getObj_for_colorDirectoryPath(fileNameNoExtension));
 
@@ -965,12 +977,13 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 		// 파일에 저장할 수 있도록 함
 		if (save_flag == true) {
 			// getColorArray에서 colorArray 객체 생성
-			int *colorArray = getColorArray(frame, humanDetectedVector[humanCount], binary_frame, frameCount, currentMsec);
-			saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
-				, currentMsec, frameCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTIndex, detailTxtIndex, colorArray);
+			int *colorArray = getColorArray(frame, &humanDetectedVector[humanCount], binary_frame, frameCount, currentMsec);
+
+
+			if (humanDetectedVector[humanCount].save_available == true)
+				saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
+					, currentMsec, frameCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTIndex, detailTxtIndex, colorArray);
 			
-
-
 			// getColorArray에서 생성한 colorArray 객체 메모리 해제
 			delete[] colorArray;
 		}
@@ -995,6 +1008,22 @@ bool IsSaveComponent(component curr_component, component prev_component) {
 		}
 	}
 	return return_flag;
+}
+
+// 색 정보의 연속성을 따져서 저장을 할껀지 말껀지를 판별하는 함수
+bool isColorContinue(component *curr_component, component *prev_component) {
+	int tolerance_of_color_value = 30;
+	for (int c = 0; c < 3; c++) {
+		// hsv 영역에서 확인
+		if (abs(curr_component->hsv_avarage[c] - prev_component->hsv_avarage[c]) > tolerance_of_color_value)
+			return false;
+		
+		// rgb 영역에서 확인
+		if (abs(curr_component->rgb_avarage[c] - prev_component->rgb_avarage[c]) > tolerance_of_color_value)
+			return false;
+		}
+	}
+
 }
 // 현재와 이전에 검출한 결과를 비교, true 면 겹칠 수 없음
 bool IsComparePrevComponent(component curr_component, component prev_component) {

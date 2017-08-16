@@ -20,6 +20,10 @@ int getColor_V(int v) {
 /*opencv HSV range
 H : 180 S : 255 V : 255
 */
+void setColorData(component *object) {
+	object->hsv_avarage;
+}
+
 
 int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 	// 검출된 색깔의 갯수 (0일 경우 에러)

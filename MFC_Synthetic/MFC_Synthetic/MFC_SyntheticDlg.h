@@ -25,7 +25,7 @@ using namespace cv;
 const string SEGMENTATION_DATA_DIRECTORY_NAME = "data";
 
 // foreground threshold 관련
-const int FOREGROUND_THRESHOLD = 15;
+const int FOREGROUND_THRESHOLD = 18;
 
 // component vector Queue 관련
 const int MAXSIZE_OF_COMPONENT_VECTOR_QUEUE = 20;
@@ -85,8 +85,6 @@ typedef struct _component {
 	unsigned int timeTag;
 	unsigned int label;
 	unsigned int size;
-	float centerOfX;
-	float centerOfY;
 	unsigned int left;
 	unsigned int right;
 	unsigned int top;
@@ -94,13 +92,14 @@ typedef struct _component {
 	int width;
 	int height;
 	int area;
+	Vec3b rgb_avarage;
+	Vec3b hsv_avarage;
+	bool save_available;
 	_component() {
 		fileName = "";
 		timeTag = 0;
 		label = 0;
 		size = 0;
-		centerOfX = 0.0;
-		centerOfY = 0.0;
 		left = 0;
 		right = 0;
 		top = 0;
@@ -108,6 +107,7 @@ typedef struct _component {
 		width = 0;
 		height = 0;
 		area = 0;
+		save_available = false;
 	}
 }component;
 
@@ -164,7 +164,7 @@ bool IsObjectOverlapingDetector(segment, segment);
 int readSegmentTxtFile(segment*);
 
 bool isColorDataOperation(Mat frame, Mat bg, Mat, int i_height, int j_width);
-int* getColorArray(Mat frame, component object, Mat binary, int frameCount, int currentMsec);
+int* getColorArray(Mat frame, component *object, Mat binary, int frameCount, int currentMsec);
 
 // connectecComponentLabelling.cpp
 vector<component> connectedComponentsLabelling(Mat frame, int rows, int cols, int, int, int, int);
