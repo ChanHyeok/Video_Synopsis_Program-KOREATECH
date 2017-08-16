@@ -260,6 +260,10 @@ int CMFC_SyntheticDlg::loadFile(int mode) {
 		if (!isDirectory(getObjDirectoryPath(fileNameNoExtension.c_str()))) 
 			int subObjDirectory_check = makeDataSubDirectory(getObjDirectoryPath(fileNameNoExtension));
 
+		// color 검출을 위한 obj 디렉토리 생성
+		if (!isDirectory(getObj_for_colorDirectoryPath(fileNameNoExtension.c_str())))
+			int subObjDirectory_check = makeDataSubDirectory(getObj_for_colorDirectoryPath(fileNameNoExtension));
+
 		capture.open((string)cstrImgPath);
 
 		if (!capture.isOpened()) { //예외처리. 해당이름의 파일이 없는 경우
@@ -795,7 +799,7 @@ bool isColorDataOperation(Mat frame, Mat bg, Mat binary, int i_height , int j_wi
 	Vec3b colorB = bg.at<Vec3b>(Point(j_width, i_height));
 	
 	// hsv 영역에서 객체와 객체 영역의 배경과의 색깔 경계 값을 한정하기 위한 변수 
-	const int COLOR_THRESHOLD = 15;
+	const int COLOR_THRESHOLD = FOREGROUND_THRESHOLD;
 
 	return (abs(colorB[0] - frame.at<cv::Vec3b>(Point(j_width, i_height))[0]) > COLOR_THRESHOLD &&
 		abs(colorB[1] - frame.at<cv::Vec3b>(Point(j_width, i_height))[1]) > COLOR_THRESHOLD &&
@@ -803,7 +807,7 @@ bool isColorDataOperation(Mat frame, Mat bg, Mat binary, int i_height , int j_wi
 		binary.data[i_height*binary.cols + j_width] == 255;
 }
 
-int* getColorArray(Mat frame, component object, Mat binary){
+int* getColorArray(Mat frame, component object, Mat binary, int frameCount, int currentMsec){
 	Mat temp; frame.copyTo(temp);
 	Mat bg_copy = imread(getBackgroundFilePath(fileNameNoExtension));
 	
@@ -821,6 +825,10 @@ int* getColorArray(Mat frame, component object, Mat binary){
 	// 한 프레임에서 color을 추출하는 연산을 하는 횟수
 	int get_color_data_count = 0, total_frame_count = 0;
 	for (int i = object.top; i < object.bottom; i++) {
+		Vec3b* ptr_temp = temp.ptr<Vec3b>(i);
+		Vec3b* ptr_color_hsv = frame_hsv.ptr<Vec3b>(i);
+		Vec3b* ptr_color_rgb = frame_rgb.ptr<Vec3b>(i);
+
 		for (int j = object.left + 1; j < object.right; j++) {
 			total_frame_count++;
 			// 색상 데이터 저장
@@ -828,7 +836,7 @@ int* getColorArray(Mat frame, component object, Mat binary){
 				get_color_data_count++;
 				Vec3b color_hsv = frame_hsv.at<Vec3b>(Point(j, i));
 				Vec3b color_rgb = frame_rgb.at<Vec3b>(Point(j, i));
-				int color_check = colorPicker(color_hsv, color_rgb, colorArray);
+				int color_check = colorPicker(ptr_color_hsv[j], ptr_color_rgb[j], colorArray);
 				
 				temp_color_array[0] += color_hsv[0];
 				temp_color_array[1] += color_hsv[1];
@@ -836,19 +844,30 @@ int* getColorArray(Mat frame, component object, Mat binary){
 				temp_color_array[3] += color_rgb[0];
 				temp_color_array[4] += color_rgb[1];
 				temp_color_array[5] += color_rgb[2];
+			
 			}
+			else {
+				ptr_temp[j] = Vec3b(0, 0, 0);
+			}
+
 		}
 	}
 	double rate_of_color_operation = (double)get_color_data_count / (double)total_frame_count;
 
+	// color를 위한 obj를 jpg파일로 저장
+	component temp_object = object;
+	temp_object.fileName = allocatingComponentFilename(temp_object.timeTag, currentMsec, frameCount, temp_object.label);
+	saveSegmentation_JPG(temp_object, temp, getObj_for_colorDirectoryPath(fileNameNoExtension));
+
 	// 확인 코드
+	/*
 	printf("timatag = %d) [", object.timeTag);
 	for (int i = 0; i < 6; i++) {
 		double color_value = (double)temp_color_array[i] / (double)get_color_data_count;
 		printf("%.0lf ", color_value);
 	}
 	printf("] rate = %.2lf \n", rate_of_color_operation);
-
+	*/
 
 	//printf("%10d : ", object.timeTag);
 	//for (int i = 0; i < COLORS;i++)
@@ -946,10 +965,12 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 		// 파일에 저장할 수 있도록 함
 		if (save_flag == true) {
 			// getColorArray에서 colorArray 객체 생성
-			int *colorArray = getColorArray(frame, humanDetectedVector[humanCount], binary_frame);
+			int *colorArray = getColorArray(frame, humanDetectedVector[humanCount], binary_frame, frameCount, currentMsec);
 			saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
 				, currentMsec, frameCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTIndex, detailTxtIndex, colorArray);
 			
+
+
 			// getColorArray에서 생성한 colorArray 객체 메모리 해제
 			delete[] colorArray;
 		}

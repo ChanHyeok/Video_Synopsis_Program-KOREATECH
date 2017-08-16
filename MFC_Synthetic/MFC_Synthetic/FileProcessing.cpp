@@ -10,14 +10,13 @@
 
 // 파일 처리와 관련된 모든 함수들을 선언합니다.
 // segment의 fileName할당, JPG 파일 저장, txt파일 저장
-void saveSegmentation_JPG(component object, Mat frame, string video_path);
+// void saveSegmentation_JPG(component object, Mat frame, string video_path);
 void saveSegmentation_TXT(component object, FILE *fp);
 int directionChecker(component object, int ROWS, int COLS);
-string allocatingComponentFilename(int timeTag, int currentMsec, int frameCount, int label_num);
+//string allocatingComponentFilename(int timeTag, int currentMsec, int frameCount, int label_num);
 
 // segment 폴더 안에 Segmentation된 Obj만을 jpg파일로 저장하는 함수
 Mat objectCutting(component object, Mat img, unsigned int ROWS, unsigned int COLS);
-
 
 string readTxt(string path){
 	string result;
@@ -289,6 +288,11 @@ string getDirectoryPath(string video_name) {
 // 세그먼트(object)들이 저장된 폴더이름을 반환하는 함수 , 폴더 및 경로 :: /data/(비디오 이름)/obj
 string getObjDirectoryPath(string video_name) {
 	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name + "/" + "obj";
+}
+
+// 세그먼트(object)들이 저장된 폴더이름을 반환하는 함수 , 폴더 및 경로 :: /data/(비디오 이름)/obj
+string getObj_for_colorDirectoryPath(string video_name) {
+	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name + "/" + "obj_for_color";
 }
 
 // 프로젝트 내에 해당 디렉토리가 있는 지 체크하는 함수

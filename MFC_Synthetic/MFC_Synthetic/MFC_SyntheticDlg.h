@@ -24,6 +24,9 @@ using namespace cv;
 #define RESULT_BACKGROUND_FILENAME "background_"
 const string SEGMENTATION_DATA_DIRECTORY_NAME = "data";
 
+// foreground threshold 관련
+const int FOREGROUND_THRESHOLD = 15;
+
 // component vector Queue 관련
 const int MAXSIZE_OF_COMPONENT_VECTOR_QUEUE = 20;
 #define NEXT(index) ((index+1)%MAXSIZE_OF_COMPONENT_VECTOR_QUEUE)
@@ -158,10 +161,10 @@ stringstream timeConvertor(int t);
 
 bool IsObjectOverlapingDetector(segment, segment);
 
-
 int readSegmentTxtFile(segment*);
 
 bool isColorDataOperation(Mat frame, Mat bg, Mat, int i_height, int j_width);
+int* getColorArray(Mat frame, component object, Mat binary, int frameCount, int currentMsec);
 
 // connectecComponentLabelling.cpp
 vector<component> connectedComponentsLabelling(Mat frame, int rows, int cols, int, int, int, int);
@@ -180,6 +183,8 @@ int getColor_V(int );
 int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray);
 
 // FileProcessing.cpp
+void saveSegmentation_JPG(component object, Mat frame, string video_path);
+string allocatingComponentFilename(int timeTag, int currentMsec, int frameCount, int label_num);
 String getFileName(CString f_path, char find_char, BOOL);
 Mat loadJPGObjectFile(segment obj, string file_name);
 bool saveSegmentationData(string video_name, component object, Mat object_frame
@@ -193,6 +198,7 @@ string getBackgroundFilePath(string video_name);
 string getColorBackgroundFilePath(string video_name);
 string getDirectoryPath(string video_name);
 string getObjDirectoryPath(string video_name);
+string getObj_for_colorDirectoryPath(string video_name);
 bool isGrayBackgroundExists(string);
 
 bool isDirectory(string dir_name);
