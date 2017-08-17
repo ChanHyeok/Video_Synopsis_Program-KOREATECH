@@ -196,18 +196,16 @@ void saveSegmentation_TXT(component object, FILE *fp) {
 	string info;
 	stringstream ss;
 	unsigned int color_array_for_txt_save[6] = { 0, };
-	for (int c = 0; c < 6; c++) {
-		if (c < 3)
-			color_array_for_txt_save[c] = object.hsv_avarage[c];
-		else
-			color_array_for_txt_save[c] = object.rgb_avarage[c-3];
+	for (int c = 0; c < 3; c++) {
+		color_array_for_txt_save[c] = object.hsv_avarage[c];
+		color_array_for_txt_save[c+3] = object.rgb_avarage[c];
 	}
 
 
 	ss << object.fileName << " " << object.left << " " << object.top << " " << object.right << " " << object.bottom
 		<< " " << object.right - object.left << " " << object.bottom - object.top << " "
-		<< color_array_for_txt_save[0] << " " << color_array_for_txt_save[1] << " " << color_array_for_txt_save[2] << " "
-		<< color_array_for_txt_save[3] << " " << color_array_for_txt_save[4] << " " << color_array_for_txt_save[5]
+		<< color_array_for_txt_save[0] << " " << color_array_for_txt_save[1] << " " << color_array_for_txt_save[2] << " " // hsv 康开 历厘
+		<< color_array_for_txt_save[3] << " " << color_array_for_txt_save[4] << " " << color_array_for_txt_save[5] // rgb 康开 历厘
 		<< '\n';
 	info = ss.str();
 	fprintf(fp, info.c_str());

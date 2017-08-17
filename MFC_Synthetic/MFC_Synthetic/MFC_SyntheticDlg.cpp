@@ -819,7 +819,7 @@ int* getColorArray(Mat frame, component *object, Mat binary, int frameCount, int
 	//원본 프레임 각각 RGB, HSV로 변환하기
 	Mat frame_hsv, frame_rgb;
 	cvtColor(temp, frame_hsv, CV_BGR2HSV);
-	cvtColor(temp, frame_rgb, CV_BGR2HSV);
+	cvtColor(temp, frame_rgb, CV_BGR2RGB);
 
 	int sum_of_color_array[6] = { 0 , };
 
@@ -838,11 +838,9 @@ int* getColorArray(Mat frame, component *object, Mat binary, int frameCount, int
 				int color_check = colorPicker(ptr_color_hsv[j], ptr_color_rgb[j], colorArray);	
 				
 				// 한 component의 color 평균을 구하기 위해 임시 배열에 합을 구함
-				for (int c = 0; c < 6; c++) {
-					if (c < 3)
-						sum_of_color_array[c] += ptr_color_hsv[j][c];
-					else
-						sum_of_color_array[c] += ptr_color_rgb[j][c-3];
+				for (int c = 0; c < 3; c++) {
+					sum_of_color_array[c] += ptr_color_hsv[j][c];
+					sum_of_color_array[c+3] += ptr_color_rgb[j][c];
 				}
 			}
 			else {
@@ -855,14 +853,12 @@ int* getColorArray(Mat frame, component *object, Mat binary, int frameCount, int
 	double rate_of_color_operation = (double)get_color_data_count / (double)total_frame_count;
 
 	// object의 색영역 평균 요소에 데이터 삽입
-	for (int c = 0; c < 6; c++) {
-		if (c < 3)
-			object->hsv_avarage[c] = sum_of_color_array[c] / get_color_data_count;
-		else
-			object->rgb_avarage[c-3] = sum_of_color_array[c] / get_color_data_count;
+	for (int c = 0; c < 3; c++) {
+		object->hsv_avarage[c] = sum_of_color_array[c] / get_color_data_count;
+		object->rgb_avarage[c] = sum_of_color_array[c+3] / get_color_data_count;
 	}
 
-	if (rate_of_color_operation > 0.22) 
+	if (rate_of_color_operation > 0.21) 
 		object->save_available = true;
 
 	// color를 위한 obj를 jpg파일로 저장
@@ -979,7 +975,6 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 			// getColorArray에서 colorArray 객체 생성
 			int *colorArray = getColorArray(frame, &humanDetectedVector[humanCount], binary_frame, frameCount, currentMsec);
 
-
 			if (humanDetectedVector[humanCount].save_available == true)
 				saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
 					, currentMsec, frameCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTIndex, detailTxtIndex, colorArray);
@@ -996,15 +991,15 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 
 // 이전과 연속적이어서 저장할 가치가 있는 지를 판별하는 함수
 bool IsSaveComponent(component curr_component, component prev_component) {
-	bool return_flag = true;
-	const int diff_component_height = prev_component.height* 0.2; //  ( 480/15 = 32)
-	const int diff_component_width = prev_component.width * 0.2; //  ( 640/15 = 42)
+	bool return_flag = false;
+	const int diff_component_height = prev_component.height* 0.3; //  ( 480/15 = 32)
+	const int diff_component_width = prev_component.width * 0.3; //  ( 640/15 = 42)
 	// width와 height 크기를 비교
 	// 추후 색상 데이터를 보는 식으로 하여 강화
 	if (curr_component.label == prev_component.label) {
-		if ((abs(curr_component.width - prev_component.width) > diff_component_width) ||
-			(abs(curr_component.height - prev_component.height) > diff_component_height)) {
-			return_flag = false;
+		if ((abs(curr_component.width - prev_component.width) < diff_component_width) &&
+			(abs(curr_component.height - prev_component.height) < diff_component_height)) {
+			return_flag = true;
 		}
 	}
 	return return_flag;
@@ -1017,13 +1012,11 @@ bool isColorContinue(component *curr_component, component *prev_component) {
 		// hsv 영역에서 확인
 		if (abs(curr_component->hsv_avarage[c] - prev_component->hsv_avarage[c]) > tolerance_of_color_value)
 			return false;
-		
+
 		// rgb 영역에서 확인
 		if (abs(curr_component->rgb_avarage[c] - prev_component->rgb_avarage[c]) > tolerance_of_color_value)
 			return false;
-		}
 	}
-
 }
 // 현재와 이전에 검출한 결과를 비교, true 면 겹칠 수 없음
 bool IsComparePrevComponent(component curr_component, component prev_component) {
