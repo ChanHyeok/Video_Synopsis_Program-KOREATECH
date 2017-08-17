@@ -1415,7 +1415,7 @@ void CMFC_SyntheticDlg::OnBnClickedBtnPause()
 {
 	if (isPauseBtnClicked == false) {
 		// 합성 영상 재생 중에 해당 버튼이 눌렸을 때에 segment 배열의 메모리 해제를 위한 코드
-		if (synthesisEndFlag == false)
+		if (radioChoice==1&&synthesisEndFlag == false)
 			delete[] m_segmentArray;
 
 		isPlayBtnClicked = false;
