@@ -854,8 +854,12 @@ int* getColorArray(Mat frame, component *object, Mat binary, int frameCount, int
 
 	// object의 색영역 평균 요소에 데이터 삽입
 	for (int c = 0; c < 3; c++) {
-		object->hsv_avarage[c] = sum_of_color_array[c] / get_color_data_count;
-		object->rgb_avarage[c] = sum_of_color_array[c+3] / get_color_data_count;
+		object->hsv_avarage[c] = 0;
+		object->rgb_avarage[c] = 0;
+		if (sum_of_color_array[c] > 0 && sum_of_color_array[c + 3] > 0) {
+			object->hsv_avarage[c] = sum_of_color_array[c] / get_color_data_count;
+			object->rgb_avarage[c] = sum_of_color_array[c + 3] / get_color_data_count;
+		}
 	}
 
 	if (rate_of_color_operation > 0.21) 

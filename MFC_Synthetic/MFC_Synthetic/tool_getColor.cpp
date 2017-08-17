@@ -7,10 +7,6 @@
 /*opencv HSV range
 H : 180 S : 255 V : 255
 */
-void setColorData(component *object) {
-	object->hsv_avarage;
-}
-
 
 int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 	// 검출된 색깔의 갯수 (0일 경우 에러)
@@ -29,52 +25,44 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 	// HSV 채널로 충분히 검출이 가능한 색상들
 
 	// +- 2로 감소
-	if ( ( H >= 178 && H >= 180)|| (H >= 0 && H <= 2) ) { //  H :: 0 -> 0
+	if ( ( H >= 179 && H >= 180)|| (H >= 0 && H <= 1) )  //  H :: 0 -> 0
 		colorArray[RED]++;
-	}
 
-	// +- 8로 증가
-	else if (H <= 27 && H >= 11) { // H :: 39 -> 19.5
+	// +- 6로 증가
+	if (H <= 26 && H >= 14)  // H :: 39 -> 19.5
 		colorArray[ORANGE]++;
-	}
 
-	// + 10로 증가
-	else if (H <= 40 && H >= 27) { // H :: 60 -> 30
+	// + 10로 증가, -로 12 증가
+	if (H <= 40 && H >= 18)  // H :: 60 -> 30
 		colorArray[YELLOW]++;
-	} 
 
 	// +- 8로 증가
-	else if (H <= 68 && H >= 52) { // H :: 120 -> 60
+	if (H <= 68 && H >= 52)  // H :: 120 -> 60
 		colorArray[GREEN]++;
-	}
 
-	// 
-	else if (H <= 124 && H >= 116) { // H :: 240 -> 120
+	// +- 12으로 증가
+	if (H <= 118 && H >= 132)  // H :: 240 -> 120
 		colorArray[BLUE]++;
-	}
 
 	//
-	else if (H <= 154 && H >= 146) { // H :: 300 -> 150
+	if (H <= 154 && H >= 146) // H :: 300 -> 150
 		colorArray[MAGENTA]++;
-	}
-	else
-		color_point--;
 
 	// RGB를 이용하여 검출을 할 색상들(Black, Gray, White)
-	// RGB < 30
-	if (R >= 0 && R <= 30 && G >= 0 && G <= 30 && B >= 0 && B <= 30) {
+	// RGB < 15
+	if (R >= 0 && R <= 15 && G >= 0 && G <= 15 && B >= 0 && B <= 15) {
 		colorArray[BLACK]++;
 		color_point++;
 	}
 
-	// RGB > 50
-	if (R >= 50 && R <= 200 && G >= 50 && G <= 200 && B >= 50 && B <= 200) {
+	// RGB > 75
+	if (R >= 75 && R <= 200 && G >= 75 && G <= 200 && B >= 75 && B <= 200) {
 		colorArray[WHITE]++;
 		color_point++;
 	}
 
-	// 30 < RGB < 50
-	if (R >= 30 && R <= 50 && G >= 30 && G <= 50 && B >= 30 && B <= 50) {	// Gray인지 판별
+	// 25 < RGB < 45
+	if (R >= 25 && R <= 45 && G >= 25 && G <= 45 && B >= 25 && B <= 45) {	// Gray인지 판별
 		colorArray[GRAY]++;
 		color_point++;
 	}
