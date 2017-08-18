@@ -550,13 +550,11 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 				loadBackground = imread(getTempBackgroundFilePath(fileNameNoExtension), IMREAD_GRAYSCALE);	//배경 로드
 			}
 
-			imshow("extract_bg", loadBackground);
 			temp_frame = ExtractFg(temp_frame, loadBackground, ROWS, COLS);// 전경 추출
-			imshow("extracted", temp_frame);
 			////TODO 손보기
 			// 이진화
 			threshold(temp_frame, temp_frame, 5, 255, CV_THRESH_BINARY);
-			imshow("threshold_1", temp_frame);
+
 			//// 노이즈 제거
 			temp_frame = morphologyOpening(temp_frame);
 			temp_frame = morphologyClosing(temp_frame);
@@ -1782,7 +1780,6 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 					accIntArrayToMat(background_binaryVideo_gray, bg_array, FRAMES_FOR_MAKE_BACKGROUND);
 
 					//					imwrite(getTempBackgroundFilePath(fileNameNoExtension), bg_gray);
-					imshow("따끈따끈한 방금 만든 배경", background_binaryVideo_gray);
 					imwrite(getTempBackgroundFilePath(fileNameNoExtension), background_binaryVideo_gray);
 					capture.set(CV_CAP_PROP_POS_FRAMES, releasedPoint);
 				}

@@ -69,7 +69,7 @@ BOOL CProgressDlg::OnInitDialog()
 		if (totalFrame < FRAMES_FOR_MAKE_BACKGROUND){
 			FRAMES_FOR_MAKE_BACKGROUND = totalFrame;
 		}
-		m_ProgressCtrl.SetRange(0, FRAMES_FOR_MAKE_BACKGROUND - 1);
+		m_ProgressCtrl.SetRange(0, FRAMES_FOR_MAKE_BACKGROUND);
 
 		//첫 프레임
 		vc_Source.read(bg);
@@ -85,7 +85,7 @@ BOOL CProgressDlg::OnInitDialog()
 		SetTimer(PROGRESS_TIMER, 0, NULL);
 		break;
 	case PROGRESS_TIMER_SEG:	//segmentation
-		m_ProgressCtrl.SetRange(0, totalFrame-1);
+		m_ProgressCtrl.SetRange(0, totalFrame);
 		frame_g = Mat(ROWS, COLS, CV_8UC1);
 		InitComponentVectorQueue(&prevHumanDetectedVector_queue);
 		count = 0;
