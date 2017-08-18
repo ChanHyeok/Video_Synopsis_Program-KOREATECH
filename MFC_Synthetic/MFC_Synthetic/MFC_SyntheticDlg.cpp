@@ -862,8 +862,10 @@ int* getColorArray(Mat frame, component *object, Mat binary, int frameCount, int
 		}
 	}
 
-	if (rate_of_color_operation > 0.21) 
+	if (rate_of_color_operation > 0.21)
 		object->save_available = true;
+	else
+		printf("seve fail, rate_of_color_operation = %.2lf\n", rate_of_color_operation);
 
 	// color를 위한 obj를 jpg파일로 저장
 	// 추후 삭제
@@ -2055,39 +2057,63 @@ bool isDierectionAvailable(int val, int val_cur) {
 }
 
 bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]){
-	unsigned int first = 0, second = 0;
-	int index_first = 0, index_second = 0;
+	// 첫번쨰가 0번쨰 요소, 두번쨰가 1번째 ...
+	unsigned int sorted_value[3] = { 0, }; 
+	int sorted_index[3] = { 0, };
+
 	int check_count = 0;
+
+	// 많이 발견된 색상별로 순위를 매김(0~2순위)
 	for (int i = 0; i < COLORS; i++) {
 		// 체크카운트 올려줌
 		if (colorCheckArray[i] == true)
 			check_count++;
 
-		if (colorArray[i] >= first){
-			second = first;
-			first = colorArray[i];
-			index_second = index_first;
-			index_first = i;
+		if (colorArray[i] >= sorted_value[0]){
+			sorted_value[2] = sorted_value[1];
+			sorted_value[1] = sorted_value[0];
+			sorted_value[0] = colorArray[i];
+			
+			sorted_index[2] = sorted_index[1];
+			sorted_index[1] = sorted_index[0];
+			sorted_index[0] = i;
 		}
-		else if (colorArray[i] >= second){
-			second = colorArray[i];
-			index_second = i;
+		else if (colorArray[i] >= sorted_value[1]){
+			sorted_value[2] = sorted_value[1];
+			sorted_value[1] = colorArray[i];
+
+			sorted_index[2] = sorted_index[1];
+			sorted_index[1] = i;
+		}
+		else if (colorArray[i] >= sorted_value[2]) {
+			sorted_value[2] = colorArray[i];
+			sorted_index[2] = i;
 		}
 	}
+	// 확인코드
+	/*
+	printf("first = %d second = %d third = %d\n"
+		, sorted_value[0], sorted_value[1], sorted_value[2]);
+	*/
 
-	// 블랙만 체크 될 경우
-	if (colorCheckArray[BLACK] == true) {
-		if (index_first == BLACK && check_count == 1)
+	// 두번째로 많이 나온 색깔이 블랙일 경우에는 인덱스 하나 미뤄주기
+	if (colorCheckArray[BLACK] == true && (sorted_index[1] == BLACK && check_count > 1)) {
+		printf("두번째로 black이 많이 나옴\n");
+		sorted_index[2] = sorted_index[1];
+	}
+
+	// 세번쨰 값이 두번째의 값과 차이가 거의 없을 경우
+	if ((double)sorted_value[2] > (double)sorted_value[1] * 0.85) {
+		printf("세번째 값과 두번쨰 값 차이 거이 없음\n");
+		// 세번째 체크된 값도 검출되게끔 조정
+		if (colorCheckArray[sorted_index[0]] || colorCheckArray[sorted_index[1]] || colorCheckArray[sorted_index[2]])
 			return true;
-		
-		// 만약 두번째로 많이 나온 색깔이 블랙일 경우에는 블랙에 대한 false반환
-		if (index_second == BLACK && check_count > 1) {
-			printf("black false\n");
+		else
 			return false;
-		}
 	}
 
-	if (colorCheckArray[index_first] || colorCheckArray[index_second])
+	// 일반적인 경우
+	if (colorCheckArray[sorted_index[0]] || colorCheckArray[sorted_index[1]])
 		return true;
 	else// 이외의 경우 false 반환
 		return false;

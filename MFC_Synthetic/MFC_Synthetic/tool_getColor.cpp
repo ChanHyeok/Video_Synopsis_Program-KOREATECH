@@ -3,16 +3,16 @@
 #include "MFC_SyntheticDlg.h"
 #include "afxdialogex.h"
 
-//ÏÉâÏÉÅ Ï†ïÎ≥¥Î•º Í≤ÄÏ∂úÌïòÎäî Ìï®Ïàò
+//ªˆªÛ ¡§∫∏∏¶ ∞À√‚«œ¥¬ «‘ºˆ
 /*opencv HSV range
 H : 180 S : 255 V : 255
 */
 
 int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
-	// Í≤ÄÏ∂úÎêú ÏÉâÍπîÏùò Í∞ØÏàò (0Ïùº Í≤ΩÏö∞ ÏóêÎü¨)
+	// ∞À√‚µ» ªˆ±Ú¿« ∞πºˆ (0¿œ ∞ÊøÏ ø°∑Ø)
 	int color_point = 1;
 	
-	// HSV, RGB Í∞í Í∞ÅÍ∞Å Ìï†ÎãπÌïòÍ∏∞
+	// HSV, RGB ∞™ ∞¢∞¢ «“¥Á«œ±‚
 	unsigned char H = pixel_hsv[0];
 	unsigned char S = pixel_hsv[1];
 	unsigned char V = pixel_hsv[2];
@@ -21,54 +21,51 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 	unsigned char G = pixel_rgb[1];
 	unsigned char B = pixel_rgb[2];
 
-	// ÏõêÏÉâÏóêÏÑú Í∏∞Î≥∏ +- 4 ÏàòÏπòÎ°ú ÏùºÎã® Ìï¥Î≥¥Í≤†Ïùå
-	// HSV Ï±ÑÎÑêÎ°ú Ï∂©Î∂ÑÌûà Í≤ÄÏ∂úÏù¥ Í∞ÄÎä•Ìïú ÏÉâÏÉÅÎì§
+	// ø¯ªˆø°º≠ ¬˜¿Ã π¸¿ß +- ¡∂¡§
+	// HSV √§≥Œ∑Œ √Ê∫–»˜ ∞À√‚¿Ã ∞°¥…«— ªˆªÛµÈ
 
-	// +- 2Î°ú Í∞êÏÜå
+	// +- 2∑Œ ∞®º“
 	if ( ( H >= 179 && H >= 180)|| (H >= 0 && H <= 1) )  //  H :: 0 -> 0
 		colorArray[RED]++;
 
-	// +- 6Î°ú Ï¶ùÍ∞Ä
+	// +- 6∑Œ ¡ı∞°
 	if (H <= 26 && H >= 14)  // H :: 39 -> 19.5
 		colorArray[ORANGE]++;
 
-	// + 10Î°ú Ï¶ùÍ∞Ä, -Î°ú 12 Ï¶ùÍ∞Ä
+	// + 10∑Œ ¡ı∞°, -∑Œ 12 ¡ı∞°
 	if (H <= 40 && H >= 18)  // H :: 60 -> 30
 		colorArray[YELLOW]++;
 
-	// +- 8Î°ú Ï¶ùÍ∞Ä
-	if (H <= 68 && H >= 52)  // H :: 120 -> 60
+	// +- 6∑Œ ¡ı∞°
+	if (H <= 62 && H >= 54)  // H :: 120 -> 60
 		colorArray[GREEN]++;
 
-	// +- 14ÏúºÎ°ú Ï¶ùÍ∞Ä
-	if (H >= 116 && H <= 134)  // H :: 240 -> 120
+	// +- 24¿∏∑Œ ¡ı∞°
+	if (H >= 96 && H <= 144)  // H :: 240 -> 120
 		colorArray[BLUE]++;
 
 	//
 	if (H <= 154 && H >= 146) // H :: 300 -> 150
 		colorArray[MAGENTA]++;
 
-	// RGBÎ•º Ïù¥Ïö©ÌïòÏó¨ Í≤ÄÏ∂úÏùÑ Ìï† ÏÉâÏÉÅÎì§(Black, Gray, White)
-	// RGB < 15
-	if (R >= 0 && R <= 15 && G >= 0 && G <= 15 && B >= 0 && B <= 15) {
+	// RGB∏¶ ¿ÃøÎ«œø© ∞À√‚¿ª «“ ªˆªÛµÈ(Black, Gray, White)
+	// RGB < 20
+	if (R >= 0 && R <= 20 && G >= 0 && G <= 20 && B >= 0 && B <= 20) {
 		colorArray[BLACK]++;
 		color_point++;
 	}
 
-	// RGB > 75
-	if (R >= 75 && R <= 200 && G >= 75 && G <= 200 && B >= 75 && B <= 200) {
+	// RGB > 90
+	if (R >= 90 && R <= 255 && G >= 90 && G <= 255 && B >= 90 && B <= 255) {
 		colorArray[WHITE]++;
 		color_point++;
 	}
 
 	// 25 < RGB < 45
-	if (R >= 25 && R <= 45 && G >= 25 && G <= 45 && B >= 25 && B <= 45) {	// GrayÏù∏ÏßÄ ÌåêÎ≥Ñ
+	if (R >= 25 && R <= 45 && G >= 25 && G <= 45 && B >= 25 && B <= 45) {	// Gray¿Œ¡ˆ ∆«∫∞
 		colorArray[GRAY]++;
 		color_point++;
 	}
-
-	else
-		return color_point;
 
 	return color_point;
 }
