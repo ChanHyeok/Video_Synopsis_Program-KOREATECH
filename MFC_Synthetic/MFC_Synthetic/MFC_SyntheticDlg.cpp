@@ -36,7 +36,7 @@ const char* LEFTBELOW = "좌하단";
 const char* RIGHTBELOW = "우하단";
 
 // 배경 생성
-const int FRAMES_FOR_MAKE_BACKGROUND = 1000;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
+const int FRAMES_FOR_MAKE_BACKGROUND = 1500;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
 const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 2000;	//다음 배경을 만들기 위한 시간간격(동적)
 // fps가 약 23-25 가량 나오는 영상에서 약 1분이 흐른 framecount 값은 1500
 
@@ -49,7 +49,7 @@ int radioChoice, preRadioChoice;	//라디오 버튼 선택 결과 저장 변수.
 boolean isPlayBtnClicked, isPauseBtnClicked;
 unsigned int COLS, ROWS;
 Mat background_loadedFromFile, background_binaryVideo_gray; // 배경 프레임 , 이진 영상 출력시에 dynamic bg을 저장할 변수
-
+unsigned int* bg_array;
 
 bool synthesisEndFlag; // 합성이 끝남을 알려주는 플래그
 
@@ -245,15 +245,15 @@ int CMFC_SyntheticDlg::loadFile(int mode) {
 		// 세그먼테이션 데이터(txt, jpg들)를 저장할 디렉토리 유무확인, 없으면 만들어줌
 
 		// root 디렉토리 생성(폴더명 data)
-		if (!isDirectory(SEGMENTATION_DATA_DIRECTORY_NAME.c_str())) 
+		if (!isDirectory(SEGMENTATION_DATA_DIRECTORY_NAME.c_str()))
 			int rootDirectory_check = makeDataRootDirectory();
 
 		// video 이름 별 디렉토리 생성(폴더명 확장자 없는 파일 이름)
 		if (!isDirectory(getDirectoryPath(fileNameNoExtension.c_str())))
 			int subDirectory_check = makeDataSubDirectory(getDirectoryPath(fileNameNoExtension));
-		
+
 		// obj 디렉토리 생성
-		if (!isDirectory(getObjDirectoryPath(fileNameNoExtension.c_str()))) 
+		if (!isDirectory(getObjDirectoryPath(fileNameNoExtension.c_str())))
 			int subObjDirectory_check = makeDataSubDirectory(getObjDirectoryPath(fileNameNoExtension));
 
 		capture.open((string)cstrImgPath);
@@ -269,6 +269,14 @@ int CMFC_SyntheticDlg::loadFile(int mode) {
 		fps = capture.get(CV_CAP_PROP_FPS);
 		totalFrameCount = (int)capture.get(CV_CAP_PROP_FRAME_COUNT);
 		videoLength = (int)((totalFrameCount / (float)fps));	//비디오의 길이를 초단위로 계산
+
+
+		background_binaryVideo_gray = Mat(ROWS, COLS, CV_8UC1);
+		//평균 배경에 사용할 배열 생성 및 초기화
+		bg_array = new unsigned int[ROWS*COLS];
+		for (int i = 0; i < ROWS*COLS; i++){
+			bg_array[i] = 0;
+		}
 
 		// 배경생성 및 파일로 저장(초반 n프레임)
 		backgroundInit(videoFilePath);
@@ -330,6 +338,8 @@ void CMFC_SyntheticDlg::OnCancel() {
 	capture = NULL;
 	background_loadedFromFile = NULL;
 	background_binaryVideo_gray = NULL;
+
+	delete[] bg_array;
 	// cpp파일 내 전역변수들 메모리 해제
 	fileNameExtension.clear();
 	fileNameNoExtension.clear();
@@ -436,20 +446,20 @@ void CMFC_SyntheticDlg::DisplayImage(int IDC_PICTURE_TARGET, Mat targetMat, int 
 	pDC->SetStretchBltMode(COLORONCOLOR);
 
 	// 영상 비유을을 계산하여 Picture control에 출력
-	float fImageRatio = float(tempImage->width) / float(tempImage->height);
-	float fRectRatio = float(rect.right) / float(rect.bottom);
-	float fScaleFactor;
+	double fImageRatio = double(tempImage->width) / double(tempImage->height);
+	double fRectRatio = double(rect.right) / double(rect.bottom);
+	double fScaleFactor;
 	if (fImageRatio < fRectRatio) {
-		fScaleFactor = float(rect.bottom) / float(tempImage->height);	//TRACE("%f",fScaleFactor);
+		fScaleFactor = double(rect.bottom) / double(tempImage->height);	//TRACE("%f",fScaleFactor);
 		int rightWithRatio = tempImage->width * fScaleFactor;
-		float halfOfDif = ((float)rect.right - (float)rightWithRatio) / (float)2;
+		double halfOfDif = ((double)rect.right - (double)rightWithRatio) / (double)2;
 		rect.left = halfOfDif;
 		rect.right = rightWithRatio;
 	}
 	else {
-		fScaleFactor = float(rect.right) / float(tempImage->width);	//TRACE("%f",fScaleFactor);
+		fScaleFactor = double(rect.right) / double(tempImage->width);	//TRACE("%f",fScaleFactor);
 		int bottomWithRatio = tempImage->height * fScaleFactor;
-		float halfOfDif = ((float)rect.bottom - (float)bottomWithRatio) / (float)2;
+		double halfOfDif = ((double)rect.bottom - (double)bottomWithRatio) / (double)2;
 		rect.top = halfOfDif;
 		rect.bottom = bottomWithRatio;
 	}
@@ -513,15 +523,18 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 			if (curFrameCount_nomalized >= (FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND)){
 				if (curFrameCount_nomalized == (FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND)){	//새로 만드는 첫 배경 Init
 					printf("Background Making Start : %d frame\n", curFrameCount);
-					temp_frame.copyTo(background_binaryVideo_gray);
+					//temp_frame.copyTo(background_binaryVideo_gray);
+					setArrayToZero(bg_array, ROWS, COLS);
 				}
 				else{	//배경 생성
-					temporalMedianBG(temp_frame, background_binaryVideo_gray);
+					//temporalMedianBG(temp_frame, background_binaryVideo_gray);
+					averageBG(temp_frame, bg_array);
 				}
 			}
 
 			//만든 배경을 저장해야 할 경우
 			if (curFrameCount_nomalized == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1){
+				accIntArrayToMat(background_binaryVideo_gray, bg_array, FRAMES_FOR_MAKE_BACKGROUND);
 				imwrite(getTempBackgroundFilePath(fileNameNoExtension), background_binaryVideo_gray);
 			}
 
@@ -537,19 +550,20 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 				loadBackground = imread(getTempBackgroundFilePath(fileNameNoExtension), IMREAD_GRAYSCALE);	//배경 로드
 			}
 
+			imshow("extract_bg", loadBackground);
 			temp_frame = ExtractFg(temp_frame, loadBackground, ROWS, COLS);// 전경 추출
-
+			imshow("extracted", temp_frame);
 			////TODO 손보기
 			// 이진화
 			threshold(temp_frame, temp_frame, 5, 255, CV_THRESH_BINARY);
-
+			imshow("threshold_1", temp_frame);
 			//// 노이즈 제거
 			temp_frame = morphologyOpening(temp_frame);
 			temp_frame = morphologyClosing(temp_frame);
 			temp_frame = morphologyClosing(temp_frame);
 			blur(temp_frame, temp_frame, Size(11, 11));
 
-			threshold(temp_frame, temp_frame, 5, 255, CV_THRESH_BINARY);
+			threshold(temp_frame, temp_frame, 10, 255, CV_THRESH_BINARY);
 
 			int numOfLables = connectedComponentsWithStats(temp_frame, img_labels, stats, centroids, 8, CV_32S);
 
@@ -583,7 +597,7 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 		printf("#");
 		Mat bg_copy; background_loadedFromFile.copyTo(bg_copy);
 		// 불러온 배경을 이용하여 합성을 진행
-		Mat syntheticResult = getSyntheticFrame(&segment_queue, bg_copy,m_segmentArray);
+		Mat syntheticResult = getSyntheticFrame(&segment_queue, bg_copy, m_segmentArray);
 		DisplayImage(IDC_RESULT_IMAGE, syntheticResult, SYN_RESULT_TIMER);
 		syntheticResult = NULL;
 		bg_copy = NULL;
@@ -653,10 +667,10 @@ void CMFC_SyntheticDlg::segmentationOperator(VideoCapture* vc_Source, int videoS
 	printf("segmentation Operator 끝\n");
 }
 
-bool isColorDataOperation(Mat frame, Mat bg, Mat binary, int i_height , int j_width) {
+bool isColorDataOperation(Mat frame, Mat bg, Mat binary, int i_height, int j_width) {
 	// 배경 불러오기
 	Vec3b colorB = bg.at<Vec3b>(Point(j_width, i_height));
-	
+
 	// hsv 영역에서 객체와 객체 영역의 배경과의 색깔 경계 값을 한정하기 위한 변수 
 	const int COLOR_THRESHOLD = 15;
 
@@ -672,7 +686,7 @@ int* getColorArray(Mat frame, component object, Mat binary){
 	int *colorArray = new int[COLORS];
 	for (int i = 0; i < COLORS; i++)
 		colorArray[i] = 0;
-	
+
 	//원본 프레임 HSV로 변환하기
 	cvtColor(temp, temp, CV_BGR2HSV);
 	for (int i = object.top; i < object.bottom; i++) {
@@ -756,10 +770,10 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 				prevDetectedVector_i = GetComponentVectorQueue(&prevHumanDetectedVector_Queue,
 					(prevHumanDetectedVector_Queue.rear + i) % MAXSIZE_OF_COMPONENT_VECTOR_QUEUE);
 				for (int j = 0; j < prevDetectedVector_i.size(); j++) {
-					if (!IsComparePrevComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j])) {														
+					if (!IsComparePrevComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j])) {
 						humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
 						humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
-						
+
 						if (IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j]))
 							save_flag = true;
 
@@ -783,7 +797,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 			int *colorArray = getColorArray(frame, humanDetectedVector[humanCount], binary_frame);
 			saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
 				, currentMsec, frameCount, fp, ROWS, COLS, colorArray);
-			
+
 			// getColorArray에서 생성한 colorArray 객체 메모리 해제
 			delete[] colorArray;
 		}
@@ -1278,7 +1292,7 @@ void CMFC_SyntheticDlg::OnBnClickedBtnPause()
 {
 	if (isPauseBtnClicked == false) {
 		// 합성 영상 재생 중에 해당 버튼이 눌렸을 때에 segment 배열의 메모리 해제를 위한 코드
-		if (radioChoice==1&&synthesisEndFlag == false)
+		if (radioChoice == 1 && synthesisEndFlag == false)
 			delete[] m_segmentArray;
 
 		isPlayBtnClicked = false;
@@ -1347,7 +1361,7 @@ bool CMFC_SyntheticDlg::checkSegmentation()
 }
 
 void CMFC_SyntheticDlg::backgroundInit(string videoFilePath) {
-	if(!isGrayBackgroundExists(getBackgroundFilePath(fileNameNoExtension))){
+	if (!isGrayBackgroundExists(getBackgroundFilePath(fileNameNoExtension))){
 		CProgressDlg ProgressDlg(this);                // this 를 사용하여 부모를 지정.
 		ProgressDlg.CenterWindow();
 		ProgressDlg.mode = 0;
@@ -1361,7 +1375,7 @@ void CMFC_SyntheticDlg::backgroundInit(string videoFilePath) {
 	else{
 		printf("Init skip : 배경이 존재함\n");
 	}
-	return ;
+	return;
 }
 
 void CMFC_SyntheticDlg::layoutInit() {
@@ -1647,12 +1661,11 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 	*pResult = 0;
 	int releasedPoint = m_SliderPlayer.GetPos();
 	capture.set(CV_CAP_PROP_POS_FRAMES, releasedPoint);
-	
+
 	if (isPauseBtnClicked == true) {	//일시정지된 상황이라면 한 프레임만 출력해서 화면을 바꿔줌
 		Mat temp_frame;
 		if (radioChoice == 2) {	//radio btn이 이진영상이면, 이진 영상을 출력
 			Mat img_labels, stats, centroids;
-			Mat bg_gray;
 
 			//새로운 배경이 필요하기 전에는 만들어진 base gray배경을 사용
 			if (releasedPoint < FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1){
@@ -1668,16 +1681,17 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 			}
 			else{	//새로운 배경이 필요할때 다시 만들어서 저장함
 				printf("새로 생성\n");
-				int temporalBGCount = FRAMES_FOR_MAKE_BACKGROUND;
-				capture.set(CV_CAP_PROP_POS_FRAMES, releasedPoint - temporalBGCount);
-				capture.read(temp_frame);
-				cvtColor(temp_frame, bg_gray, CV_RGB2GRAY);
-				for (int j = temporalBGCount-1; j >0; j--){
+				capture.set(CV_CAP_PROP_POS_FRAMES, releasedPoint - FRAMES_FOR_MAKE_BACKGROUND);
+
+				setArrayToZero(bg_array, ROWS, COLS);
+				for (int j = FRAMES_FOR_MAKE_BACKGROUND; j > 0; j--){
 					capture.read(temp_frame);
 					cvtColor(temp_frame, temp_frame, CV_RGB2GRAY);
-					temporalMedianBG(temp_frame, bg_gray);
+					averageBG(temp_frame, bg_array);
 				}
-				imwrite(getTempBackgroundFilePath(fileNameNoExtension), bg_gray);
+
+				accIntArrayToMat(background_binaryVideo_gray, bg_array, FRAMES_FOR_MAKE_BACKGROUND);
+				imwrite(getTempBackgroundFilePath(fileNameNoExtension), background_binaryVideo_gray);
 				capture.set(CV_CAP_PROP_POS_FRAMES, releasedPoint);
 				capture.read(temp_frame);
 				cvtColor(temp_frame, temp_frame, CV_RGB2GRAY);
@@ -1724,14 +1738,12 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 			img_labels.release();
 			stats.release();
 			centroids.release();
-			bg_gray = NULL;
-			bg_gray.release();
 		}
 		else {
 			capture.read(temp_frame);
 			DisplayImage(IDC_RESULT_IMAGE, temp_frame, NULL);
 		}
-		
+
 		temp_frame = NULL;
 		temp_frame.release();
 	}
@@ -1746,7 +1758,7 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 			break;
 		case 2:	//이진 영상 마저 출력
 			if (true){
-				Mat temp_frame, bg_gray;
+				Mat temp_frame;
 
 				//새로운 배경이 필요하기 전에는 만들어진 base gray배경을 사용
 				if (releasedPoint < FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1){
@@ -1758,24 +1770,26 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 				}
 				else{	//새로운 배경이 필요할때 다시 만들어서 저장함
 					printf("새로 생성\n");
-					int temporalBGCount = FRAMES_FOR_MAKE_BACKGROUND;
-					capture.set(CV_CAP_PROP_POS_FRAMES, releasedPoint - temporalBGCount);
-					capture.read(temp_frame);
-					cvtColor(temp_frame, bg_gray, CV_RGB2GRAY);
-					for (int j = temporalBGCount - 1; j > 0; j--){
+					capture.set(CV_CAP_PROP_POS_FRAMES, releasedPoint - FRAMES_FOR_MAKE_BACKGROUND);
+					setArrayToZero(bg_array, ROWS, COLS);
+
+					for (int j = FRAMES_FOR_MAKE_BACKGROUND; j > 0; j--){
 						capture.read(temp_frame);
 						cvtColor(temp_frame, temp_frame, CV_RGB2GRAY);
-						temporalMedianBG(temp_frame, bg_gray);
+						//						temporalMedianBG(temp_frame, bg_gray);
+						averageBG(temp_frame, bg_array);
 					}
-					imwrite(getTempBackgroundFilePath(fileNameNoExtension), bg_gray);
+					accIntArrayToMat(background_binaryVideo_gray, bg_array, FRAMES_FOR_MAKE_BACKGROUND);
+
+					//					imwrite(getTempBackgroundFilePath(fileNameNoExtension), bg_gray);
+					imshow("따끈따끈한 방금 만든 배경", background_binaryVideo_gray);
+					imwrite(getTempBackgroundFilePath(fileNameNoExtension), background_binaryVideo_gray);
 					capture.set(CV_CAP_PROP_POS_FRAMES, releasedPoint);
 				}
 
 				SetTimer(BIN_VIDEO_TIMER, 1000 / m_sliderFps.GetPos(), NULL);
 				temp_frame = NULL;
 				temp_frame.release();
-				bg_gray = NULL;
-				bg_gray.release();
 			}
 			break;
 		default:
@@ -1863,22 +1877,22 @@ bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]){
 	}
 
 
-	
+
 	// 정렬 확인 코드
-	/*for (int i = 0; i < COLORS; i++) 
+	/*for (int i = 0; i < COLORS; i++)
 		printf("%d(%d) ", colorSortedArray[0][i], colorSortedArray[1][i]);
-	printf("\n");*/
-	
+		printf("\n");*/
+
 	// 먼저 검은색 하나만 체크가 되어 있을 경우에는 필터링(머리부분이 항상 검출되었기 떄문에)
 	/*if (colorCheckArray[BLACK] && !colorCheckArray[0] && !colorCheckArray[1] && !colorCheckArray[2] && !colorCheckArray[3] && !colorCheckArray[4] && !colorCheckArray[5] && !colorCheckArray[7] && !colorCheckArray[8]){
 		if (index_first == BLACK) {
-			printf("블랙만 체크\n");
-			return true;
+		printf("블랙만 체크\n");
+		return true;
 		}
 		else
-			return false;
-	}*/
-	
+		return false;
+		}*/
+
 	if (colorCheckArray[index_first] || colorCheckArray[index_second])
 		return true;
 	else// 이외의 경우 false 반환
@@ -1899,7 +1913,7 @@ bool CMFC_SyntheticDlg::isDirectionAndColorMatch(segment object) {
 		IsDlgButtonChecked(IDC_CHECK_WHITE),
 		IsDlgButtonChecked(IDC_CHECK_GRAY)
 	};
-	
+
 	// comboBox의 문자열의 데이터를 가져옴
 	int indexFirst = mComboStart.GetCurSel();
 	int indexLast = mComboEnd.GetCurSel();
@@ -1956,7 +1970,7 @@ bool CMFC_SyntheticDlg::isDirectionAndColorMatch(segment object) {
 
 	if (isDirectionOk && isColorOk)
 		return true;
-	else 
+	else
 		return false;
 }
 
@@ -1993,7 +2007,7 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSynSave()
 			ProgressDlg.fileNameNoExtension = fileNameNoExtension;
 			ProgressDlg.DoModal();
 		}
-		
+
 	}
 	else {
 		AfxMessageBox("You can't save without segmentation results");

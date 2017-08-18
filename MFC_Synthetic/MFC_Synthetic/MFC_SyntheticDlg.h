@@ -174,6 +174,9 @@ bool IsEnqueueFiltering(segment *segment_array, int cur_index);
 Mat ExtractForegroundToMOG2(Mat frameimg);
 Mat ExtractFg(Mat, Mat, int, int);
 Mat temporalMedianBG(Mat frameimg, Mat bgimg);
+Mat averageBG(Mat frameimg, unsigned int* bgimg);
+void setArrayToZero(unsigned int* arr, int, int);
+Mat accIntArrayToMat(Mat image, unsigned int* arr, int);
 
 // tool_getColor.cpp
 int getColor_H(int );

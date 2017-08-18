@@ -53,7 +53,8 @@ BOOL CProgressDlg::OnInitDialog()
 	vc_Source.set(CV_CAP_PROP_POS_MSEC, 0);	// 영상 시작점으로 초기화
 
 	frame = Mat(ROWS, COLS, CV_8UC3);
-	bg_gray = Mat(ROWS, COLS, CV_8UC1);
+	bg_array = new unsigned int[ROWS*COLS];
+	setArrayToZero(bg_array,ROWS,COLS);
 
 	string str;
 	int segmentCount;
@@ -78,7 +79,8 @@ BOOL CProgressDlg::OnInitDialog()
 			printf("Color Background Saved Completed\n");
 		}
 
-		cvtColor(bg, bg_gray, CV_RGB2GRAY);
+		//처음으로 다시 초기화
+		vc_Source.set(CV_CAP_PROP_POS_FRAMES,0);
 
 		SetTimer(PROGRESS_TIMER, 0, NULL);
 		break;
@@ -153,15 +155,17 @@ void CProgressDlg::OnTimer(UINT_PTR nIDEvent)
 	case PROGRESS_TIMER:
 		text = "("; text.append(to_string(count)).append("/").append(to_string(FRAMES_FOR_MAKE_BACKGROUND - 1)).append(")...배경 생성 중");
 		m_StaticMessage.SetWindowTextA(text.c_str());
-		if (count < FRAMES_FOR_MAKE_BACKGROUND - 1){
+		if (count < FRAMES_FOR_MAKE_BACKGROUND){
 			vc_Source.read(frame); //get single frame
 			cvtColor(frame, frame, CV_RGB2GRAY);
-			temporalMedianBG(frame, bg_gray);
+			averageBG(frame, bg_array);
 			m_ProgressCtrl.OffsetPos(1);
 			count++;
 		}
 		else{
+			Mat bg_gray(ROWS, COLS, CV_8UC1);
 			KillTimer(PROGRESS_TIMER);
+			accIntArrayToMat(bg_gray, bg_array, FRAMES_FOR_MAKE_BACKGROUND);
 			if (imwrite(getBackgroundFilePath(fileNameNoExtension), bg_gray)){
 				imwrite(getTempBackgroundFilePath(fileNameNoExtension), bg_gray);
 				m_StaticMessage.SetWindowTextA(_T("배경 생성 성공!"));
@@ -174,6 +178,8 @@ void CProgressDlg::OnTimer(UINT_PTR nIDEvent)
 				m_ButtonOK.EnableWindow(true);
 				printf("Background Init Failed!!\n");
 			}
+
+			bg_gray = NULL;  bg_gray.release();
 		}
 		break;
 	case PROGRESS_TIMER_SEG:
@@ -200,16 +206,19 @@ void CProgressDlg::OnTimer(UINT_PTR nIDEvent)
 			if (curFrameCount_nomalized >= (FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND)){
 				if (curFrameCount_nomalized == (FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND)){	//새로 만드는 첫 배경 Init
 					printf("Background Making Start : %d frame\n", curFrameCount);
-					frame_g.copyTo(bg_gray);
+					setArrayToZero(bg_array,ROWS,COLS);
 				}
 				else{	//배경 생성
-					temporalMedianBG(frame_g, bg_gray);
+					averageBG(frame_g, bg_array);
 				}
 			}
 
 			//만든 배경을 저장해야 할 경우
 			if (curFrameCount_nomalized == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1){
+				Mat bg_gray(ROWS, COLS, CV_8UC1);
+				accIntArrayToMat(bg_gray, bg_array, FRAMES_FOR_MAKE_BACKGROUND);
 				imwrite(getTempBackgroundFilePath(fileNameNoExtension), bg_gray);
+				bg_gray = NULL; bg_gray.release();
 			}
 
 			if (curFrameCount >= FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND && curFrameCount_nomalized == 0){
@@ -236,7 +245,7 @@ void CProgressDlg::OnTimer(UINT_PTR nIDEvent)
 			frame_g = morphologyClosing(frame_g);
 			blur(frame_g, frame_g, Size(11, 11));
 
-			threshold(frame_g, frame_g, 5, 255, CV_THRESH_BINARY);
+			threshold(frame_g, frame_g, 10, 255, CV_THRESH_BINARY);
 
 			// MAT형으로 라벨링
 			humanDetectedVector = connectedComponentsLabelling(frame_g, ROWS, COLS, WMIN, WMAX, HMIN, HMAX);
@@ -338,6 +347,7 @@ void CProgressDlg::OnCancel()
 	vector<component>().swap(prevHumanDetectedVector);
 
 	segmentArray = NULL;
+	delete[] bg_array;
 	delete[] segmentArray;
 
 	if (mode == 1 && fp != NULL)
