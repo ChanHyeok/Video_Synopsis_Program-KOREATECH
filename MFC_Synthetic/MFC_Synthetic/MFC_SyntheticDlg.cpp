@@ -841,15 +841,14 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 		bool save_flag = false;
 
 		// 배경, 업데이트 할 때마다 불러옴
-		Mat bg_copy;
-		if ( frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND == 1 || frameCount >= 0)
-			bg_copy = imread(getBackgroundFilePath(fileNameNoExtension));
+		Mat bg_copy = imread(getBackgroundFilePath(fileNameNoExtension));
 		
 		// 현재 component의 색상정보를 얻어냄
 		int *colorArray = getColorData(frame, &humanDetectedVector[humanCount], binary_frame, bg_copy, frameCount, currentMsec);
 
 		// 배경과의 차이가 거이 없는 것을 걸러내기 위해 색상 연산을 하는 카운트끼리 객체와 배경과 비교함
-		double difference_value = (double)humanDetectedVector[humanCount].color_count / (double)humanDetectedVector[humanCount].area;
+		double difference_value = (double)humanDetectedVector[humanCount].color_count 
+			/ (double)(humanDetectedVector[humanCount].height *humanDetectedVector[humanCount].width);
 		
 		if (difference_value > 0.22)
 			save_flag = true;
@@ -860,12 +859,13 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 		}
 
 		// 연속성이 만족할 경우 파일에 저장할 수 있도록 함
-		if (difference_value > 0.22 && isSizeContinue(&humanDetectedVector[humanCount], &prev_detected_component)
+		
+		if ((frameCount < 5) || (save_flag == true) && isSizeContinue(&humanDetectedVector[humanCount], &prev_detected_component)
 			&& isColorContinue(&humanDetectedVector[humanCount], &prev_detected_component)) {
 			saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
 				, currentMsec, frameCount, fp, ROWS, COLS, colorArray);
 		}
-
+		
 		// getColorData에서 생성한 colorArray 객체 메모리 해제
 		delete[] colorArray;
 	} // end for (humanCount) 
