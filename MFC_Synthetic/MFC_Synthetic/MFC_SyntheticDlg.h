@@ -154,7 +154,9 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 // addition function of MAIN
 bool segmentationTimeInputException(CString str_h, CString str_m);
 bool IsComparePrevComponent(component curr_component, component prev_component);
-bool IsSaveComponent(component curr_component, component prev_component);
+bool isSizeContinue(component *curr_component, component *prev_component);
+bool isColorContinue(component *curr_component, component *prev_component);
+
 Mat morphologyOpening(Mat);
 Mat morphologyClosing(Mat);
 stringstream timeConvertor(int t);
@@ -182,9 +184,6 @@ void setArrayToZero(unsigned int* arr, int, int);
 Mat accIntArrayToMat(Mat image, unsigned int* arr, int);
 
 // tool_getColor.cpp
-int getColor_H(int );
-int getColor_S(int );
-int getColor_V(int );
 int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray);
 
 // FileProcessing.cpp
@@ -192,8 +191,8 @@ void saveSegmentation_JPG(component object, Mat frame, string video_path);
 string allocatingComponentFilename(int timeTag, int currentMsec, int frameCount, int label_num);
 String getFileName(CString f_path, char find_char, BOOL);
 Mat loadJPGObjectFile(segment obj, string file_name);
-bool saveSegmentationData(string video_name, component object, Mat object_frame
-	, int currentMsec, int frameCount, FILE *txt_fp, int, int, int[]);
+bool saveSegmentationData(string fileNameNoExtension, component object, Mat object_frame
+	, int currentMsec, int frameCount, FILE *txt_fp, int ROWS, int COLS, int *colorArray);
 string readTxt(string path);
 
 string getTextFilePath(string video_name);

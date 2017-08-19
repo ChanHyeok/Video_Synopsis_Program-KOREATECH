@@ -36,12 +36,9 @@ const char* LEFTBELOW = "좌하단";
 const char* RIGHTBELOW = "우하단";
 
 // 배경 생성
-<<<<<<< HEAD
-const int FRAMES_FOR_MAKE_BACKGROUND = 1000;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
-=======
-const int FRAMES_FOR_MAKE_BACKGROUND = 1500;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
->>>>>>> image_preprocessing
-const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 2000;	//다음 배경을 만들기 위한 시간간격(동적)
+
+const int FRAMES_FOR_MAKE_BACKGROUND = 1800;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
+const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 2500;	//다음 배경을 만들기 위한 시간간격(동적)
 // fps가 약 23-25 가량 나오는 영상에서 약 1분이 흐른 framecount 값은 1500
 
 /***  전역변수  ***/
@@ -694,8 +691,7 @@ int* getColorArray(Mat frame, component *object, Mat binary, int frameCount, int
 	int *colorArray = new int[COLORS];
 	for (int i = 0; i < COLORS; i++)
 		colorArray[i] = 0;
-<<<<<<< HEAD
-	
+
 	//원본 프레임 각각 RGB, HSV로 변환하기
 	Mat frame_hsv, frame_rgb;
 	cvtColor(temp, frame_hsv, CV_BGR2HSV);
@@ -712,13 +708,6 @@ int* getColorArray(Mat frame, component *object, Mat binary, int frameCount, int
 
 		for (int j = object->left + 1; j < object->right; j++) {
 			total_frame_count++;
-=======
-
-	//원본 프레임 HSV로 변환하기
-	cvtColor(temp, temp, CV_BGR2HSV);
-	for (int i = object.top; i < object.bottom; i++) {
-		for (int j = object.left + 1; j < object.right; j++) {
->>>>>>> image_preprocessing
 			// 색상 데이터 저장
 			if (isColorDataOperation(frame, bg_copy, binary, i, j)) {
 				get_color_data_count++;
@@ -749,10 +738,10 @@ int* getColorArray(Mat frame, component *object, Mat binary, int frameCount, int
 		}
 	}
 
-	if (rate_of_color_operation > 0.21)
+	if (rate_of_color_operation > 0.23)
 		object->save_available = true;
 	else
-		printf("seve fail, rate_of_color_operation = %.2lf\n", rate_of_color_operation);
+		printf("save fail, rate_of_color_operation = %.2lf\n", rate_of_color_operation);
 
 	// color를 위한 obj를 jpg파일로 저장
 	// 추후 삭제
@@ -804,7 +793,8 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 					humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
 					humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
 
-					if (IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j]))
+					if (isSizeContinue(&humanDetectedVector[humanCount], &prevDetectedVector_i[j])
+						&& isColorContinue(&humanDetectedVector[humanCount], &prevDetectedVector_i[j]))
 						save_flag = true;
 
 					findFlag = true;
@@ -823,7 +813,8 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 							humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
 							humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
 
-							if (IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j]))
+							if (isSizeContinue(&humanDetectedVector[humanCount], &prevDetectedVector_i[j])
+								&& isColorContinue(&humanDetectedVector[humanCount], &prevDetectedVector_i[j]))
 								save_flag = true;
 
 							findFlag = true;
@@ -846,7 +837,8 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 						humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
 						humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
 
-						if (IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j]))
+						if (isSizeContinue(&humanDetectedVector[humanCount], &prevDetectedVector_i[j])
+							&& isColorContinue(&humanDetectedVector[humanCount], &prevDetectedVector_i[j]))
 							save_flag = true;
 
 						findFlag = true;
@@ -866,19 +858,12 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 		// 파일에 저장할 수 있도록 함
 		if (save_flag == true) {
 			// getColorArray에서 colorArray 객체 생성
-<<<<<<< HEAD
-			int *colorArray = getColorArray(frame, &humanDetectedVector[humanCount], binary_frame, frameCount, currentMsec);
 
+			int *colorArray = getColorArray(frame, &humanDetectedVector[humanCount], binary_frame, frameCount, currentMsec);
 			if (humanDetectedVector[humanCount].save_available == true)
 				saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
-					, currentMsec, frameCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTIndex, detailTxtIndex, colorArray);
-			
-=======
-			int *colorArray = getColorArray(frame, humanDetectedVector[humanCount], binary_frame);
-			saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
-				, currentMsec, frameCount, fp, ROWS, COLS, colorArray);
+					, currentMsec, frameCount, fp, ROWS, COLS, colorArray);
 
->>>>>>> image_preprocessing
 			// getColorArray에서 생성한 colorArray 객체 메모리 해제
 			delete[] colorArray;
 		}
@@ -890,33 +875,40 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 }
 
 // 이전과 연속적이어서 저장할 가치가 있는 지를 판별하는 함수
-bool IsSaveComponent(component curr_component, component prev_component) {
-	bool return_flag = false;
-	const int diff_component_height = prev_component.height* 0.3; //  ( 480/15 = 32)
-	const int diff_component_width = prev_component.width * 0.3; //  ( 640/15 = 42)
+bool isSizeContinue(component *curr_component, component *prev_component) {
+	const int diff_component_height = prev_component->height* 0.3; //  ( 480/15 = 32)
+	const int diff_component_width = prev_component->width * 0.3; //  ( 640/15 = 42)
 	// width와 height 크기를 비교
 	// 추후 색상 데이터를 보는 식으로 하여 강화
-	if (curr_component.label == prev_component.label) {
-		if ((abs(curr_component.width - prev_component.width) < diff_component_width) &&
-			(abs(curr_component.height - prev_component.height) < diff_component_height)) {
-			return_flag = true;
+	if (curr_component->label == prev_component->label) {
+		if ((abs(curr_component->width - prev_component->width) > diff_component_width) ||
+			(abs(curr_component->height - prev_component->height) > diff_component_height)) {
+			printf("save fail, Size unContinue %d %d %d!!\n", prev_component->timeTag
+				, (abs(curr_component->width - prev_component->width))
+				, (abs(curr_component->height - prev_component->height)));
+			return false;
 		}
 	}
-	return return_flag;
+	return true;
 }
 
 // 색 정보의 연속성을 따져서 저장을 할껀지 말껀지를 판별하는 함수
 bool isColorContinue(component *curr_component, component *prev_component) {
-	int tolerance_of_color_value = 30;
+	const int tolerance_of_hsv_value = 30;
+	const int tolerance_of_rgb_value = 35;
 	for (int c = 0; c < 3; c++) {
-		// hsv 영역에서 확인
-		if (abs(curr_component->hsv_avarage[c] - prev_component->hsv_avarage[c]) > tolerance_of_color_value)
+		// hsv, rgh 영역에서 확인
+		if (abs(curr_component->hsv_avarage[c] - prev_component->hsv_avarage[c]) > tolerance_of_hsv_value
+			|| abs(curr_component->rgb_avarage[c] - prev_component->rgb_avarage[c]) >  tolerance_of_rgb_value) {
+			printf("save fail, Color unContinue %d %d %d!!\n", prev_component->timeTag
+				, abs(curr_component->hsv_avarage[c] - prev_component->hsv_avarage[c])
+				, abs(curr_component->rgb_avarage[c] - prev_component->rgb_avarage[c]));
 			return false;
 
-		// rgb 영역에서 확인
-		if (abs(curr_component->rgb_avarage[c] - prev_component->rgb_avarage[c]) > tolerance_of_color_value)
-			return false;
+
+		}
 	}
+	return true;
 }
 // 현재와 이전에 검출한 결과를 비교, true 면 겹칠 수 없음
 bool IsComparePrevComponent(component curr_component, component prev_component) {
@@ -2000,7 +1992,6 @@ bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]){
 		sorted_index[2] = sorted_index[1];
 	}
 
-<<<<<<< HEAD
 	// 세번쨰 값이 두번째의 값과 차이가 거의 없을 경우
 	if ((double)sorted_value[2] > (double)sorted_value[1] * 0.85) {
 		printf("세번째 값과 두번쨰 값 차이 거이 없음\n");
@@ -2011,30 +2002,11 @@ bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]){
 			return false;
 	}
 
+
 	// 일반적인 경우
 	if (colorCheckArray[sorted_index[0]] || colorCheckArray[sorted_index[1]])
-=======
-
-
-	// 정렬 확인 코드
-	/*for (int i = 0; i < COLORS; i++)
-		printf("%d(%d) ", colorSortedArray[0][i], colorSortedArray[1][i]);
-		printf("\n");*/
-
-	// 먼저 검은색 하나만 체크가 되어 있을 경우에는 필터링(머리부분이 항상 검출되었기 떄문에)
-	/*if (colorCheckArray[BLACK] && !colorCheckArray[0] && !colorCheckArray[1] && !colorCheckArray[2] && !colorCheckArray[3] && !colorCheckArray[4] && !colorCheckArray[5] && !colorCheckArray[7] && !colorCheckArray[8]){
-		if (index_first == BLACK) {
-		printf("블랙만 체크\n");
 		return true;
-		}
-		else
-		return false;
-		}*/
-
-	if (colorCheckArray[index_first] || colorCheckArray[index_second])
->>>>>>> image_preprocessing
-		return true;
-	else// 이외의 경우 false 반환
+	else
 		return false;
 }
 
