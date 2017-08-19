@@ -91,8 +91,7 @@ typedef struct _component {
 	int width;
 	int height;
 	int area;
-	int count; // 한 타임태그의 저장된 객체의 갯수
-	bool isSave;
+	bool save_available;
 	_component() {
 		fileName = "";
 		timeTag = 0;
@@ -107,8 +106,7 @@ typedef struct _component {
 		width = 0;
 		height = 0;
 		area = 0;
-		count = 0;
-		isSave = false;
+		save_available = false;
 	}
 }component;
 

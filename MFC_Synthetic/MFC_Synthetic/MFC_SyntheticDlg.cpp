@@ -731,12 +731,8 @@ int labelProcessing(int prev_max_label) {
 
 // component vector 큐를 이용한 추가된 함수
 vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector
-<<<<<<< HEAD
-	, ComponentVectorQueue prevHumanDetectedVector_Queue, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, vector<pair<int, int>>* vectorDetailTXTIndex, int* detailTxtIndex, Mat binary_frame) {
-=======
 	, ComponentVectorQueue prevHumanDetectedVector_Queue, Mat frame, int frameCount, unsigned int currentMsec, FILE *fp, Mat binary_frame) {
 
->>>>>>> master
 	// 현재에서 바로 이전 component 저장
 	// prevDetectedVector를 바로 큐에 있는 이전 vector로 지정할 시 
 	// 파일 저장할 시 frameCount를 매기는 데에 오류가 생김(오류 발생 원인은 아직까지도 불명)
@@ -761,7 +757,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 						max_label = humanDetectedVector[humanCount].label;
 
 					if (IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j]))
-						humanDetectedVector[humanCount].isSave = true;
+						humanDetectedVector[humanCount].save_available = true;
 
 					findFlag = true;
 				}
@@ -783,7 +779,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 								max_label = humanDetectedVector[humanCount].label;
 
 							if (IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j]))
-								humanDetectedVector[humanCount].isSave = true;
+								humanDetectedVector[humanCount].save_available = true;
 
 							findFlag = true;
 							break;
@@ -809,7 +805,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 							max_label = humanDetectedVector[humanCount].label;
 
 						if (IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j]))
-							humanDetectedVector[humanCount].isSave = true;
+							humanDetectedVector[humanCount].save_available = true;
 
 						findFlag = true;
 						break;
@@ -820,34 +816,26 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 
 		// 새 객체가 출현 되었다고 판정함
 		if (findFlag == false) {
-			humanDetectedVector[humanCount].count = 0;
 			humanDetectedVector[humanCount].timeTag = currentMsec;
-			humanDetectedVector[humanCount].isSave = true;
+			humanDetectedVector[humanCount].save_available = true;
 		}
 	} // end for (humanCount) 
 
 	for (int humanCount = 0; humanCount < humanDetectedVector.size(); humanCount++) {
-		if (humanDetectedVector[humanCount].isSave == true) {
+		if (humanDetectedVector[humanCount].save_available == true) {
 			// 파일에 저장하기 전에는 새 객체에 대해서는 레이블을 재 지정함
 			if (humanDetectedVector[humanCount].timeTag == currentMsec) {
 				int temp_label = labelProcessing(max_label);
 				humanDetectedVector[humanCount].label = temp_label;
-				printf("timetag))%d label))%d\n", currentMsec, humanDetectedVector[humanCount].label);
+				// printf("timetag))%d label))%d\n", currentMsec, humanDetectedVector[humanCount].label);
 			}
 
-			// 갯수 하나 증가
-			humanDetectedVector[humanCount].count++;
 
 			// getColorArray에서 colorArray 객체 생성
 			int *colorArray = getColorArray(frame, humanDetectedVector[humanCount], binary_frame);
 			saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
-<<<<<<< HEAD
-				, currentMsec, frameCount, fp, fp_detail, ROWS, COLS, vectorDetailTXTIndex, detailTxtIndex, colorArray);
-
-=======
 				, currentMsec, frameCount, fp, ROWS, COLS, colorArray);
 			
->>>>>>> master
 			// getColorArray에서 생성한 colorArray 객체 메모리 해제
 			delete[] colorArray;
 		}
