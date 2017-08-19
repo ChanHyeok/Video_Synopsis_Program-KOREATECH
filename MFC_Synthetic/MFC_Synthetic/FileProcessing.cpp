@@ -96,8 +96,7 @@ String getFileName(CString f_path, char find_char, BOOL extension) {
 // 전체 segment 데이터의 파일들을 저장하는 모듈
 
 bool saveSegmentationData(string fileNameNoExtension, component object, Mat object_frame
-	, int currentMsec, int frameCount, FILE *txt_fp, FILE * txt_fp_detail, int ROWS, int COLS
-	, vector<pair<int, int>>* vectorDetailTXTInedx, int* detailTxtIndex, int *colorArray) {
+	, int currentMsec, int frameCount, FILE *txt_fp, int ROWS, int COLS ,int *colorArray) {
 	// object의 기본 정보 저장
 	// object의 파일이름 할당
 	object.fileName = allocatingComponentFilename(object.timeTag, currentMsec, frameCount, object.label);
