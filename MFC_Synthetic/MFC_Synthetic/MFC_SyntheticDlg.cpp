@@ -37,8 +37,8 @@ const char* RIGHTBELOW = "우하단";
 
 // 배경 생성
 
-const int FRAMES_FOR_MAKE_BACKGROUND = 1800;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
-const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 2500;	//다음 배경을 만들기 위한 시간간격(동적)
+const int FRAMES_FOR_MAKE_BACKGROUND = 1500;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
+const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 2000;	//다음 배경을 만들기 위한 시간간격(동적)
 // fps가 약 23-25 가량 나오는 영상에서 약 1분이 흐른 framecount 값은 1500
 
 /***  전역변수  ***/
@@ -683,9 +683,8 @@ bool isColorDataOperation(Mat frame, Mat bg, Mat binary, int i_height, int j_wid
 }
 
 // colorArray를 구성하면서, component의 색 정보를 확인함
-int* getColorArray(Mat frame, component *object, Mat binary, int frameCount, int currentMsec){
+int* getColorData(Mat frame, component *object, Mat binary, Mat bg, int frameCount, int currentMsec){
 	Mat temp; frame.copyTo(temp);
-	Mat bg_copy = imread(getBackgroundFilePath(fileNameNoExtension));
 	
 	// color 배열 초기화, 동적생성, segmentation 저장 이후 메모리 해제함
 	int *colorArray = new int[COLORS];
@@ -699,24 +698,23 @@ int* getColorArray(Mat frame, component *object, Mat binary, int frameCount, int
 
 	int sum_of_color_array[6] = { 0 , };
 
-	// 한 프레임에서 color을 추출하는 연산을 하는 횟수
-	int get_color_data_count = 0, total_frame_count = 0;
+	// 한 프레임에서 유효한 color을 추출하는 연산을 하는 횟수, component의 color_count에 저장
+	int temp_color_count = 0;
 	for (int i = object->top; i < object->bottom; i++) {
 		Vec3b* ptr_temp = temp.ptr<Vec3b>(i);
 		Vec3b* ptr_color_hsv = frame_hsv.ptr<Vec3b>(i);
 		Vec3b* ptr_color_rgb = frame_rgb.ptr<Vec3b>(i);
 
 		for (int j = object->left + 1; j < object->right; j++) {
-			total_frame_count++;
 			// 색상 데이터 저장
-			if (isColorDataOperation(frame, bg_copy, binary, i, j)) {
-				get_color_data_count++;
-				int color_check = colorPicker(ptr_color_hsv[j], ptr_color_rgb[j], colorArray);	
-				
+			if (isColorDataOperation(frame, bg, binary, i, j)) {
+				temp_color_count++;
+				int color_check = colorPicker(ptr_color_hsv[j], ptr_color_rgb[j], colorArray);
+
 				// 한 component의 color 평균을 구하기 위해 임시 배열에 합을 구함
 				for (int c = 0; c < 3; c++) {
 					sum_of_color_array[c] += ptr_color_hsv[j][c];
-					sum_of_color_array[c+3] += ptr_color_rgb[j][c];
+					sum_of_color_array[c + 3] += ptr_color_rgb[j][c];
 				}
 			}
 			else {
@@ -725,23 +723,17 @@ int* getColorArray(Mat frame, component *object, Mat binary, int frameCount, int
 
 		}
 	}
-	// 한 픽셀의 전체 프레임 대비 유효 색영역을 백분율로 계산
-	double rate_of_color_operation = (double)get_color_data_count / (double)total_frame_count;
 
-	// object의 색영역 평균 요소에 데이터 삽입
+	// object의 색 영역(hsv, rgb) 평균 요소와 색 최종 카운트에 데이터 삽입,
 	for (int c = 0; c < 3; c++) {
 		object->hsv_avarage[c] = 0;
 		object->rgb_avarage[c] = 0;
 		if (sum_of_color_array[c] > 0 && sum_of_color_array[c + 3] > 0) {
-			object->hsv_avarage[c] = sum_of_color_array[c] / get_color_data_count;
-			object->rgb_avarage[c] = sum_of_color_array[c + 3] / get_color_data_count;
+			object->hsv_avarage[c] = sum_of_color_array[c] / object->area;
+			object->rgb_avarage[c] = sum_of_color_array[c + 3] / object->area;
 		}
 	}
-
-	if (rate_of_color_operation > 0.23)
-		object->save_available = true;
-	else
-		printf("save fail, rate_of_color_operation = %.2lf\n", rate_of_color_operation);
+	object->color_count = temp_color_count;
 
 	// color를 위한 obj를 jpg파일로 저장
 	// 추후 삭제
@@ -764,8 +756,8 @@ int* getColorArray(Mat frame, component *object, Mat binary, int frameCount, int
 	//	printf("%d ",colorArray[i]);
 	//printf("\n");
 
-	temp = NULL; bg_copy = NULL;
-	temp.release(); bg_copy.release();
+	temp = NULL;
+	temp.release();
 	return colorArray;
 }
 
@@ -781,10 +773,13 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 	// 현재 label의 마지막 수를 저장함
 	int maxLabel = humanDetectedVector.size() - 1;
 
-	// 사람을 검출한 양 많큼 반복 (보통 humanCount 갯수 1, 2개 나옴)
+	// 사람을 검출한 양 많큼 반복
 	for (int humanCount = 0; humanCount < humanDetectedVector.size(); humanCount++) {
-		bool save_flag = false;
 		bool findFlag = false;
+
+		// 이전객체와 연속한다고 판단되는 component
+		component prev_detected_component;
+
 		//이전 프레임의 검출된 객체가 있을 경우
 		if (!prevDetectedVector_i.empty()) {
 			for (int j = 0; j < prevDetectedVector_i.size(); j++) {
@@ -792,11 +787,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 				if (!IsComparePrevComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j])) {
 					humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
 					humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
-
-					if (isSizeContinue(&humanDetectedVector[humanCount], &prevDetectedVector_i[j])
-						&& isColorContinue(&humanDetectedVector[humanCount], &prevDetectedVector_i[j]))
-						save_flag = true;
-
+					prev_detected_component = prevDetectedVector_i[j];
 					findFlag = true;
 				}
 			} // end for
@@ -812,11 +803,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 						if (!IsComparePrevComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j])) {
 							humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
 							humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
-
-							if (isSizeContinue(&humanDetectedVector[humanCount], &prevDetectedVector_i[j])
-								&& isColorContinue(&humanDetectedVector[humanCount], &prevDetectedVector_i[j]))
-								save_flag = true;
-
+							prev_detected_component = prevDetectedVector_i[j];
 							findFlag = true;
 							break;
 
@@ -836,37 +823,51 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 					if (!IsComparePrevComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j])) {
 						humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
 						humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
-
-						if (isSizeContinue(&humanDetectedVector[humanCount], &prevDetectedVector_i[j])
-							&& isColorContinue(&humanDetectedVector[humanCount], &prevDetectedVector_i[j]))
-							save_flag = true;
-
+						prev_detected_component = prevDetectedVector_i[j];
 						findFlag = true;
 						break;
 					}
 				}
 			}
 		} // end else
-
+		
 		// 새 객체가 출현 되었다고 판정함
 		if (findFlag == false) {
 			humanDetectedVector[humanCount].timeTag = currentMsec;
 			humanDetectedVector[humanCount].label = ++maxLabel;
+		}
+
+		// 현재 component의 저장 여부를 결정하는 플래그 생성
+		bool save_flag = false;
+
+		// 배경, 업데이트 할 때마다 불러옴
+		Mat bg_copy;
+		if ( frameCount % FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND == 1 || frameCount >= 0)
+			bg_copy = imread(getBackgroundFilePath(fileNameNoExtension));
+		
+		// 현재 component의 색상정보를 얻어냄
+		int *colorArray = getColorData(frame, &humanDetectedVector[humanCount], binary_frame, bg_copy, frameCount, currentMsec);
+
+		// 배경과의 차이가 거이 없는 것을 걸러내기 위해 색상 연산을 하는 카운트끼리 객체와 배경과 비교함
+		double difference_value = (double)humanDetectedVector[humanCount].color_count / (double)humanDetectedVector[humanCount].area;
+		
+		if (difference_value > 0.22)
 			save_flag = true;
+
+		else {
+			save_flag = false;
+			printf("save fail, rate_of_color_operation = %.2lf\n", difference_value);
 		}
 
-		// 파일에 저장할 수 있도록 함
-		if (save_flag == true) {
-			// getColorArray에서 colorArray 객체 생성
-
-			int *colorArray = getColorArray(frame, &humanDetectedVector[humanCount], binary_frame, frameCount, currentMsec);
-			if (humanDetectedVector[humanCount].save_available == true)
-				saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
-					, currentMsec, frameCount, fp, ROWS, COLS, colorArray);
-
-			// getColorArray에서 생성한 colorArray 객체 메모리 해제
-			delete[] colorArray;
+		// 연속성이 만족할 경우 파일에 저장할 수 있도록 함
+		if (difference_value > 0.22 && isSizeContinue(&humanDetectedVector[humanCount], &prev_detected_component)
+			&& isColorContinue(&humanDetectedVector[humanCount], &prev_detected_component)) {
+			saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
+				, currentMsec, frameCount, fp, ROWS, COLS, colorArray);
 		}
+
+		// getColorData에서 생성한 colorArray 객체 메모리 해제
+		delete[] colorArray;
 	} // end for (humanCount) 
 	vector<component> vclear;
 	prevDetectedVector_i.swap(vclear);

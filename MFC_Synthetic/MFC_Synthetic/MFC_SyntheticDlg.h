@@ -94,7 +94,7 @@ typedef struct _component {
 	int area;
 	Vec3b rgb_avarage;
 	Vec3b hsv_avarage;
-	bool save_available;
+	unsigned int color_count; // À¯È¿ÇÑ »öÀ» ¶ì´Â ÇÈ¼¿ °¹¼ö
 	_component() {
 		fileName = "";
 		timeTag = 0;
@@ -107,7 +107,7 @@ typedef struct _component {
 		width = 0;
 		height = 0;
 		area = 0;
-		save_available = false;
+		color_count = 0;
 	}
 }component;
 
@@ -166,7 +166,7 @@ bool IsObjectOverlapingDetector(segment, segment);
 int readSegmentTxtFile(segment*);
 
 bool isColorDataOperation(Mat frame, Mat bg, Mat, int i_height, int j_width);
-int* getColorArray(Mat frame, component *object, Mat binary, int frameCount, int currentMsec);
+int* getColorData(Mat frame, component *object, Mat binary, Mat bg, int frameCount, int currentMsec);
 
 string currentDateTime();
 
