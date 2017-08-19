@@ -149,7 +149,7 @@ vector<component> GetComponentVectorQueue(ComponentVectorQueue *componentVectorQ
 
 // MAIN ****
 vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector_Array
-	, ComponentVectorQueue prevHumanDetectedVector_Queue, Mat frame, int frameCount, int videoStartMsec, unsigned int currentMsec, FILE *fp, vector<pair<int, int>>*, int*, Mat);
+	, ComponentVectorQueue prevHumanDetectedVector_Queue, Mat frame, int frameCount, unsigned int currentMsec, FILE *fp, Mat);
 
 // addition function of MAIN
 bool segmentationTimeInputException(CString str_h, CString str_m);
@@ -166,6 +166,8 @@ int readSegmentTxtFile(segment*);
 bool isColorDataOperation(Mat frame, Mat bg, Mat, int i_height, int j_width);
 int* getColorArray(Mat frame, component *object, Mat binary, int frameCount, int currentMsec);
 
+string currentDateTime();
+
 // connectecComponentLabelling.cpp
 vector<component> connectedComponentsLabelling(Mat frame, int rows, int cols, int, int, int, int);
 bool labelSizeFiltering(int width, int height, int, int, int, int);
@@ -175,6 +177,9 @@ bool IsEnqueueFiltering(segment *segment_array, int cur_index);
 Mat ExtractForegroundToMOG2(Mat frameimg);
 Mat ExtractFg(Mat, Mat, int, int);
 Mat temporalMedianBG(Mat frameimg, Mat bgimg);
+Mat averageBG(Mat frameimg, unsigned int* bgimg);
+void setArrayToZero(unsigned int* arr, int, int);
+Mat accIntArrayToMat(Mat image, unsigned int* arr, int);
 
 // tool_getColor.cpp
 int getColor_H(int );
@@ -188,7 +193,7 @@ string allocatingComponentFilename(int timeTag, int currentMsec, int frameCount,
 String getFileName(CString f_path, char find_char, BOOL);
 Mat loadJPGObjectFile(segment obj, string file_name);
 bool saveSegmentationData(string video_name, component object, Mat object_frame
-	, int currentMsec, int frameCount, FILE *txt_fp, FILE*, int, int, vector<pair<int, int>>*, int*, int[]);
+	, int currentMsec, int frameCount, FILE *txt_fp, int, int, int[]);
 string readTxt(string path);
 
 string getTextFilePath(string video_name);
@@ -290,7 +295,7 @@ public:
 
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnBnClickedCancel();
-	afx_msg Mat getSyntheticFrame(Mat);
+	afx_msg Mat getSyntheticFrame(Queue*, Mat,segment*);
 	//ÄÞº¸¹Ú½º
 	CComboBox mComboStart;
 	CComboBox mComboEnd;

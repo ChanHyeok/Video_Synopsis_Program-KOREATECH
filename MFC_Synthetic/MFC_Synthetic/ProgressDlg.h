@@ -5,6 +5,7 @@
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/highgui.hpp"
 #include "afxwin.h"
+#include "MFC_SyntheticDlg.h"
 
 // CProgressDlg dialog
 using namespace std;
@@ -22,15 +23,29 @@ public:
 	//¸â¹öº¯¼ö
 	VideoCapture vc_Source;
 	string videoFilePath;
+	int mode;
 	int ROWS, COLS;
-	int FRAMES_FOR_MAKE_BACKGROUND;
-	Mat frame; // Mat(height, width, channel)
+	int WMIN, WMAX, HMIN, HMAX;
+	int FRAMES_FOR_MAKE_BACKGROUND, FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND;
+	Mat frame, frame_g; // Mat(height, width, channel)
 	Mat bg;
-	Mat bg_gray;
 	int totalFrame, count;
+	int videoStartMsec;
 	std::string fileNameNoExtension;
-	BOOL isBackgroundSaved;
-// Dialog Data
+	BOOL isWorkCompleted;
+	unsigned int* bg_array;
+
+	FILE *fp;
+	vector<component> humanDetectedVector, prevHumanDetectedVector;
+	ComponentVectorQueue prevHumanDetectedVector_queue;
+
+
+	VideoWriter outputVideo;
+	Queue segment_queue;
+	segment *segmentArray;
+	unsigned int obj1_TimeTag;
+	unsigned int obj2_TimeTag;
+	// Dialog Data
 	enum { IDD = IDD_MFC_PROGRESS_DIALOG};
 
 	
