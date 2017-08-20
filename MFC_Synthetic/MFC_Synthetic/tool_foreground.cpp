@@ -20,7 +20,11 @@ Mat ExtractForegroundToMOG2(Mat frameimg) {
 Mat ExtractFg(Mat frameimg, Mat bgimg, int rows, int cols) {
 	for (int i = 0; i < bgimg.rows; i++) {
 		for (int j = 0; j < bgimg.cols; j++) {
+<<<<<<< HEAD
 			if (abs(frameimg.data[i * frameimg.cols + j] - bgimg.data[i * bgimg.cols + j]) < FOREGROUND_THRESHOLD)
+=======
+			if (abs(frameimg.data[i * frameimg.cols + j] - bgimg.data[i * bgimg.cols + j]) < 20)
+>>>>>>> image_preprocessing
 				frameimg.data[i * bgimg.cols + j] = 0;
 		}
 	}

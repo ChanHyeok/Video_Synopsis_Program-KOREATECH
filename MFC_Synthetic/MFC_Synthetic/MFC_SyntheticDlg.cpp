@@ -36,9 +36,14 @@ const char* LEFTBELOW = "좌하단";
 const char* RIGHTBELOW = "우하단";
 
 // 배경 생성
+<<<<<<< HEAD
 
 const int FRAMES_FOR_MAKE_BACKGROUND = 1500;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
 const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 2000;	//다음 배경을 만들기 위한 시간간격(동적)
+=======
+const int FRAMES_FOR_MAKE_BACKGROUND = 800;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
+const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 1000;	//다음 배경을 만들기 위한 시간간격(동적)
+>>>>>>> image_preprocessing
 // fps가 약 23-25 가량 나오는 영상에서 약 1분이 흐른 framecount 값은 1500
 
 /***  전역변수  ***/
@@ -53,6 +58,7 @@ Mat background_loadedFromFile, background_binaryVideo_gray; // 배경 프레임 
 unsigned int* bg_array;
 
 bool synthesisEndFlag; // 합성이 끝남을 알려주는 플래그
+bool isAlreadyBGMade; //이미 만든 배경이 있는지. 이진 영상 드래그 시에 변경
 
 // File 관련
 FILE *fp_detail; // frameInfo를 작성할 File Pointer
@@ -205,6 +211,7 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	// Play, Pause버튼 상태 초기화
 	isPlayBtnClicked = false;
 	isPauseBtnClicked = true;
+	isAlreadyBGMade = false;
 
 	// 라디오 버튼 초기화
 	CheckRadioButton(IDC_RADIO_PLAY1, IDC_RADIO_PLAY3, IDC_RADIO_PLAY1);
@@ -529,6 +536,7 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 					printf("Background Making Start : %d frame\n", curFrameCount);
 					//temp_frame.copyTo(background_binaryVideo_gray);
 					setArrayToZero(bg_array, ROWS, COLS);
+					isAlreadyBGMade = false;
 				}
 				else{	//배경 생성
 					//temporalMedianBG(temp_frame, background_binaryVideo_gray);
@@ -537,7 +545,7 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 			}
 
 			//만든 배경을 저장해야 할 경우
-			if (curFrameCount_nomalized == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1){
+			if (curFrameCount_nomalized == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1 && !isAlreadyBGMade){
 				accIntArrayToMat(background_binaryVideo_gray, bg_array, FRAMES_FOR_MAKE_BACKGROUND);
 				imwrite(getTempBackgroundFilePath(fileNameNoExtension), background_binaryVideo_gray);
 			}
@@ -882,9 +890,16 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 }
 
 // 이전과 연속적이어서 저장할 가치가 있는 지를 판별하는 함수
+<<<<<<< HEAD
 bool isSizeContinue(component *curr_component, component *prev_component) {
 	const int diff_component_height = prev_component->height* 0.3; //  ( 480/15 = 32)
 	const int diff_component_width = prev_component->width * 0.3; //  ( 640/15 = 42)
+=======
+bool IsSaveComponent(component curr_component, component prev_component) {
+	bool return_flag = true;
+	const int diff_component_height = prev_component.height / 4; //  ( 480/15 = 32)
+	const int diff_component_width = prev_component.width / 4;//  ( 640/15 = 42)
+>>>>>>> image_preprocessing
 	// width와 height 크기를 비교
 	// 추후 색상 데이터를 보는 식으로 하여 강화
 	if (curr_component->label == prev_component->label) {
@@ -1327,6 +1342,7 @@ void CMFC_SyntheticDlg::OnBnClickedBtnMenuLoad() {
 		// // Play, Pause버튼 상태 초기화
 		isPlayBtnClicked = false;
 		isPauseBtnClicked = true;
+		isAlreadyBGMade = false;
 
 		// 라디오 버튼 초기화
 		CheckRadioButton(IDC_RADIO_PLAY1, IDC_RADIO_PLAY3, IDC_RADIO_PLAY1);
@@ -1784,6 +1800,7 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 
 				accIntArrayToMat(background_binaryVideo_gray, bg_array, FRAMES_FOR_MAKE_BACKGROUND);
 				imwrite(getTempBackgroundFilePath(fileNameNoExtension), background_binaryVideo_gray);
+				isAlreadyBGMade = true;
 				capture.set(CV_CAP_PROP_POS_FRAMES, releasedPoint);
 				capture.read(temp_frame);
 				cvtColor(temp_frame, temp_frame, CV_RGB2GRAY);
@@ -1875,6 +1892,7 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 
 					//					imwrite(getTempBackgroundFilePath(fileNameNoExtension), bg_gray);
 					imwrite(getTempBackgroundFilePath(fileNameNoExtension), background_binaryVideo_gray);
+					isAlreadyBGMade = true;
 					capture.set(CV_CAP_PROP_POS_FRAMES, releasedPoint);
 				}
 

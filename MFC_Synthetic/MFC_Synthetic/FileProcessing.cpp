@@ -112,13 +112,13 @@ bool saveSegmentationData(string fileNameNoExtension, component object, Mat obje
 			lineMaker_detail(object.timeTag, object.label, directionChecker(object, ROWS, COLS), 10
 				, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 	}
-	else 	//첫 오브젝트가 아닐 경우 해당 객체 위치로 이동하여 last 위치 덮어쓰기
-		saveColorData(fileNameNoExtension, object, colorArray);
+	else 	//첫 오브젝트가 아닐 경우 해당 객체 위치로 이동하여 last 위치 덮어쓰기 및 색상 카운트 증가
+		saveDetailData(fileNameNoExtension, object, colorArray,ROWS,COLS);
 
 	return true;
 }
 
-void saveColorData(string fileNameNoExtension, component object, int *colorArray){
+void saveDetailData(string fileNameNoExtension, component object, int *colorArray, int ROWS, int COLS){
 	//색상 정보 텍스트 파일 저장
 	//해당 객체 위치로 이동하여 Color 카운트 덮어쓰기
 	int stamp;
@@ -158,11 +158,11 @@ void saveColorData(string fileNameNoExtension, component object, int *colorArray
 			}
 
 			txt.erase(posOfTimetag, posOfNL - posOfTimetag + 1);
-			txt.insert(posOfTimetag, lineMaker_detail(stamp, label, tempFirst, tempLast, colors[0] + colorArray[0], colors[1] + colorArray[1], colors[2] + colorArray[2], colors[3] + colorArray[3], colors[4] + colorArray[4],
+			txt.insert(posOfTimetag, lineMaker_detail(stamp, label, tempFirst, directionChecker(object, ROWS, COLS), colors[0] + colorArray[0], colors[1] + colorArray[1], colors[2] + colorArray[2], colors[3] + colorArray[3], colors[4] + colorArray[4],
 				colors[5] + colorArray[5], colors[6] + colorArray[6], colors[7] + colorArray[7], colors[8] + colorArray[8]));
 			rewriteTxt(getDetailTextFilePath(fileNameNoExtension).c_str(), txt.c_str());
 		}
-		ptr = NULL;
+		ptr = NULL; 
 		delete ptr;
 		delete[] line;
 	}

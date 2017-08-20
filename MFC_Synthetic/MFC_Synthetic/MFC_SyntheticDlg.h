@@ -209,7 +209,7 @@ bool isGrayBackgroundExists(string);
 bool isDirectory(string dir_name);
 int makeDataRootDirectory();
 int makeDataSubDirectory(string video_name);
-void saveColorData(string fileNameNoExtension, component object, int colorArray[]);
+void saveDetailData(string fileNameNoExtension, component object, int colorArray[],int,int);
 
 // tool_synthetic.cpp
 Mat Syn_Background_Foreground(Mat, Mat, Mat, int, int);
