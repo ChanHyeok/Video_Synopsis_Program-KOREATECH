@@ -36,14 +36,9 @@ const char* LEFTBELOW = "좌하단";
 const char* RIGHTBELOW = "우하단";
 
 // 배경 생성
-<<<<<<< HEAD
 
-const int FRAMES_FOR_MAKE_BACKGROUND = 1500;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
-const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 2000;	//다음 배경을 만들기 위한 시간간격(동적)
-=======
 const int FRAMES_FOR_MAKE_BACKGROUND = 800;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
 const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 1000;	//다음 배경을 만들기 위한 시간간격(동적)
->>>>>>> image_preprocessing
 // fps가 약 23-25 가량 나오는 영상에서 약 1분이 흐른 framecount 값은 1500
 
 /***  전역변수  ***/
@@ -890,16 +885,10 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 }
 
 // 이전과 연속적이어서 저장할 가치가 있는 지를 판별하는 함수
-<<<<<<< HEAD
 bool isSizeContinue(component *curr_component, component *prev_component) {
 	const int diff_component_height = prev_component->height* 0.3; //  ( 480/15 = 32)
 	const int diff_component_width = prev_component->width * 0.3; //  ( 640/15 = 42)
-=======
-bool IsSaveComponent(component curr_component, component prev_component) {
-	bool return_flag = true;
-	const int diff_component_height = prev_component.height / 4; //  ( 480/15 = 32)
-	const int diff_component_width = prev_component.width / 4;//  ( 640/15 = 42)
->>>>>>> image_preprocessing
+
 	// width와 height 크기를 비교
 	// 추후 색상 데이터를 보는 식으로 하여 강화
 	if (curr_component->label == prev_component->label) {
@@ -2009,6 +1998,15 @@ bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]){
 		, sorted_value[0], sorted_value[1], sorted_value[2]);
 	*/
 
+	// 희소색에 가중치 부여 (현재 red, orange, yellow에 대해서)
+	if (sorted_index[2] == RED || sorted_index[2] == ORANGE || sorted_index[2] == YELLOW) {
+		sorted_value[2] *= 1.3;
+		if (sorted_value[2] > sorted_value[1]) {
+			int temp_value = sorted_value[2];
+			sorted_value[2] = sorted_value[1];
+			sorted_value[1] = temp_value;
+		}
+	}
 
 	// 두번째로 많이 나온 색깔이 블랙일 경우에는 인덱스 하나 미뤄주기
 	if (colorCheckArray[BLACK] == true && (sorted_index[1] == BLACK && check_count > 1)) {
@@ -2016,7 +2014,15 @@ bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]){
 		sorted_index[2] = sorted_index[1];
 	}
 
-	// 두번째로 많이 나온 색깔과 첫 번쨰 나온 색과 차이가 클 경우에 (블랙/화이트일 경우에만)
+	// 두번째로 많이 나온 색깔과 첫 번쨰 나온 색과 차이가 클 경우에 (일반 색상에서)
+	if ((double)sorted_value[1] < (double)sorted_value[0] * 0.4) {
+		if (colorCheckArray[sorted_index[0]])
+			return true;
+		else
+			return false;
+	}
+
+	// 두번째로 많이 나온 색깔과 첫 번쨰 나온 색과 차이가 클 경우에 (블랙/화이트일 경우에는 값의 폭을 좁게)
 	if (((double)sorted_value[1] < (double)sorted_value[0] * 0.7)
 		&& (sorted_index[1] == WHITE) && (sorted_index[1] == BLACK)) {
 		if (colorCheckArray[sorted_index[0]])

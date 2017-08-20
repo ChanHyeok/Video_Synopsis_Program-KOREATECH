@@ -27,13 +27,13 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 	// 원색에서 차이 범위 +- 조정
 	// HSV 채널로 충분히 검출이 가능한 색상들
 
-	// +- 4로 감소 (RGB이용)
-	 if ( ( H >= 176 && H >= 180)|| (H >= 0 && H <= 4) && R >= 110)
+	// +- 3로 감소 (RGB이용)
+	 if ( ( H >= 177 && H >= 180)|| (H >= 0 && H <= 3) && R >= 130)
 	//if ( ( H >= 179 && H >= 180)|| (H >= 0 && H <= 1) )  //  H :: 0 -> 0
 		colorArray[RED]++;
 
-	// +6로 증가, - 10증가  (RGB이용)
-	if (H <= 26 && H >= 10 && R >= 150)
+	// +10로 증가, - 10증가  (RGB이용)
+	if (H <= 30 && H >= 10 && R >= 150)
 	// if (H <= 24 && H >= 16)  // H :: 39 -> 19.5
 		colorArray[ORANGE]++;
 
@@ -47,8 +47,8 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 	//if (H <= 62 && H >= 54)  // H :: 120 -> 60
 		colorArray[GREEN]++;
 
-	// +- 20으로 증가  (RGB이용)
-	 if (H >= 100 && H <= 140 && B >= 110)
+	// +- 19으로 증가  (RGB이용)
+	 if (H >= 101 && H <= 139 && B >= 130)
 	//if (H >= 102 && H <= 138)  // H :: 240 -> 120
 		colorArray[BLUE]++;
 
@@ -58,22 +58,22 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 
 	// RGB를 이용하여 검출을 할 색상들(Black, Gray, White)
 	
-	// RGB합 < 70
+	// RGB합 < 65
 	// if (R >= 0 && R <= 20 && G >= 0 && G <= 20 && B >= 0 && B <= 20) {
-	if (sumOfRGB <= 70 && abs(R-B) < 15 && abs(B - G) < 15 && abs(G - R) < 15) {
+	if (sumOfRGB <= 65 && abs(R-B) < 15 && abs(B - G) < 13 && abs(G - R) < 13) {
 		colorArray[BLACK]++;
 		color_point++;
 	}
 
-	// RGB합 > 300
+	// RGB합 > 380
 	// if (R >= 90 && R <= 255 && G >= 90 && G <= 255 && B >= 90 && B <= 255) {
-	if (sumOfRGB >= 450 && abs(R - B) < 15 && abs(B - G) < 15 && abs(G - R) < 15) {
+	if (sumOfRGB >= 380 && abs(R - B) < 15 && abs(B - G) < 13 && abs(G - R) < 13) {
 		colorArray[WHITE]++;
 		color_point++;
 	}
 
-	// 15 < RGB < 60
-	if (R >= 15 && R <= 60 && G >= 15 && G <= 60 && B >= 15 && B <= 60) {	// Gray인지 판별
+	// 20 < RGB < 50
+	if (R >= 20 && R <= 50 && G >= 20 && G <= 50 && B >= 20 && B <= 50) {	// Gray인지 판별
 		colorArray[GRAY]++;
 		color_point++;
 	}
