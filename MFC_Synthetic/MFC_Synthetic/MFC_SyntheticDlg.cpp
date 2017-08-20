@@ -761,6 +761,41 @@ int* getColorData(Mat frame, component *object, Mat binary, Mat bg, int frameCou
 	return colorArray;
 }
 
+int labelProcessing(int prev_max_label) {
+	// 최대 레이블 번호가 가질 수 있는 값은 상수로 정의
+	const int MAX_LABLE_VALUE = 10;
+	prev_max_label += 1;
+	if (prev_max_label > MAX_LABLE_VALUE)
+		prev_max_label = 1;
+	return prev_max_label;
+
+	/*
+	int maxLabel = humanDetectedVector.size() - 1;
+	// 현재까지 부여된 레이블들을 저장하는 벡터
+	vector<int> label_vector;
+	for (int humanCount = 0; humanCount < humanDetectedVector.size(); humanCount++) {
+		if (humanDetectedVector[humanCount].count != 0)
+			label_vector.push_back(humanDetectedVector[humanCount].label);
+	}
+	
+	// 벡터 반복자 생성
+	vector<int>::iterator it;
+	it = find(label_vector.begin(), label_vector.end(), maxLabel);
+	if (it == label_vector.end())
+		return maxLabel;
+
+	// 현재 있는 레이블 벡터 중에 i를 찾아서 없으면 그냥 매겨버림
+	for (int i = 1; i < MAX_LABEL_VALUE; i++) {
+		it = find(label_vector.begin(), label_vector.end(), i);
+		if (it == label_vector.end()) {
+			maxLabel = i;
+			break;
+		}
+	}
+	return maxLabel;
+	*/
+}
+
 // component vector 큐를 이용한 추가된 함수
 vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector
 	, ComponentVectorQueue prevHumanDetectedVector_Queue, Mat frame, int frameCount, unsigned int currentMsec, FILE *fp, Mat binary_frame) {
@@ -770,8 +805,8 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 	// 파일 저장할 시 frameCount를 매기는 데에 오류가 생김(오류 발생 원인은 아직까지도 불명)
 	vector<component> prevDetectedVector_i = prevHumanDetectedVector;
 
-	// 현재 label의 마지막 수를 저장함
-	int maxLabel = humanDetectedVector.size() - 1;
+	// 최대 레이블 정의
+	int max_label = 0;
 
 	// 사람을 검출한 양 많큼 반복
 	for (int humanCount = 0; humanCount < humanDetectedVector.size(); humanCount++) {
@@ -787,7 +822,17 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 				if (!IsComparePrevComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j])) {
 					humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
 					humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
+<<<<<<< HEAD
 					prev_detected_component = prevDetectedVector_i[j];
+=======
+
+					if (max_label < humanDetectedVector[humanCount].label)
+						max_label = humanDetectedVector[humanCount].label;
+
+					if (IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j]))
+						humanDetectedVector[humanCount].save_available = true;
+
+>>>>>>> label_replacement
 					findFlag = true;
 				}
 			} // end for
@@ -803,7 +848,17 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 						if (!IsComparePrevComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j])) {
 							humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
 							humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
+<<<<<<< HEAD
 							prev_detected_component = prevDetectedVector_i[j];
+=======
+
+							if (max_label < humanDetectedVector[humanCount].label)
+								max_label = humanDetectedVector[humanCount].label;
+
+							if (IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j]))
+								humanDetectedVector[humanCount].save_available = true;
+
+>>>>>>> label_replacement
 							findFlag = true;
 							break;
 
@@ -823,7 +878,17 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 					if (!IsComparePrevComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j])) {
 						humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
 						humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
+<<<<<<< HEAD
 						prev_detected_component = prevDetectedVector_i[j];
+=======
+						
+						if (max_label < humanDetectedVector[humanCount].label)
+							max_label = humanDetectedVector[humanCount].label;
+
+						if (IsSaveComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j]))
+							humanDetectedVector[humanCount].save_available = true;
+
+>>>>>>> label_replacement
 						findFlag = true;
 						break;
 					}
@@ -834,6 +899,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 		// 새 객체가 출현 되었다고 판정함
 		if (findFlag == false) {
 			humanDetectedVector[humanCount].timeTag = currentMsec;
+<<<<<<< HEAD
 			humanDetectedVector[humanCount].label = ++maxLabel;
 		}
 
@@ -856,19 +922,42 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 		else {
 			save_flag = false;
 			printf("save fail, rate_of_color_operation = %.2lf\n", difference_value);
+=======
+			humanDetectedVector[humanCount].save_available = true;
+>>>>>>> label_replacement
 		}
+	} // end for (humanCount) 
 
+	for (int humanCount = 0; humanCount < humanDetectedVector.size(); humanCount++) {
+		if (humanDetectedVector[humanCount].save_available == true) {
+			// 파일에 저장하기 전에는 새 객체에 대해서는 레이블을 재 지정함
+			if (humanDetectedVector[humanCount].timeTag == currentMsec) {
+				int temp_label = labelProcessing(max_label);
+				humanDetectedVector[humanCount].label = temp_label;
+				// printf("timetag))%d label))%d\n", currentMsec, humanDetectedVector[humanCount].label);
+			}
+
+
+<<<<<<< HEAD
 		// 연속성이 만족할 경우 파일에 저장할 수 있도록 함
 		
 		if ((frameCount < 5) || (save_flag == true) && isSizeContinue(&humanDetectedVector[humanCount], &prev_detected_component)
 			&& isColorContinue(&humanDetectedVector[humanCount], &prev_detected_component)) {
+=======
+			// getColorArray에서 colorArray 객체 생성
+			int *colorArray = getColorArray(frame, humanDetectedVector[humanCount], binary_frame);
+>>>>>>> label_replacement
 			saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
 				, currentMsec, frameCount, fp, ROWS, COLS, colorArray);
 		}
+<<<<<<< HEAD
 		
 		// getColorData에서 생성한 colorArray 객체 메모리 해제
 		delete[] colorArray;
 	} // end for (humanCount) 
+=======
+	}
+>>>>>>> label_replacement
 	vector<component> vclear;
 	prevDetectedVector_i.swap(vclear);
 
@@ -876,6 +965,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 }
 
 // 이전과 연속적이어서 저장할 가치가 있는 지를 판별하는 함수
+<<<<<<< HEAD
 bool isSizeContinue(component *curr_component, component *prev_component) {
 	const int diff_component_height = prev_component->height* 0.3; //  ( 480/15 = 32)
 	const int diff_component_width = prev_component->width * 0.3; //  ( 640/15 = 42)
@@ -907,6 +997,21 @@ bool isColorContinue(component *curr_component, component *prev_component) {
 			return false;
 
 
+=======
+bool IsSaveComponent(component curr_component, component prev_component) {
+	bool return_flag = true;
+
+	// prev의 width와 height에 약 25%정도 크기일 경우로 연산
+	const int diff_component_height = prev_component.height * 0.25;
+	const int diff_component_width = prev_component.width * 0.25;
+
+	// width와 height 크기를 비교
+	// TO DO:: 추후 색상 데이터를 보는 식으로 하여 강화
+	if (curr_component.label == prev_component.label) {
+		if ((abs(curr_component.width - prev_component.width) > diff_component_width) ||
+			(abs(curr_component.height - prev_component.height) > diff_component_height)) {
+			return_flag = false;
+>>>>>>> label_replacement
 		}
 	}
 	return true;

@@ -92,9 +92,13 @@ typedef struct _component {
 	int width;
 	int height;
 	int area;
+<<<<<<< HEAD
 	Vec3b rgb_avarage;
 	Vec3b hsv_avarage;
 	unsigned int color_count; // À¯È¿ÇÑ »öÀ» ¶ì´Â ÇÈ¼¿ °¹¼ö
+=======
+	bool save_available;
+>>>>>>> label_replacement
 	_component() {
 		fileName = "";
 		timeTag = 0;
@@ -107,7 +111,11 @@ typedef struct _component {
 		width = 0;
 		height = 0;
 		area = 0;
+<<<<<<< HEAD
 		color_count = 0;
+=======
+		save_available = false;
+>>>>>>> label_replacement
 	}
 }component;
 
@@ -163,6 +171,10 @@ stringstream timeConvertor(int t);
 
 bool IsObjectOverlapingDetector(segment, segment);
 
+<<<<<<< HEAD
+=======
+int labelProcessing(int );
+>>>>>>> label_replacement
 int readSegmentTxtFile(segment*);
 
 bool isColorDataOperation(Mat frame, Mat bg, Mat, int i_height, int j_width);
