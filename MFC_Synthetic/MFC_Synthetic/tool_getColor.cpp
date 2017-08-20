@@ -27,18 +27,18 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 	// 원색에서 차이 범위 +- 조정
 	// HSV 채널로 충분히 검출이 가능한 색상들
 
-	// +- 2로 감소 (RGB이용)
-	 if ( ( H >= 179 && H >= 180)|| (H >= 0 && H <= 1) && R >= 160)
+	// +- 4로 감소 (RGB이용)
+	 if ( ( H >= 176 && H >= 180)|| (H >= 0 && H <= 4) && R >= 110)
 	//if ( ( H >= 179 && H >= 180)|| (H >= 0 && H <= 1) )  //  H :: 0 -> 0
 		colorArray[RED]++;
 
-	// +- 4로 증가  (RGB이용)
-	if (H <= 24 && H >= 16 && R >= 150)
+	// +6로 증가, - 10증가  (RGB이용)
+	if (H <= 26 && H >= 10 && R >= 150)
 	// if (H <= 24 && H >= 16)  // H :: 39 -> 19.5
 		colorArray[ORANGE]++;
 
 	// + 10로 증가, -로 16 증가  (RGB이용)
-	 if (H <= 40 && H >= 14 && B <= 110 && abs(R-G) < 30)
+	 if (H <= 40 && H >= 14 && B <= 150 && abs(R-G) < 30)
 	//if (H <= 40 && H >= 18)  // H :: 60 -> 30
 		colorArray[YELLOW]++;
 
@@ -47,8 +47,8 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 	//if (H <= 62 && H >= 54)  // H :: 120 -> 60
 		colorArray[GREEN]++;
 
-	// +- 18으로 증가  (RGB이용)
-	 if (H >= 102 && H <= 138 && B >= 110 && R <= 110 && G <= 110)
+	// +- 20으로 증가  (RGB이용)
+	 if (H >= 100 && H <= 140 && B >= 110)
 	//if (H >= 102 && H <= 138)  // H :: 240 -> 120
 		colorArray[BLUE]++;
 

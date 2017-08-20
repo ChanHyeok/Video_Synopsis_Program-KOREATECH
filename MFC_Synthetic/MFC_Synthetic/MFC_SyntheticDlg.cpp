@@ -724,6 +724,10 @@ int* getColorData(Mat frame, component *object, Mat binary, Mat bg, int frameCou
 		}
 	}
 
+	// 무채색, 유채색의 밸런스를 맞추기 위한 연산, white와 black의 weight 조절
+	colorArray[BLACK] *= 0.9;
+	colorArray[WHITE] *= 0.9;
+
 	// object의 색 영역(hsv, rgb) 평균 요소와 색 최종 카운트에 데이터 삽입,
 	for (int c = 0; c < 3; c++) {
 		object->hsv_avarage[c] = 0;
@@ -1987,10 +1991,20 @@ bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]){
 		, sorted_value[0], sorted_value[1], sorted_value[2]);
 	*/
 
+
 	// 두번째로 많이 나온 색깔이 블랙일 경우에는 인덱스 하나 미뤄주기
 	if (colorCheckArray[BLACK] == true && (sorted_index[1] == BLACK && check_count > 1)) {
 		printf("두번째로 black이 많이 나옴\n");
 		sorted_index[2] = sorted_index[1];
+	}
+
+	// 두번째로 많이 나온 색깔과 첫 번쨰 나온 색과 차이가 클 경우에 (블랙/화이트일 경우에만)
+	if (((double)sorted_value[1] < (double)sorted_value[0] * 0.7)
+		&& (sorted_index[1] == WHITE) && (sorted_index[1] == BLACK)) {
+		if (colorCheckArray[sorted_index[0]])
+			return true;
+		else
+			return false;
 	}
 
 	// 세번쨰 값이 두번째의 값과 차이가 거의 없을 경우
