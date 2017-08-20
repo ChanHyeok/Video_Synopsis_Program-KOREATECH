@@ -52,6 +52,7 @@ Mat background_loadedFromFile, background_binaryVideo_gray; // 배경 프레임 
 unsigned int* bg_array;
 
 bool synthesisEndFlag; // 합성이 끝남을 알려주는 플래그
+bool isAlreadyBGMade; //이미 만든 배경이 있는지. 이진 영상 드래그 시에 변경
 
 // File 관련
 FILE *fp_detail; // frameInfo를 작성할 File Pointer
@@ -204,6 +205,7 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	// Play, Pause버튼 상태 초기화
 	isPlayBtnClicked = false;
 	isPauseBtnClicked = true;
+	isAlreadyBGMade = false;
 
 	// 라디오 버튼 초기화
 	CheckRadioButton(IDC_RADIO_PLAY1, IDC_RADIO_PLAY3, IDC_RADIO_PLAY1);
@@ -525,6 +527,7 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 					printf("Background Making Start : %d frame\n", curFrameCount);
 					//temp_frame.copyTo(background_binaryVideo_gray);
 					setArrayToZero(bg_array, ROWS, COLS);
+					isAlreadyBGMade = false;
 				}
 				else{	//배경 생성
 					//temporalMedianBG(temp_frame, background_binaryVideo_gray);
@@ -533,7 +536,7 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 			}
 
 			//만든 배경을 저장해야 할 경우
-			if (curFrameCount_nomalized == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1){
+			if (curFrameCount_nomalized == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1 && !isAlreadyBGMade){
 				accIntArrayToMat(background_binaryVideo_gray, bg_array, FRAMES_FOR_MAKE_BACKGROUND);
 				imwrite(getTempBackgroundFilePath(fileNameNoExtension), background_binaryVideo_gray);
 			}
@@ -1690,6 +1693,7 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 
 				accIntArrayToMat(background_binaryVideo_gray, bg_array, FRAMES_FOR_MAKE_BACKGROUND);
 				imwrite(getTempBackgroundFilePath(fileNameNoExtension), background_binaryVideo_gray);
+				isAlreadyBGMade = true;
 				capture.set(CV_CAP_PROP_POS_FRAMES, releasedPoint);
 				capture.read(temp_frame);
 				cvtColor(temp_frame, temp_frame, CV_RGB2GRAY);
@@ -1781,6 +1785,7 @@ void CMFC_SyntheticDlg::OnReleasedcaptureSliderPlayer(NMHDR *pNMHDR, LRESULT *pR
 
 					//					imwrite(getTempBackgroundFilePath(fileNameNoExtension), bg_gray);
 					imwrite(getTempBackgroundFilePath(fileNameNoExtension), background_binaryVideo_gray);
+					isAlreadyBGMade = true;
 					capture.set(CV_CAP_PROP_POS_FRAMES, releasedPoint);
 				}
 
