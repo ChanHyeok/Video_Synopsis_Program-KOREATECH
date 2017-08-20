@@ -25,7 +25,7 @@ using namespace cv;
 const string SEGMENTATION_DATA_DIRECTORY_NAME = "data";
 
 // foreground threshold 관련
-const int FOREGROUND_THRESHOLD = 10;
+const int FOREGROUND_THRESHOLD = 13;
 
 // component vector Queue 관련
 const int MAXSIZE_OF_COMPONENT_VECTOR_QUEUE = 20;

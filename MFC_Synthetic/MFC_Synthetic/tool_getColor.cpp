@@ -21,27 +21,35 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 	unsigned char G = pixel_rgb[1];
 	unsigned char B = pixel_rgb[2];
 
+	// RGB의 합
+	int sumOfRGB = R + G + B;
+	
 	// 원색에서 차이 범위 +- 조정
 	// HSV 채널로 충분히 검출이 가능한 색상들
 
-	// +- 2로 감소
-	if ( ( H >= 179 && H >= 180)|| (H >= 0 && H <= 1) )  //  H :: 0 -> 0
+	// +- 2로 감소 (RGB이용)
+	 if ( ( H >= 179 && H >= 180)|| (H >= 0 && H <= 1) && R >= 160)
+	//if ( ( H >= 179 && H >= 180)|| (H >= 0 && H <= 1) )  //  H :: 0 -> 0
 		colorArray[RED]++;
 
-	// +- 6로 증가
-	if (H <= 26 && H >= 14)  // H :: 39 -> 19.5
+	// +- 4로 증가  (RGB이용)
+	if (H <= 24 && H >= 16 && R >= 150)
+	// if (H <= 24 && H >= 16)  // H :: 39 -> 19.5
 		colorArray[ORANGE]++;
 
-	// + 10로 증가, -로 12 증가
-	if (H <= 40 && H >= 18)  // H :: 60 -> 30
+	// + 10로 증가, -로 16 증가  (RGB이용)
+	 if (H <= 40 && H >= 14 && B <= 110 && abs(R-G) < 30)
+	//if (H <= 40 && H >= 18)  // H :: 60 -> 30
 		colorArray[YELLOW]++;
 
-	// +- 6로 증가
-	if (H <= 62 && H >= 54)  // H :: 120 -> 60
+	// +- 6로 증가  (RGB이용)
+	 	if (H <= 62 && H >= 54 && G >= 110) 
+	//if (H <= 62 && H >= 54)  // H :: 120 -> 60
 		colorArray[GREEN]++;
 
-	// +- 24으로 증가
-	if (H >= 96 && H <= 144)  // H :: 240 -> 120
+	// +- 18으로 증가  (RGB이용)
+	 if (H >= 102 && H <= 138 && B >= 110 && R <= 110 && G <= 110)
+	//if (H >= 102 && H <= 138)  // H :: 240 -> 120
 		colorArray[BLUE]++;
 
 	//
@@ -49,20 +57,23 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 		colorArray[MAGENTA]++;
 
 	// RGB를 이용하여 검출을 할 색상들(Black, Gray, White)
-	// RGB < 20
-	if (R >= 0 && R <= 20 && G >= 0 && G <= 20 && B >= 0 && B <= 20) {
+	
+	// RGB합 < 70
+	// if (R >= 0 && R <= 20 && G >= 0 && G <= 20 && B >= 0 && B <= 20) {
+	if (sumOfRGB <= 70 && abs(R-B) < 15 && abs(B - G) < 15 && abs(G - R) < 15) {
 		colorArray[BLACK]++;
 		color_point++;
 	}
 
-	// RGB > 90
-	if (R >= 90 && R <= 255 && G >= 90 && G <= 255 && B >= 90 && B <= 255) {
+	// RGB합 > 300
+	// if (R >= 90 && R <= 255 && G >= 90 && G <= 255 && B >= 90 && B <= 255) {
+	if (sumOfRGB >= 450 && abs(R - B) < 15 && abs(B - G) < 15 && abs(G - R) < 15) {
 		colorArray[WHITE]++;
 		color_point++;
 	}
 
-	// 25 < RGB < 45
-	if (R >= 25 && R <= 45 && G >= 25 && G <= 45 && B >= 25 && B <= 45) {	// Gray인지 판별
+	// 15 < RGB < 60
+	if (R >= 15 && R <= 60 && G >= 15 && G <= 60 && B >= 15 && B <= 60) {	// Gray인지 판별
 		colorArray[GRAY]++;
 		color_point++;
 	}
