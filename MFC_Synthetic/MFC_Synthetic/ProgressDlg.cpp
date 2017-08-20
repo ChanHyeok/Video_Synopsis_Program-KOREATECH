@@ -240,9 +240,10 @@ void CProgressDlg::OnTimer(UINT_PTR nIDEvent)
 			threshold(frame_g, frame_g, 5, 255, CV_THRESH_BINARY);
 
 			//// 노이즈 제거
+			frame_g = morphologyClosing(frame_g);
+			frame_g = morphologyClosing(frame_g);		
 			frame_g = morphologyOpening(frame_g);
-			frame_g = morphologyClosing(frame_g);
-			frame_g = morphologyClosing(frame_g);
+		
 			blur(frame_g, frame_g, Size(11, 11));
 
 			threshold(frame_g, frame_g, 10, 255, CV_THRESH_BINARY);

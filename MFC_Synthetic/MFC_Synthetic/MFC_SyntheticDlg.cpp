@@ -36,8 +36,8 @@ const char* LEFTBELOW = "좌하단";
 const char* RIGHTBELOW = "우하단";
 
 // 배경 생성
-const int FRAMES_FOR_MAKE_BACKGROUND = 1500;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
-const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 2000;	//다음 배경을 만들기 위한 시간간격(동적)
+const int FRAMES_FOR_MAKE_BACKGROUND = 800;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
+const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 1000;	//다음 배경을 만들기 위한 시간간격(동적)
 // fps가 약 23-25 가량 나오는 영상에서 약 1분이 흐른 framecount 값은 1500
 
 /***  전역변수  ***/
@@ -812,8 +812,8 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 // 이전과 연속적이어서 저장할 가치가 있는 지를 판별하는 함수
 bool IsSaveComponent(component curr_component, component prev_component) {
 	bool return_flag = true;
-	const int diff_component_height = ROWS / 16; //  ( 480/15 = 32)
-	const int diff_component_width = COLS / 16; //  ( 640/15 = 42)
+	const int diff_component_height = prev_component.height / 4; //  ( 480/15 = 32)
+	const int diff_component_width = prev_component.width / 4;//  ( 640/15 = 42)
 	// width와 height 크기를 비교
 	// 추후 색상 데이터를 보는 식으로 하여 강화
 	if (curr_component.label == prev_component.label) {
@@ -1236,6 +1236,7 @@ void CMFC_SyntheticDlg::OnBnClickedBtnMenuLoad() {
 		// // Play, Pause버튼 상태 초기화
 		isPlayBtnClicked = false;
 		isPauseBtnClicked = true;
+		isAlreadyBGMade = false;
 
 		// 라디오 버튼 초기화
 		CheckRadioButton(IDC_RADIO_PLAY1, IDC_RADIO_PLAY3, IDC_RADIO_PLAY1);

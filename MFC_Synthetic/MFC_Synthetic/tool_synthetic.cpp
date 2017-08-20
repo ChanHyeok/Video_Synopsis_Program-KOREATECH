@@ -28,24 +28,25 @@ Mat printObjOnBG(Mat background, segment obj, int* labelMap, string loadedFrameF
 	Mat frame = loadJPGObjectFile(obj, loadedFrameFileName);
 	// 블렌딩 프로세스
 	for (int i = obj.top; i < obj.bottom; i++) {
-		for (int j = obj.left + 1; j < obj.right; j++) {
-			Vec3b colorB = background.at<Vec3b>(Point(j, i));
-			Vec3b colorO = frame.at<Vec3b>(Point(j - obj.left, i - obj.top));
+		for (int j = obj.left; j < obj.right; j++) {
+			Vec3b colorB = background.at<Vec3b>(i,j);
+			Vec3b colorO = frame.at<Vec3b>(i - obj.top,j - obj.left );
 
 			if (labelMap[i * background.cols + j] == 1) {	//이전 객체가 이미 있을 경우
 				colorB[0] = (colorB[0] + colorO[0]) / 2;
 				colorB[1] = (colorB[1] + colorO[1]) / 2;
 				colorB[2] = (colorB[2] + colorO[2]) / 2;
-				background.at<Vec3b>(Point(j, i)) = colorB;
+				background.at<Vec3b>(i,j) = colorB;
 			} //Blending
 			else {
 				labelMap[i * background.cols + j] = 1;		//객체를 그렸다고 표시
 				colorB[0] = colorO[0];
 				colorB[1] = colorO[1];
 				colorB[2] = colorO[2];
-				background.at<Vec3b>(Point(j, i)) = colorB;
+				background.at<Vec3b>(i, j) = colorB;
 
 			}
+
 		}
 	}
 	return background;
