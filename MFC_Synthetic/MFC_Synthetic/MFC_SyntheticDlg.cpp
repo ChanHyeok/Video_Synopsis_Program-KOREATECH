@@ -912,8 +912,8 @@ bool isSizeContinue(component *curr_component, component *prev_component) {
 
 // 색 정보의 연속성을 따져서 저장을 할껀지 말껀지를 판별하는 함수
 bool isColorContinue(component *curr_component, component *prev_component) {
-	const int tolerance_of_hsv_value = 25;
-	const int tolerance_of_rgb_value = 25;
+	const int tolerance_of_hsv_value = 20;
+	const int tolerance_of_rgb_value = 20;
 	if (curr_component->label == prev_component->label && curr_component->timeTag == prev_component->timeTag) {
 		for (int c = 0; c < 3; c++) {
 			// hsv, rgh 영역에서 확인
