@@ -53,8 +53,8 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 		colorArray[GREEN]++;
 		hsv_flag = true;
 	}
-	// +- 22으로 증가  (RGB이용)
-	 if (H >= 98 && H <= 142 && B >= 120) {
+	// +- 21으로 증가  (RGB이용)
+	 if (H >= 99 && H <= 141 && B >= 130) {
 		 colorArray[BLUE]++;
 		 hsv_flag = true;
 	 }
@@ -86,8 +86,8 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 		}
 
 		// B > 150 && R, G < 110 
-		// blue값 검출에는 어드밴티치 적용 (b 10  RG 20 내림)
-		if (B >= 140 && R <= 90 && G <= 90) {
+		// blue값 검출에는 어드밴티치 적용 (b 5  RG 5 내림)
+		if (B >= 145 && R <= 105 && G <= 105) {
 			colorArray[BLUE]++;
 		}
 
