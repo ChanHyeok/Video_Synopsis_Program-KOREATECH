@@ -53,8 +53,8 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 		colorArray[GREEN]++;
 		hsv_flag = true;
 	}
-	// +- 21으로 증가  (RGB이용)
-	 if (H >= 99 && H <= 141 && B >= 130) {
+	// +- 18으로 증가  (RGB이용)
+	 if (H >= 102 && H <= 138 && B >= 130) {
 		 colorArray[BLUE]++;
 		 hsv_flag = true;
 	 }
@@ -86,8 +86,8 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 		}
 
 		// B > 150 && R, G < 110 
-		// blue값 검출에는 어드밴티치 적용 (b 5  RG 5 내림)
-		if (B >= 145 && R <= 105 && G <= 105) {
+		// blue값 검출에는 어드밴티치 적용
+		if (B >= 150 && R <= 120 && G <= 120) {
 			colorArray[BLUE]++;
 		}
 
@@ -109,13 +109,14 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 
 	// RGB합 > 380
 	// if (R >= 90 && R <= 255 && G >= 90 && G <= 255 && B >= 90 && B <= 255) {
-	if (sumOfRGB >= 380 && diff_RG < 15 && diff_GB < 15 && diff_BR < 15) {
+	if (sumOfRGB >= 400 && diff_RG < 15 && diff_GB < 15 && diff_BR < 15) {
 		colorArray[WHITE]++;
 		color_point++;
 	}
 
 	// 20 < RGB < 50
-	if (R >= 20 && R <= 50 && G >= 20 && G <= 50 && B >= 20 && B <= 50) {	// Gray인지 판별
+	if (R >= 20 && R <= 50 && G >= 20 && G <= 50 && B >= 20 && B <= 50
+		&& diff_RG < 15 && diff_GB < 15 && diff_BR < 15) {	// Gray인지 판별
 		colorArray[GRAY]++;
 		color_point++;
 	}

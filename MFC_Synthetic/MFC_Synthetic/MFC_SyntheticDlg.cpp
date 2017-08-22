@@ -728,8 +728,8 @@ int* getColorData(Mat frame, component *object, Mat binary, Mat bg, int frameCou
 	}
 
 	// 무채색, 유채색의 밸런스를 맞추기 위한 연산, white와 black의 weight 조절
-	colorArray[BLACK] *= 0.9;
-	colorArray[WHITE] *= 0.9;
+	colorArray[BLACK] *= 0.8;
+	colorArray[WHITE] *= 0.8;
 
 	// object의 색 영역(hsv, rgb) 평균 요소와 색 최종 카운트에 데이터 삽입,
 	for (int c = 0; c < 3; c++) {
@@ -860,7 +860,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 		double difference_value = (double)humanDetectedVector[humanCount].color_count 
 			/ (double)(humanDetectedVector[humanCount].height *humanDetectedVector[humanCount].width);
 		
-		if (difference_value > 0.22)
+		if (difference_value > 0.10)
 			save_flag = true;
 
 		else {
@@ -1962,14 +1962,16 @@ bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]){
 	// 첫번쨰가 0번쨰 요소, 두번쨰가 1번째 ...
 	unsigned int sorted_value[3] = { 0, }; 
 	int sorted_index[3] = { 0, };
-
+	int total_color_value = 0;
 	int check_count = 0;
 
 	// 많이 발견된 색상별로 순위를 매김(0~2순위)
 	for (int i = 0; i < COLORS; i++) {
-		// 체크카운트 올려줌
-		if (colorCheckArray[i] == true)
-			check_count++;
+		// 전체 색상값의 합을 구함
+		total_color_value += colorArray[i];
+
+		// 전체 체크한 갯수를 구함
+		if (colorCheckArray[i] == true) check_count++;
 
 		if (colorArray[i] >= sorted_value[0]){
 			sorted_value[2] = sorted_value[1];
@@ -1999,21 +2001,25 @@ bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]){
 	*/
 
 	// 희소색에 가중치 부여 (현재 red, orange, yellow에 대해서)
-	if (sorted_index[2] == RED || sorted_index[2] == ORANGE || sorted_index[2] == YELLOW) {
-		sorted_value[2] *= 1.3;
-		if (sorted_value[2] > sorted_value[1]) {
-			int temp_value = sorted_value[2];
-			sorted_value[2] = sorted_value[1];
-			sorted_value[1] = temp_value;
-		}
+	// 또한 두번쨰로 검정색 또는 하양이 많이 나오는 경우는 인덱스 하나 밀어주기
+	if (sorted_index[2] == RED || sorted_index[2] == ORANGE || sorted_index[2] == YELLOW
+		|| ((sorted_index[1] == BLACK || sorted_index[1] == WHITE))) {
+		int temp_value = sorted_value[2];
+		sorted_value[2] = sorted_value[1];
+		sorted_value[1] = temp_value;
 	}
 
-	// 두번째로 많이 나온 색깔이 블랙일 경우에는 인덱스 하나 미뤄주기
-	if (colorCheckArray[BLACK] == true && (sorted_index[1] == BLACK && check_count > 1)) {
-		printf("두번째로 black이 많이 나옴\n");
-		sorted_index[2] = sorted_index[1];
-	}
+	// 또한 두번쨰로 검정색 또는 하양이 많이 나오는 경우는 인덱스 하나 밀어주기
 
+
+	// 전체 나온 색깔의 비율을 따져서 세번쨰, 두번째로 나온 색상도 검출할 것인지 판별함
+	if (((double)sorted_value[2] / (double)total_color_value) > 0.13) 
+		return isColorChecker(colorCheckArray, sorted_index, 3);
+
+	if (((double)sorted_value[1] / (double)total_color_value) > 0.13) 
+		return isColorChecker(colorCheckArray, sorted_index, 2);
+
+	/*
 	// 두번째로 많이 나온 색깔과 첫 번쨰 나온 색과 차이가 클 경우에 (일반 색상에서)
 	if ((double)sorted_value[1] < (double)sorted_value[0] * 0.4) {
 		if (colorCheckArray[sorted_index[0]])
@@ -2030,23 +2036,16 @@ bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]){
 		else
 			return false;
 	}
-
-	// 세번쨰 값이 두번째의 값과 차이가 거의 없을 경우
-	if ((double)sorted_value[2] > (double)sorted_value[1] * 0.85) {
-		printf("세번째 값과 두번쨰 값 차이 거이 없음\n");
-		// 세번째 체크된 값도 검출되게끔 조정
-		if (colorCheckArray[sorted_index[0]] || colorCheckArray[sorted_index[1]] || colorCheckArray[sorted_index[2]])
-			return true;
-		else
-			return false;
-	}
-
-
+	*/
 	// 일반적인 경우
-	if (colorCheckArray[sorted_index[0]] || colorCheckArray[sorted_index[1]])
-		return true;
-	else
-		return false;
+	return isColorChecker(colorCheckArray, sorted_index, 1);
+}
+
+bool isColorChecker(boolean color_array[], int sorted_index[], int num_of_index) {
+	bool colorcheck_flag = false;
+	for (int i = 0; i < num_of_index; i++) 
+		colorcheck_flag = colorcheck_flag || color_array[sorted_index[num_of_index]];
+	return colorcheck_flag;
 }
 
 // 방향과 색깔이 매치하는 지를 확인하는 함수
