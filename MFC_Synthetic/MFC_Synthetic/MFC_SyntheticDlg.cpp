@@ -5,6 +5,7 @@
 #include "MFC_SyntheticDlg.h"
 #include "afxdialogex.h"
 #include "ProgressDlg.h"
+#include "InitBGCounts.h"
 
 // 메모리 누수를 점검하는 키워드 (http://codes.xenotech.net/38)
 // 점검하기 위해 디버깅 모드로 실행 후, 디버그 로그를 보면 됨
@@ -36,8 +37,8 @@ const char* LEFTBELOW = "좌하단";
 const char* RIGHTBELOW = "우하단";
 
 // 배경 생성
-const int FRAMES_FOR_MAKE_BACKGROUND = 1000;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
-const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 2000;	//다음 배경을 만들기 위한 시간간격(동적)
+int FRAMES_FOR_MAKE_BACKGROUND;//영상 Load시 처음에 배경을 만들기 위한 프레임 수
+int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND;//다음 배경을 만들기 위한 시간간격(동적)
 // fps가 약 23-25 가량 나오는 영상에서 약 1분이 흐른 framecount 값은 1500
 
 /***  전역변수  ***/
@@ -221,6 +222,15 @@ int CMFC_SyntheticDlg::loadFile(int mode) {
 	char szFilter[] = "Video (*.avi, *.MP4) | *.avi;*.mp4; | All Files(*.*)|*.*||";	//검색 옵션
 	CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, szFilter, AfxGetMainWnd());	//파일 다이얼로그 생성
 	if (dlg.DoModal() == 1) {	//다이얼로그 띄움
+		//FRAMES_FOR_MAKE_BACKGROUND, FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND 입력 받기
+		CInitBGCounts InitBGCount(this);                // this 를 사용하여 부모를 지정.
+		InitBGCount.CenterWindow();
+		if (InitBGCount.DoModal() == 1){//OK 눌렀을 경우
+			FRAMES_FOR_MAKE_BACKGROUND = InitBGCount.BGMAKINGCOUNTS;
+			FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = InitBGCount.BGUPDATECOUNTS;
+		}
+		else OnCancel();
+
 		//load한 영상의 이름을 text control에 표시
 		CString cstrImgPath = dlg.GetPathName();	//path
 		videoFilePath = (string)cstrImgPath;
