@@ -37,14 +37,8 @@ const char* LEFTBELOW = "좌하단";
 const char* RIGHTBELOW = "우하단";
 
 // 배경 생성
-<<<<<<< HEAD
-
-const int FRAMES_FOR_MAKE_BACKGROUND = 800;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
-const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 1000;	//다음 배경을 만들기 위한 시간간격(동적)
-=======
 int FRAMES_FOR_MAKE_BACKGROUND;//영상 Load시 처음에 배경을 만들기 위한 프레임 수
 int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND;//다음 배경을 만들기 위한 시간간격(동적)
->>>>>>> set_extra_module
 // fps가 약 23-25 가량 나오는 영상에서 약 1분이 흐른 framecount 값은 1500
 
 /***  전역변수  ***/
@@ -544,13 +538,9 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 			if (curFrameCount_nomalized >= (FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND)){
 				if (curFrameCount_nomalized == (FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND)){	//새로 만드는 첫 배경 Init
 					printf("Background Making Start : %d frame\n", curFrameCount);
-<<<<<<< HEAD
 					//temp_frame.copyTo(background_binaryVideo_gray);
 					setArrayToZero(bg_array, ROWS, COLS);
 					isAlreadyBGMade = false;
-=======
-					background_binaryVideo_gray = temp_frame.clone();
->>>>>>> set_extra_module
 				}
 				else{	//배경 생성
 					//temporalMedianBG(temp_frame, background_binaryVideo_gray);
@@ -704,94 +694,6 @@ bool isColorDataOperation(Mat frame, Mat bg, Mat binary, int i_height, int j_wid
 		binary.data[i_height*binary.cols + j_width] == 255;
 }
 
-<<<<<<< HEAD
-// colorArray를 구성하면서, component의 색 정보를 확인함
-int* getColorData(Mat frame, component *object, Mat binary, Mat bg, int frameCount, int currentMsec){
-	Mat temp; frame.copyTo(temp);
-	
-	// color 배열 초기화, 동적생성, segmentation 저장 이후 메모리 해제함
-=======
-int* getColorArray(Mat frame, component object, Mat binary){
-	Mat temp = frame.clone();
-	Mat bg_copy = imread(getBackgroundFilePath(fileNameNoExtension));
->>>>>>> set_extra_module
-	int *colorArray = new int[COLORS];
-	for (int i = 0; i < COLORS; i++)
-		colorArray[i] = 0;
-
-	//원본 프레임 각각 RGB, HSV로 변환하기
-	Mat frame_hsv, frame_rgb;
-	cvtColor(temp, frame_hsv, CV_BGR2HSV);
-	cvtColor(temp, frame_rgb, CV_BGR2RGB);
-
-	int sum_of_color_array[6] = { 0 , };
-
-	// 한 프레임에서 유효한 color을 추출하는 연산을 하는 횟수, component의 color_count에 저장
-	int temp_color_count = 0;
-	for (int i = object->top; i < object->bottom; i++) {
-		Vec3b* ptr_temp = temp.ptr<Vec3b>(i);
-		Vec3b* ptr_color_hsv = frame_hsv.ptr<Vec3b>(i);
-		Vec3b* ptr_color_rgb = frame_rgb.ptr<Vec3b>(i);
-
-		for (int j = object->left + 1; j < object->right; j++) {
-			// 색상 데이터 저장
-			if (isColorDataOperation(frame, bg, binary, i, j)) {
-				temp_color_count++;
-				int color_check = colorPicker(ptr_color_hsv[j], ptr_color_rgb[j], colorArray);
-
-				// 한 component의 color 평균을 구하기 위해 임시 배열에 합을 구함
-				for (int c = 0; c < 3; c++) {
-					sum_of_color_array[c] += ptr_color_hsv[j][c];
-					sum_of_color_array[c + 3] += ptr_color_rgb[j][c];
-				}
-			}
-			else {
-				ptr_temp[j] = Vec3b(0, 0, 0);
-			}
-
-		}
-	}
-
-	// 무채색, 유채색의 밸런스를 맞추기 위한 연산, white와 black의 weight 조절
-	colorArray[BLACK] *= 0.8;
-	colorArray[WHITE] *= 0.8;
-
-	// object의 색 영역(hsv, rgb) 평균 요소와 색 최종 카운트에 데이터 삽입,
-	for (int c = 0; c < 3; c++) {
-		object->hsv_avarage[c] = 0;
-		object->rgb_avarage[c] = 0;
-		if (sum_of_color_array[c] > 0 && sum_of_color_array[c + 3] > 0) {
-			object->hsv_avarage[c] = sum_of_color_array[c] / object->area;
-			object->rgb_avarage[c] = sum_of_color_array[c + 3] / object->area;
-		}
-	}
-	object->color_count = temp_color_count;
-
-	// color를 위한 obj를 jpg파일로 저장
-	// 추후 삭제
-	component temp_object = *object;
-	temp_object.fileName = allocatingComponentFilename(temp_object.timeTag, currentMsec, frameCount, temp_object.label);
-	saveSegmentation_JPG(temp_object, temp, getObj_for_colorDirectoryPath(fileNameNoExtension));
-
-	// 확인 코드
-	/*
-	printf("timatag = %d) [", object.timeTag);
-	for (int i = 0; i < 6; i++) {
-		double color_value = (double)temp_color_array[i] / (double)get_color_data_count;
-		printf("%.0lf ", color_value);
-	}
-	printf("] rate = %.2lf \n", rate_of_color_operation);
-	*/
-
-	//printf("%10d : ", object.timeTag);
-	//for (int i = 0; i < COLORS;i++)
-	//	printf("%d ",colorArray[i]);
-	//printf("\n");
-
-	temp = NULL;
-	temp.release();
-	return colorArray;
-}
 
 // component vector 큐를 이용한 추가된 함수
 vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector

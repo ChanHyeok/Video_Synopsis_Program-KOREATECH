@@ -206,11 +206,8 @@ void CProgressDlg::OnTimer(UINT_PTR nIDEvent)
 			if (curFrameCount_nomalized >= (FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND)){
 				if (curFrameCount_nomalized == (FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND)){	//새로 만드는 첫 배경 Init
 					printf("Background Making Start : %d frame\n", curFrameCount);
-<<<<<<< HEAD
+
 					setArrayToZero(bg_array,ROWS,COLS);
-=======
-					bg_gray = frame_g.clone();
->>>>>>> set_extra_module
 				}
 				else{	//배경 생성
 					averageBG(frame_g, bg_array);
