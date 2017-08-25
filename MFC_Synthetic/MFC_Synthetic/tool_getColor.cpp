@@ -1,3 +1,4 @@
+#include <opencv2\xphoto\white_balance.hpp>
 #include "stdafx.h"
 #include "MFC_Synthetic.h"
 #include "MFC_SyntheticDlg.h"
@@ -8,6 +9,9 @@ int* getColorData(Mat frame, component *object, Mat binary, Mat bg, int frameCou
 	int *colorArray = new int[COLORS];
 	for (int i = 0; i < COLORS; i++)
 		colorArray[i] = 0;
+
+	// 색 항상성을 고려한 보간 알고리즘 적용
+	cv::xphoto::createGrayworldWB()->balanceWhite(temp, temp);
 
 	//원본 프레임 각각 RGB, HSV로 변환하기
 	Mat frame_hsv, frame_rgb;
