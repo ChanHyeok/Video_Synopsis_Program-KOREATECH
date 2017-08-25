@@ -4,6 +4,9 @@
 
 #pragma once
 #include <opencv2/opencv.hpp>
+//#include <opencv\cv.hpp>
+//#include <opencv2\core\core.hpp>
+//#include <opencv2\core.hpp>
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/highgui.hpp"
 #include <iostream>
@@ -168,6 +171,7 @@ int readSegmentTxtFile(segment*);
 
 bool isColorDataOperation(Mat frame, Mat bg, Mat, int i_height, int j_width);
 int* getColorData(Mat frame, component *object, Mat binary, Mat bg, int frameCount, int currentMsec);
+bool isColorChecker(boolean color_array[], int sorted_index[], int num_of_index);
 
 string currentDateTime();
 

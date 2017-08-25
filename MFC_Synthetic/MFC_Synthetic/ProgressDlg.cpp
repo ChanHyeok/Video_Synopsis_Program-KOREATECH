@@ -206,6 +206,7 @@ void CProgressDlg::OnTimer(UINT_PTR nIDEvent)
 			if (curFrameCount_nomalized >= (FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND)){
 				if (curFrameCount_nomalized == (FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND)){	//새로 만드는 첫 배경 Init
 					printf("Background Making Start : %d frame\n", curFrameCount);
+
 					setArrayToZero(bg_array,ROWS,COLS);
 				}
 				else{	//배경 생성
@@ -284,7 +285,7 @@ void CProgressDlg::OnTimer(UINT_PTR nIDEvent)
 		text = "...합성 영상 저장 중"; 
 		m_StaticMessage.SetWindowTextA(text.c_str());
 		if (true){
-			Mat bg_copy; frame.copyTo(bg_copy);
+			Mat bg_copy = frame.clone();
 	
 			// 불러온 배경을 이용하여 합성을 진행
 			Mat syntheticResult = ((CMFC_SyntheticDlg *)GetParent())->getSyntheticFrame(&segment_queue, bg_copy, segmentArray);

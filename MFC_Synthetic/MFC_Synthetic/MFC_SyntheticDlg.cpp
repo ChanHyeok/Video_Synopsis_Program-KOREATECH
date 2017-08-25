@@ -5,6 +5,7 @@
 #include "MFC_SyntheticDlg.h"
 #include "afxdialogex.h"
 #include "ProgressDlg.h"
+#include "InitBGCounts.h"
 
 // 메모리 누수를 점검하는 키워드 (http://codes.xenotech.net/38)
 // 점검하기 위해 디버깅 모드로 실행 후, 디버그 로그를 보면 됨
@@ -36,9 +37,8 @@ const char* LEFTBELOW = "좌하단";
 const char* RIGHTBELOW = "우하단";
 
 // 배경 생성
-
-const int FRAMES_FOR_MAKE_BACKGROUND = 800;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
-const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 1000;	//다음 배경을 만들기 위한 시간간격(동적)
+int FRAMES_FOR_MAKE_BACKGROUND;//영상 Load시 처음에 배경을 만들기 위한 프레임 수
+int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND;//다음 배경을 만들기 위한 시간간격(동적)
 // fps가 약 23-25 가량 나오는 영상에서 약 1분이 흐른 framecount 값은 1500
 
 /***  전역변수  ***/
@@ -223,6 +223,15 @@ int CMFC_SyntheticDlg::loadFile(int mode) {
 	char szFilter[] = "Video (*.avi, *.MP4) | *.avi;*.mp4; | All Files(*.*)|*.*||";	//검색 옵션
 	CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, szFilter, AfxGetMainWnd());	//파일 다이얼로그 생성
 	if (dlg.DoModal() == 1) {	//다이얼로그 띄움
+		//FRAMES_FOR_MAKE_BACKGROUND, FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND 입력 받기
+		CInitBGCounts InitBGCount(this);                // this 를 사용하여 부모를 지정.
+		InitBGCount.CenterWindow();
+		if (InitBGCount.DoModal() == 1){//OK 눌렀을 경우
+			FRAMES_FOR_MAKE_BACKGROUND = InitBGCount.BGMAKINGCOUNTS;
+			FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = InitBGCount.BGUPDATECOUNTS;
+		}
+		else OnCancel();
+
 		//load한 영상의 이름을 text control에 표시
 		CString cstrImgPath = dlg.GetPathName();	//path
 		videoFilePath = (string)cstrImgPath;
@@ -600,7 +609,7 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 		break;
 	case SYN_RESULT_TIMER:
 		printf("#");
-		Mat bg_copy; background_loadedFromFile.copyTo(bg_copy);
+		Mat bg_copy = background_loadedFromFile.clone();
 		// 불러온 배경을 이용하여 합성을 진행
 		Mat syntheticResult = getSyntheticFrame(&segment_queue, bg_copy, m_segmentArray);
 		DisplayImage(IDC_RESULT_IMAGE, syntheticResult, SYN_RESULT_TIMER);
@@ -685,88 +694,6 @@ bool isColorDataOperation(Mat frame, Mat bg, Mat binary, int i_height, int j_wid
 		binary.data[i_height*binary.cols + j_width] == 255;
 }
 
-// colorArray를 구성하면서, component의 색 정보를 확인함
-int* getColorData(Mat frame, component *object, Mat binary, Mat bg, int frameCount, int currentMsec){
-	Mat temp; frame.copyTo(temp);
-	
-	// color 배열 초기화, 동적생성, segmentation 저장 이후 메모리 해제함
-	int *colorArray = new int[COLORS];
-	for (int i = 0; i < COLORS; i++)
-		colorArray[i] = 0;
-
-	//원본 프레임 각각 RGB, HSV로 변환하기
-	Mat frame_hsv, frame_rgb;
-	cvtColor(temp, frame_hsv, CV_BGR2HSV);
-	cvtColor(temp, frame_rgb, CV_BGR2RGB);
-
-	int sum_of_color_array[6] = { 0 , };
-
-	// 한 프레임에서 유효한 color을 추출하는 연산을 하는 횟수, component의 color_count에 저장
-	int temp_color_count = 0;
-	for (int i = object->top; i < object->bottom; i++) {
-		Vec3b* ptr_temp = temp.ptr<Vec3b>(i);
-		Vec3b* ptr_color_hsv = frame_hsv.ptr<Vec3b>(i);
-		Vec3b* ptr_color_rgb = frame_rgb.ptr<Vec3b>(i);
-
-		for (int j = object->left + 1; j < object->right; j++) {
-			// 색상 데이터 저장
-			if (isColorDataOperation(frame, bg, binary, i, j)) {
-				temp_color_count++;
-				int color_check = colorPicker(ptr_color_hsv[j], ptr_color_rgb[j], colorArray);
-
-				// 한 component의 color 평균을 구하기 위해 임시 배열에 합을 구함
-				for (int c = 0; c < 3; c++) {
-					sum_of_color_array[c] += ptr_color_hsv[j][c];
-					sum_of_color_array[c + 3] += ptr_color_rgb[j][c];
-				}
-			}
-			else {
-				ptr_temp[j] = Vec3b(0, 0, 0);
-			}
-
-		}
-	}
-
-	// 무채색, 유채색의 밸런스를 맞추기 위한 연산, white와 black의 weight 조절
-	colorArray[BLACK] *= 0.9;
-	colorArray[WHITE] *= 0.9;
-
-	// object의 색 영역(hsv, rgb) 평균 요소와 색 최종 카운트에 데이터 삽입,
-	for (int c = 0; c < 3; c++) {
-		object->hsv_avarage[c] = 0;
-		object->rgb_avarage[c] = 0;
-		if (sum_of_color_array[c] > 0 && sum_of_color_array[c + 3] > 0) {
-			object->hsv_avarage[c] = sum_of_color_array[c] / object->area;
-			object->rgb_avarage[c] = sum_of_color_array[c + 3] / object->area;
-		}
-	}
-	object->color_count = temp_color_count;
-
-	// color를 위한 obj를 jpg파일로 저장
-	// 추후 삭제
-	component temp_object = *object;
-	temp_object.fileName = allocatingComponentFilename(temp_object.timeTag, currentMsec, frameCount, temp_object.label);
-	saveSegmentation_JPG(temp_object, temp, getObj_for_colorDirectoryPath(fileNameNoExtension));
-
-	// 확인 코드
-	/*
-	printf("timatag = %d) [", object.timeTag);
-	for (int i = 0; i < 6; i++) {
-		double color_value = (double)temp_color_array[i] / (double)get_color_data_count;
-		printf("%.0lf ", color_value);
-	}
-	printf("] rate = %.2lf \n", rate_of_color_operation);
-	*/
-
-	//printf("%10d : ", object.timeTag);
-	//for (int i = 0; i < COLORS;i++)
-	//	printf("%d ",colorArray[i]);
-	//printf("\n");
-
-	temp = NULL;
-	temp.release();
-	return colorArray;
-}
 
 // component vector 큐를 이용한 추가된 함수
 vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, vector<component> prevHumanDetectedVector
@@ -861,7 +788,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 		double difference_value = (double)humanDetectedVector[humanCount].color_count 
 			/ (double)(humanDetectedVector[humanCount].height *humanDetectedVector[humanCount].width);
 		
-		if (difference_value > 0.17)
+		if (difference_value > 0.10)
 			save_flag = true;
 
 		else {
@@ -887,18 +814,12 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 
 // 이전과 연속적이어서 저장할 가치가 있는 지를 판별하는 함수
 bool isSizeContinue(component *curr_component, component *prev_component) {
-	const int diff_component_height = prev_component->height* 0.24; //  ( 480/15 = 32)
-	const int diff_component_width = prev_component->width * 0.24; //  ( 640/15 = 42)
+	const int diff_component_height = prev_component->height* 0.3; //  ( 480/15 = 32)
+	const int diff_component_width = prev_component->width * 0.3; //  ( 640/15 = 42)
 
 	// width와 height 크기를 비교
 	// 추후 색상 데이터를 보는 식으로 하여 강화
-	if (curr_component->label == prev_component->label && curr_component->timeTag == prev_component->timeTag) {
-		if ((prev_component->width < (COLS / 15)) && (prev_component->height < (ROWS / 15))
-			&& (abs(curr_component->width - prev_component->width) > diff_component_width * 1.3) ||
-			(abs(curr_component->height - prev_component->height) > diff_component_height * 1.3) ) {
-			return false;
-		}
-		
+	if (curr_component->label == prev_component->label) {
 		if ((abs(curr_component->width - prev_component->width) > diff_component_width) ||
 			(abs(curr_component->height - prev_component->height) > diff_component_height)) {
 			printf("save fail, Size unContinue %d %d %d!!\n", prev_component->timeTag
@@ -962,7 +883,11 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Queue* segment_queue, Mat bgFrame, segm
 
 		// 빈 프레임 반환
 		Mat nullFrame(ROWS, COLS, CV_8UC1);
-		nullFrame.setTo(Scalar(0));
+		for (int i = 0; i < ROWS; i++) {
+			for (int j = 0; j < COLS; j++) 
+				nullFrame.data[j + i*COLS] = 0;
+		}
+	//	nullFrame.Mat::setTo(Scalar(0));
 		return nullFrame;
 	}
 
@@ -1971,14 +1896,16 @@ bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]){
 	// 첫번쨰가 0번쨰 요소, 두번쨰가 1번째 ...
 	unsigned int sorted_value[3] = { 0, }; 
 	int sorted_index[3] = { 0, };
-
+	int total_color_value = 0;
 	int check_count = 0;
 
 	// 많이 발견된 색상별로 순위를 매김(0~2순위)
 	for (int i = 0; i < COLORS; i++) {
-		// 체크카운트 올려줌
-		if (colorCheckArray[i] == true)
-			check_count++;
+		// 전체 색상값의 합을 구함
+		total_color_value += colorArray[i];
+
+		// 전체 체크한 갯수를 구함
+		if (colorCheckArray[i] == true) check_count++;
 
 		if (colorArray[i] >= sorted_value[0]){
 			sorted_value[2] = sorted_value[1];
@@ -2008,21 +1935,33 @@ bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]){
 	*/
 
 	// 희소색에 가중치 부여 (현재 red, orange, yellow에 대해서)
+	// 또한 두번쨰로 검정색 또는 하양이 많이 나오는 경우는 인덱스 하나 밀어주기
+	/*
 	if (sorted_index[2] == RED || sorted_index[2] == ORANGE || sorted_index[2] == YELLOW) {
-		sorted_value[2] *= 1.3;
+		sorted_value[2] *= 1.4;
 		if (sorted_value[2] > sorted_value[1]) {
 			int temp_value = sorted_value[2];
 			sorted_value[2] = sorted_value[1];
 			sorted_value[1] = temp_value;
 		}
 	}
+	*/
 
-	// 두번째로 많이 나온 색깔이 블랙일 경우에는 인덱스 하나 미뤄주기
-	if (colorCheckArray[BLACK] == true && (sorted_index[1] == BLACK && check_count > 1)) {
-		printf("두번째로 black이 많이 나옴\n");
-		sorted_index[2] = sorted_index[1];
+	// 또한 두번쨰로 검정색 또는 하양이 많이 나오는 경우는 인덱스 하나 밀어주기
+	if (sorted_index[1] == BLACK || sorted_index[1] == WHITE) {
+		int temp_value = sorted_value[2];
+		sorted_value[2] = sorted_value[1];
+		sorted_value[1] = temp_value;
 	}
+	
+	// 전체 나온 색깔의 비율을 따져서 세번째, 두번째로 나온 색상도 검출할 것인지 판별함
+	if (((double)sorted_value[2] / (double)total_color_value) > 0.2) 
+		return isColorChecker(colorCheckArray, sorted_index, 3);
 
+	if (((double)sorted_value[1] / (double)total_color_value) > 0.2) 
+		return isColorChecker(colorCheckArray, sorted_index, 2);
+
+	/*
 	// 두번째로 많이 나온 색깔과 첫 번쨰 나온 색과 차이가 클 경우에 (일반 색상에서)
 	if ((double)sorted_value[1] < (double)sorted_value[0] * 0.4) {
 		if (colorCheckArray[sorted_index[0]])
@@ -2039,23 +1978,16 @@ bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]){
 		else
 			return false;
 	}
-
-	// 세번쨰 값이 두번째의 값과 차이가 거의 없을 경우
-	if ((double)sorted_value[2] > (double)sorted_value[1] * 0.85) {
-		printf("세번째 값과 두번쨰 값 차이 거이 없음\n");
-		// 세번째 체크된 값도 검출되게끔 조정
-		if (colorCheckArray[sorted_index[0]] || colorCheckArray[sorted_index[1]] || colorCheckArray[sorted_index[2]])
-			return true;
-		else
-			return false;
-	}
-
-
+	*/
 	// 일반적인 경우
-	if (colorCheckArray[sorted_index[0]] || colorCheckArray[sorted_index[1]])
-		return true;
-	else
-		return false;
+	return isColorChecker(colorCheckArray, sorted_index, 1);
+}
+
+bool isColorChecker(boolean color_array[], int sorted_index[], int num_of_index) {
+	bool colorcheck_flag = false;
+	for (int i = 0; i < num_of_index; i++) 
+		colorcheck_flag = colorcheck_flag || color_array[sorted_index[i]];
+	return colorcheck_flag;
 }
 
 // 방향과 색깔이 매치하는 지를 확인하는 함수

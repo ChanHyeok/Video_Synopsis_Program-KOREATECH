@@ -2,9 +2,9 @@
 #include "MFC_Synthetic.h"
 #include "MFC_SyntheticDlg.h"
 #include "afxdialogex.h"
-#include <opencv2\opencv.hpp>
-#include <opencv\highgui.h>
-#include <opencv\cv.h>
+//#include <opencv2\opencv.hpp>
+//#include <opencv\highgui.h>
+//#include <opencv\cv.h>
 #include <direct.h>
 #include <io.h>
 
@@ -254,6 +254,7 @@ Mat loadJPGObjectFile(segment obj, string file_name) {
 }
 
 // ROI영역만 추출하는 함수
+
 Mat objectCutting(component object, Mat img, unsigned int ROWS, unsigned int COLS) {
 	return img(Rect(object.left, object.top, object.width, object.height)).clone();
 	//잘린 이미지 반환
