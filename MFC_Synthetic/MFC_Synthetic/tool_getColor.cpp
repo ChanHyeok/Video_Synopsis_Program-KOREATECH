@@ -1,8 +1,8 @@
-#include <opencv2\xphoto\white_balance.hpp>
 #include "stdafx.h"
 #include "MFC_Synthetic.h"
 #include "MFC_SyntheticDlg.h"
 #include "afxdialogex.h"
+#include <opencv2\xphoto\white_balance.hpp>
 
 int* getColorData(Mat frame, component *object, Mat binary, Mat bg, int frameCount, int currentMsec) {
 	Mat temp = frame.clone();
@@ -132,18 +132,19 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 		hsv_flag = true;
 	}
 
-	// +- 6로 증가  (RGB이용)
+	// +- 6로 증가  (RGB이용) // H :: 120 -> 60
 	if (H <= 62 && H >= 54 && G >= 130) {
 		colorArray[GREEN]++;
 		hsv_flag = true;
 	}
-	// +- 18으로 증가  (RGB이용)
-	if (H >= 102 && H <= 138 && B >= 130) {
+	// +- 12으로 증가  (RGB이용)  // H :: 240 -> 120
+	if (H >= 108 && H <= 132 && B >= 140) {
 		colorArray[BLUE]++;
 		hsv_flag = true;
 	}
 
-	if (H <= 154 && H >= 146) { // H :: 300 -> 150
+	// +- 6으로 증가
+	if (H <= 156 && H >= 144) { // H :: 300 -> 150
 		colorArray[MAGENTA]++;
 		hsv_flag = true;
 	}
@@ -169,9 +170,9 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 			colorArray[GREEN]++;
 		}
 
-		// B > 150 && R, G < 110 
+		// B > 160 && R, G < 100 
 		// blue값 검출에는 어드밴티치 적용
-		if (B >= 150 && R <= 120 && G <= 120) {
+		if (B >= 160 && R <= 100 && G <= 100) {
 			colorArray[BLUE]++;
 		}
 
@@ -186,7 +187,7 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 
 	// RGB합 < 65
 	// if (R >= 0 && R <= 20 && G >= 0 && G <= 20 && B >= 0 && B <= 20) {
-	if (sumOfRGB <= 65 && diff_RG < 15 && diff_GB < 15 && diff_BR < 15) {
+	if (sumOfRGB <= 55 && diff_RG < 15 && diff_GB < 15 && diff_BR < 15) {
 		colorArray[BLACK]++;
 		color_point++;
 	}
@@ -198,8 +199,8 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 		color_point++;
 	}
 
-	// 20 < RGB < 50
-	if (R >= 20 && R <= 50 && G >= 20 && G <= 50 && B >= 20 && B <= 50
+	// 25 < RGB < 50
+	if (R >= 25 && R <= 50 && G >= 25 && G <= 50 && B >= 25 && B <= 50
 		&& diff_RG < 15 && diff_GB < 15 && diff_BR < 15) {	// Gray인지 판별
 		colorArray[GRAY]++;
 		color_point++;

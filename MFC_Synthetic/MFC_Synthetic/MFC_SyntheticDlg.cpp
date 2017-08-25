@@ -813,8 +813,8 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 
 // 이전과 연속적이어서 저장할 가치가 있는 지를 판별하는 함수
 bool isSizeContinue(component *curr_component, component *prev_component) {
-	const int diff_component_height = prev_component->height* 0.18; //  ( 480/15 = 32)
-	const int diff_component_width = prev_component->width * 0.18; //  ( 640/15 = 42)
+	const int diff_component_height = prev_component->height* 0.25; //  ( 480/15 = 32)
+	const int diff_component_width = prev_component->width * 0.25; //  ( 640/15 = 42)
 
 	// width와 height 크기를 비교
 	// 추후 색상 데이터를 보는 식으로 하여 강화
