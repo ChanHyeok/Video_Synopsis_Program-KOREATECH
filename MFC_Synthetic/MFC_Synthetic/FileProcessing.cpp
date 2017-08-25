@@ -2,9 +2,9 @@
 #include "MFC_Synthetic.h"
 #include "MFC_SyntheticDlg.h"
 #include "afxdialogex.h"
-#include <opencv2\opencv.hpp>
-#include <opencv\highgui.h>
-#include <opencv\cv.h>
+//#include <opencv2\opencv.hpp>
+//#include <opencv\highgui.h>
+//#include <opencv\cv.h>
 #include <direct.h>
 #include <io.h>
 
@@ -16,7 +16,7 @@ int directionChecker(component object, int ROWS, int COLS);
 //string allocatingComponentFilename(int timeTag, int currentMsec, int frameCount, int label_num);
 
 // segment 폴더 안에 Segmentation된 Obj만을 jpg파일로 저장하는 함수
-Mat objectCutting(component object, Mat img, unsigned int ROWS, unsigned int COLS);
+//Mat objectCutting(component object, Mat img, unsigned int ROWS, unsigned int COLS);
 
 string readTxt(string path){
 	string result;
@@ -172,7 +172,7 @@ void saveDetailData(string fileNameNoExtension, component object, int *colorArra
 void saveSegmentation_JPG(component object, Mat frame, string video_path) {
 	string fullPath;
 	// 저장할 이미지를 받아옴
-	Mat img = objectCutting(object, frame, frame.rows, frame.cols);
+	Mat img = img(Rect(object.left, object.top, object.width, object.height)).clone();
 
 	// 저장 될 경로를 따라 파일 이름을 생성
 	stringstream ss;
@@ -254,11 +254,12 @@ Mat loadJPGObjectFile(segment obj, string file_name) {
 }
 
 // ROI영역만 추출하는 함수
+/*
 Mat objectCutting(component object, Mat img, unsigned int ROWS, unsigned int COLS) {
 	return img(Rect(object.left, object.top, object.width, object.height)).clone();
 	//잘린 이미지 반환
 }
-
+*/
 // 텍스트 파일(세그먼트 정보가 저장된) 이름을 반환하는 함수
 string getTextFilePath(string video_name) {
 	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name

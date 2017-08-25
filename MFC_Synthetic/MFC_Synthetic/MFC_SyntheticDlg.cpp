@@ -5,6 +5,7 @@
 #include "MFC_SyntheticDlg.h"
 #include "afxdialogex.h"
 #include "ProgressDlg.h"
+#include "InitBGCounts.h"
 
 // 메모리 누수를 점검하는 키워드 (http://codes.xenotech.net/38)
 // 점검하기 위해 디버깅 모드로 실행 후, 디버그 로그를 보면 됨
@@ -36,9 +37,14 @@ const char* LEFTBELOW = "좌하단";
 const char* RIGHTBELOW = "우하단";
 
 // 배경 생성
+<<<<<<< HEAD
 
 const int FRAMES_FOR_MAKE_BACKGROUND = 800;	//영상 Load시 처음에 배경을 만들기 위한 프레임 수
 const int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = 1000;	//다음 배경을 만들기 위한 시간간격(동적)
+=======
+int FRAMES_FOR_MAKE_BACKGROUND;//영상 Load시 처음에 배경을 만들기 위한 프레임 수
+int FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND;//다음 배경을 만들기 위한 시간간격(동적)
+>>>>>>> set_extra_module
 // fps가 약 23-25 가량 나오는 영상에서 약 1분이 흐른 framecount 값은 1500
 
 /***  전역변수  ***/
@@ -223,6 +229,15 @@ int CMFC_SyntheticDlg::loadFile(int mode) {
 	char szFilter[] = "Video (*.avi, *.MP4) | *.avi;*.mp4; | All Files(*.*)|*.*||";	//검색 옵션
 	CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, szFilter, AfxGetMainWnd());	//파일 다이얼로그 생성
 	if (dlg.DoModal() == 1) {	//다이얼로그 띄움
+		//FRAMES_FOR_MAKE_BACKGROUND, FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND 입력 받기
+		CInitBGCounts InitBGCount(this);                // this 를 사용하여 부모를 지정.
+		InitBGCount.CenterWindow();
+		if (InitBGCount.DoModal() == 1){//OK 눌렀을 경우
+			FRAMES_FOR_MAKE_BACKGROUND = InitBGCount.BGMAKINGCOUNTS;
+			FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = InitBGCount.BGUPDATECOUNTS;
+		}
+		else OnCancel();
+
 		//load한 영상의 이름을 text control에 표시
 		CString cstrImgPath = dlg.GetPathName();	//path
 		videoFilePath = (string)cstrImgPath;
@@ -529,9 +544,13 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 			if (curFrameCount_nomalized >= (FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND)){
 				if (curFrameCount_nomalized == (FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND)){	//새로 만드는 첫 배경 Init
 					printf("Background Making Start : %d frame\n", curFrameCount);
+<<<<<<< HEAD
 					//temp_frame.copyTo(background_binaryVideo_gray);
 					setArrayToZero(bg_array, ROWS, COLS);
 					isAlreadyBGMade = false;
+=======
+					background_binaryVideo_gray = temp_frame.clone();
+>>>>>>> set_extra_module
 				}
 				else{	//배경 생성
 					//temporalMedianBG(temp_frame, background_binaryVideo_gray);
@@ -600,7 +619,7 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 		break;
 	case SYN_RESULT_TIMER:
 		printf("#");
-		Mat bg_copy; background_loadedFromFile.copyTo(bg_copy);
+		Mat bg_copy = background_loadedFromFile.clone();
 		// 불러온 배경을 이용하여 합성을 진행
 		Mat syntheticResult = getSyntheticFrame(&segment_queue, bg_copy, m_segmentArray);
 		DisplayImage(IDC_RESULT_IMAGE, syntheticResult, SYN_RESULT_TIMER);
@@ -685,11 +704,17 @@ bool isColorDataOperation(Mat frame, Mat bg, Mat binary, int i_height, int j_wid
 		binary.data[i_height*binary.cols + j_width] == 255;
 }
 
+<<<<<<< HEAD
 // colorArray를 구성하면서, component의 색 정보를 확인함
 int* getColorData(Mat frame, component *object, Mat binary, Mat bg, int frameCount, int currentMsec){
 	Mat temp; frame.copyTo(temp);
 	
 	// color 배열 초기화, 동적생성, segmentation 저장 이후 메모리 해제함
+=======
+int* getColorArray(Mat frame, component object, Mat binary){
+	Mat temp = frame.clone();
+	Mat bg_copy = imread(getBackgroundFilePath(fileNameNoExtension));
+>>>>>>> set_extra_module
 	int *colorArray = new int[COLORS];
 	for (int i = 0; i < COLORS; i++)
 		colorArray[i] = 0;
@@ -953,7 +978,11 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Queue* segment_queue, Mat bgFrame, segm
 
 		// 빈 프레임 반환
 		Mat nullFrame(ROWS, COLS, CV_8UC1);
-		nullFrame.setTo(Scalar(0));
+		for (int i = 0; i < ROWS; i++) {
+			for (int j = 0; j < COLS; j++) 
+				nullFrame.data[j + i*COLS] = 0;
+		}
+	//	nullFrame.Mat::setTo(Scalar(0));
 		return nullFrame;
 	}
 
