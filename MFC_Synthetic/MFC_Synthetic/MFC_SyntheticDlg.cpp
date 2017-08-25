@@ -523,7 +523,7 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 			if (curFrameCount_nomalized >= (FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND)){
 				if (curFrameCount_nomalized == (FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND)){	//새로 만드는 첫 배경 Init
 					printf("Background Making Start : %d frame\n", curFrameCount);
-					temp_frame.copyTo(background_binaryVideo_gray);
+					background_binaryVideo_gray = temp_frame.clone();
 				}
 				else{	//배경 생성
 					temporalMedianBG(temp_frame, background_binaryVideo_gray);
@@ -591,7 +591,7 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 		break;
 	case SYN_RESULT_TIMER:
 		printf("#");
-		Mat bg_copy; background_loadedFromFile.copyTo(bg_copy);
+		Mat bg_copy = background_loadedFromFile.clone();
 		// 불러온 배경을 이용하여 합성을 진행
 		Mat syntheticResult = getSyntheticFrame(&segment_queue, bg_copy,m_segmentArray);
 		DisplayImage(IDC_RESULT_IMAGE, syntheticResult, SYN_RESULT_TIMER);
@@ -677,7 +677,7 @@ bool isColorDataOperation(Mat frame, Mat bg, Mat binary, int i_height , int j_wi
 }
 
 int* getColorArray(Mat frame, component object, Mat binary){
-	Mat temp; frame.copyTo(temp);
+	Mat temp = frame.clone();
 	Mat bg_copy = imread(getBackgroundFilePath(fileNameNoExtension));
 	int *colorArray = new int[COLORS];
 	for (int i = 0; i < COLORS; i++)
@@ -853,7 +853,11 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Queue* segment_queue, Mat bgFrame, segm
 
 		// 빈 프레임 반환
 		Mat nullFrame(ROWS, COLS, CV_8UC1);
-		nullFrame.setTo(Scalar(0));
+		for (int i = 0; i < ROWS; i++) {
+			for (int j = 0; j < COLS; j++) 
+				nullFrame.data[j + i*COLS] = 0;
+		}
+	//	nullFrame.Mat::setTo(Scalar(0));
 		return nullFrame;
 	}
 
