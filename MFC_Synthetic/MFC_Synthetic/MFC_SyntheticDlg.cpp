@@ -720,7 +720,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 		if (!prevDetectedVector_i.empty()) {
 			for (int j = 0; j < prevDetectedVector_i.size(); j++) {
 				// 두 프레임이 겹칠 경우에 대한 연산
-				if (!IsComparePrevComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j])) {
+				if (!IsComparePrevComponent(humanDetectedVector[humanCount], prevDetectedVector_i[j]) ) {
 					humanDetectedVector[humanCount].timeTag = prevDetectedVector_i[j].timeTag;
 					humanDetectedVector[humanCount].label = prevDetectedVector_i[j].label;
 					prev_detected_component = prevDetectedVector_i[j];
@@ -792,12 +792,13 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 
 		else {
 			save_flag = false;
-			printf("save fail, rate_of_color_operation = %.2lf\n", difference_value);
+			printf("save fail,%d rate_of_color_operation = %.2lf\n", humanDetectedVector[humanCount].timeTag, difference_value);
 		}
 
 		// 연속성이 만족할 경우 파일에 저장할 수 있도록 함
 		if ((findFlag == false) || ( (save_flag == true) && isSizeContinue(&humanDetectedVector[humanCount], &prev_detected_component)
 			&& isColorContinue(&humanDetectedVector[humanCount], &prev_detected_component) )) {
+			humanDetectedVector[humanCount].isSaved = true;
 			saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
 				, currentMsec, frameCount, fp, ROWS, COLS, colorArray);
 		}
@@ -818,7 +819,7 @@ bool isSizeContinue(component *curr_component, component *prev_component) {
 
 	// width와 height 크기를 비교
 	// 추후 색상 데이터를 보는 식으로 하여 강화
-	if (curr_component->label == prev_component->label) {
+	if (curr_component->label == prev_component->label && prev_component->isSaved == true) {
 		if ((abs(curr_component->width - prev_component->width) > diff_component_width) ||
 			(abs(curr_component->height - prev_component->height) > diff_component_height)) {
 			printf("save fail, Size unContinue %d %d %d!!\n", prev_component->timeTag
@@ -826,6 +827,8 @@ bool isSizeContinue(component *curr_component, component *prev_component) {
 				, (abs(curr_component->height - prev_component->height)));
 			return false;
 		}
+		else
+			return true;
 	}
 	return true;
 }
@@ -834,16 +837,21 @@ bool isSizeContinue(component *curr_component, component *prev_component) {
 bool isColorContinue(component *curr_component, component *prev_component) {
 	const int tolerance_of_hsv_value = 30;
 	const int tolerance_of_rgb_value = 35;
-	for (int c = 0; c < 3; c++) {
-		// hsv, rgh 영역에서 확인
-		if (abs(curr_component->hsv_avarage[c] - prev_component->hsv_avarage[c]) > tolerance_of_hsv_value
-			|| abs(curr_component->rgb_avarage[c] - prev_component->rgb_avarage[c]) > tolerance_of_rgb_value) {
-			printf("save fail, Color unContinue %d %d %d!!\n", prev_component->timeTag
-				, abs(curr_component->hsv_avarage[c] - prev_component->hsv_avarage[c])
-				, abs(curr_component->rgb_avarage[c] - prev_component->rgb_avarage[c]));
-			return false;
+	if (curr_component->label == prev_component->label && prev_component->isSaved == true) {
+		for (int c = 0; c < 3; c++) {
+			// hsv, rgh 영역에서 확인
+			if (abs(curr_component->hsv_avarage[c] - prev_component->hsv_avarage[c]) > tolerance_of_hsv_value
+				|| abs(curr_component->rgb_avarage[c] - prev_component->rgb_avarage[c]) > tolerance_of_rgb_value) {
+				printf("save fail, Color unContinue %d %d %d!!\n", prev_component->timeTag
+					, abs(curr_component->hsv_avarage[c] - prev_component->hsv_avarage[c])
+					, abs(curr_component->rgb_avarage[c] - prev_component->rgb_avarage[c]));
+				return false;
+			}
+			else
+				return true;
 		}
 	}
+	return true;
 }
 
 // 현재와 이전에 검출한 결과를 비교, true 면 겹칠 수 없음
@@ -1889,9 +1897,9 @@ bool isDierectionAvailable(int val, int val_cur) {
 	return result;
 }
 
-bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]){
+bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]) {
 	// 첫번쨰가 0번쨰 요소, 두번쨰가 1번째 ...
-	unsigned int sorted_value[3] = { 0, }; 
+	unsigned int sorted_value[3] = { 0, };
 	int sorted_index[3] = { 0, };
 	int total_color_value = 0;
 	int check_count = 0;
@@ -1904,16 +1912,16 @@ bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]){
 		// 전체 체크한 갯수를 구함
 		if (colorCheckArray[i] == true) check_count++;
 
-		if (colorArray[i] >= sorted_value[0]){
+		if (colorArray[i] >= sorted_value[0]) {
 			sorted_value[2] = sorted_value[1];
 			sorted_value[1] = sorted_value[0];
 			sorted_value[0] = colorArray[i];
-			
+
 			sorted_index[2] = sorted_index[1];
 			sorted_index[1] = sorted_index[0];
 			sorted_index[0] = i;
 		}
-		else if (colorArray[i] >= sorted_value[1]){
+		else if (colorArray[i] >= sorted_value[1]) {
 			sorted_value[2] = sorted_value[1];
 			sorted_value[1] = colorArray[i];
 
@@ -1945,18 +1953,22 @@ bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]){
 	*/
 
 	// 또한 두번쨰로 검정색 또는 하양이 많이 나오는 경우는 인덱스 하나 밀어주기
-	if (sorted_index[1] == BLACK || sorted_index[1] == WHITE) {
-		int temp_value = sorted_value[2];
-		sorted_value[2] = sorted_value[1];
-		sorted_value[1] = temp_value;
+	// -> 폐기하기
+	if (sorted_index[1] == BLACK || sorted_index[1] == WHITE || sorted_index[1] == BLUE) {
+		sorted_index[1] = sorted_index[2];
+		sorted_value[1] = sorted_value[2];
 	}
-	
-	// 전체 나온 색깔의 비율을 따져서 세번째, 두번째로 나온 색상도 검출할 것인지 판별함
-	if (((double)sorted_value[2] / (double)total_color_value) > 0.2) 
-		return isColorChecker(colorCheckArray, sorted_index, 3);
 
-	if (((double)sorted_value[1] / (double)total_color_value) > 0.2) 
+	// 전체 나온 색깔의 비율을 따져서 세번째, 두번째로 나온 색상도 검출할 것인지 판별함
+	if (((double)sorted_value[2] / (double)total_color_value) > 0.25) {
+		printf("세번째 까지 판별");
+		return isColorChecker(colorCheckArray, sorted_index, 3);
+	}
+
+	if (((double)sorted_value[1] / (double)total_color_value) > 0.2) {
+		printf("두번째 까지 판별");
 		return isColorChecker(colorCheckArray, sorted_index, 2);
+	}
 
 	/*
 	// 두번째로 많이 나온 색깔과 첫 번쨰 나온 색과 차이가 클 경우에 (일반 색상에서)
