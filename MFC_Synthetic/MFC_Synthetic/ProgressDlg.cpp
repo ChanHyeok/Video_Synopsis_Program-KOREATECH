@@ -5,7 +5,9 @@
 #include "MFC_Synthetic.h"
 #include "ProgressDlg.h"
 #include "afxdialogex.h"
-
+#include "MFC_SyntheticDlg.h"
+// MOG2 관련
+Ptr<BackgroundSubtractor> pMOG2;
 const int PROGRESS_TIMER = 0;
 const int PROGRESS_TIMER_SEG = 1;
 const int PROGRESS_TIMER_SAVE = 2;
@@ -55,6 +57,9 @@ BOOL CProgressDlg::OnInitDialog()
 	frame = Mat(ROWS, COLS, CV_8UC3);
 	bg_array = new unsigned int[ROWS*COLS];
 	setArrayToZero(bg_array,ROWS,COLS);
+
+	// MOG2 관련
+	pMOG2 = createBackgroundSubtractorMOG2();
 
 	string str;
 	int segmentCount;
@@ -249,8 +254,12 @@ void CProgressDlg::OnTimer(UINT_PTR nIDEvent)
 
 			threshold(frame_g, frame_g, 10, 255, CV_THRESH_BINARY);
 
+			Mat fgMaskMOG2;
+			pMOG2->apply(frame_g, fgMaskMOG2); // MOG2 적용 연산
+
 			// MAT형으로 라벨링
-			humanDetectedVector = connectedComponentsLabelling(frame_g, ROWS, COLS, WMIN, WMAX, HMIN, HMAX);
+			humanDetectedVector = connectedComponentsLabelling(fgMaskMOG2, ROWS, COLS, WMIN, WMAX, HMIN, HMAX);
+			//humanDetectedVector = connectedComponentsLabelling(frame_g, ROWS, COLS, WMIN, WMAX, HMIN, HMAX);
 
 			// 영상을 처리하여 파일로 저장하기
 			// humanDetectedVector = humanDetectedProcess(humanDetectedVector, prevHumanDetectedVector,

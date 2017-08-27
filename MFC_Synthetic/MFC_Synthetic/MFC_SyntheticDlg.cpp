@@ -61,6 +61,7 @@ std::string fileNameExtension; // 입력받은 비디오파일 이름
 std::string fileNameNoExtension;// 확장자가 없는 파일 이름
 std::string txt_filename = RESULT_TEXT_FILENAME; //txt 파일 이름
 
+
 /*
 About Dialog
 프로그램에 대해 설명하는 다이얼로그. MFC 윈도우 아이콘 우측 클릭 시 접근 가능
@@ -792,13 +793,12 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 
 		else {
 			save_flag = false;
-			printf("save fail,%d rate_of_color_operation = %.2lf\n", humanDetectedVector[humanCount].timeTag, difference_value);
+			// printf("save fail,%d rate_of_color_operation = %.2lf\n", humanDetectedVector[humanCount].timeTag, difference_value);
 		}
 
 		// 연속성이 만족할 경우 파일에 저장할 수 있도록 함
 		if ((findFlag == false) || ( (save_flag == true) && isSizeContinue(&humanDetectedVector[humanCount], &prev_detected_component)
 			&& isColorContinue(&humanDetectedVector[humanCount], &prev_detected_component) )) {
-			humanDetectedVector[humanCount].isSaved = true;
 			saveSegmentationData(fileNameNoExtension, humanDetectedVector[humanCount], frame
 				, currentMsec, frameCount, fp, ROWS, COLS, colorArray);
 		}
@@ -822,9 +822,9 @@ bool isSizeContinue(component *curr_component, component *prev_component) {
 	if (curr_component->label == prev_component->label && prev_component->isSaved == true) {
 		if ((abs(curr_component->width - prev_component->width) > diff_component_width) ||
 			(abs(curr_component->height - prev_component->height) > diff_component_height)) {
-			printf("save fail, Size unContinue %d %d %d!!\n", prev_component->timeTag
+			/*printf("save fail, Size unContinue %d %d %d!!\n", prev_component->timeTag
 				, (abs(curr_component->width - prev_component->width))
-				, (abs(curr_component->height - prev_component->height)));
+				, (abs(curr_component->height - prev_component->height)));*/
 			return false;
 		}
 		else
@@ -835,16 +835,16 @@ bool isSizeContinue(component *curr_component, component *prev_component) {
 
 // 색 정보의 연속성을 따져서 저장을 할껀지 말껀지를 판별하는 함수
 bool isColorContinue(component *curr_component, component *prev_component) {
-	const int tolerance_of_hsv_value = 30;
-	const int tolerance_of_rgb_value = 35;
+	const int tolerance_of_hsv_value = 23;
+	const int tolerance_of_rgb_value = 23;
 	if (curr_component->label == prev_component->label && prev_component->isSaved == true) {
 		for (int c = 0; c < 3; c++) {
 			// hsv, rgh 영역에서 확인
 			if (abs(curr_component->hsv_avarage[c] - prev_component->hsv_avarage[c]) > tolerance_of_hsv_value
 				|| abs(curr_component->rgb_avarage[c] - prev_component->rgb_avarage[c]) > tolerance_of_rgb_value) {
-				printf("save fail, Color unContinue %d %d %d!!\n", prev_component->timeTag
+				/*printf("save fail, Color unContinue %d %d %d!!\n", prev_component->timeTag
 					, abs(curr_component->hsv_avarage[c] - prev_component->hsv_avarage[c])
-					, abs(curr_component->rgb_avarage[c] - prev_component->rgb_avarage[c]));
+					, abs(curr_component->rgb_avarage[c] - prev_component->rgb_avarage[c]));*/
 				return false;
 			}
 			else
