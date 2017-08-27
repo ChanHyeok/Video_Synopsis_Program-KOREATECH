@@ -47,11 +47,11 @@ int* getColorData(Mat frame, component *object, Mat binary, Mat bg, int frameCou
 	}
 
 	// 무채색, 유채색의 밸런스를 맞추기 위한 연산, white와 black의 weight 조절
-	colorArray[BLACK] *= 0.63;
-	colorArray[WHITE] *= 0.77;
+	colorArray[BLACK] *= 0.73;
+	colorArray[WHITE] *= 0.8;
 
 	// blue의 밸런스 맞춰주기
-	colorArray[BLUE] *= 0.93;
+	colorArray[BLUE] *= 0.9;
 
 	// object의 색 영역(hsv, rgb) 평균 요소와 색 최종 카운트에 데이터 삽입,
 	for (int c = 0; c < 3; c++) {
@@ -135,8 +135,8 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 		hsv_flag = true;
 	}
 
-	// +15 - 10로 증가  (RGB이용) // H :: 120 -> 60
-	if (H <= 50 && H >= 75 && G >= 130) {
+	// +20 - 15로 증가  (RGB이용) // H :: 120 -> 60
+	if (H <= 45 && H >= 80 && G >= 130) {
 		colorArray[GREEN]++;
 		hsv_flag = true;
 	}
@@ -156,7 +156,7 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 	if (hsv_flag == false) {
 		// R > 150 && G, B < 110
 		if (R >= 150 && G <= 110 && B <= 110 
-			|| (R >= 100 && diff_RG <= 40 && diff_BR <= 40 && G <= 50 && B <= 50)) {
+			|| (R >= 100 && diff_RG >= 40 && diff_BR >= 40 && G <= 50 && B <= 50)) {
 			colorArray[RED]++;
 		}
 		// R > 150 && 60 < GB차이 < 110  &&  B < 110
@@ -171,13 +171,13 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 
 		// G > 150 && R, B < 110 
 		if (G >= 150 && R <= 110 && B <= 110
-			|| (G >= 100 && diff_RG <= 40 && diff_GB <= 40 && R <= 50 && B <= 50)) {
+			|| (G >= 80 && diff_RG >= 40 && diff_GB >= 40 && R <= 50 && B <= 50)) {
 			colorArray[GREEN]++;
 		}
 
 		// B > 160 && R, G < 100 
 		if ((B >= 150 && R <= 100 && G <= 100)
-			|| (B >= 100 && diff_BR <= 40 && diff_GB <= 40 && R <= 50 && G <= 50)) {
+			|| (B >= 100 && diff_BR >= 40 && diff_GB >= 40 && R <= 50 && G <= 50)) {
 			colorArray[BLUE]++;
 		}
 
@@ -189,23 +189,27 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 
 
 	// RGB를 이용하여 검출을 할 색상들(Black, Gray, White)
+	// black, white가 검출된 경우 gray 검출 x
+	bool isGrayEnable = false;
 
 	// RGB합 < 65
 	// if (R >= 0 && R <= 20 && G >= 0 && G <= 20 && B >= 0 && B <= 20) {
 	if (sumOfRGB <= 55 && diff_RG < 15 && diff_GB < 15 && diff_BR < 15) {
+		isGrayEnable = true;
 		colorArray[BLACK]++;
 		color_point++;
 	}
 
 	// RGB합 > 380
 	// if (R >= 90 && R <= 255 && G >= 90 && G <= 255 && B >= 90 && B <= 255) {
-	if (sumOfRGB >= 400 && diff_RG < 15 && diff_GB < 15 && diff_BR < 15) {
+	if (sumOfRGB >= 380 && diff_RG < 15 && diff_GB < 15 && diff_BR < 15) {
+		isGrayEnable = true;
 		colorArray[WHITE]++;
 		color_point++;
 	}
 
 	// 25 < RGB < 50
-	if (R >= 25 && R <= 50 && G >= 25 && G <= 50 && B >= 25 && B <= 50
+	if ((isGrayEnable == false) && R >= 25 && R <= 50 && G >= 25 && G <= 50 && B >= 25 && B <= 50
 		&& diff_RG < 15 && diff_GB < 15 && diff_BR < 15) {	// Gray인지 판별
 		colorArray[GRAY]++;
 		color_point++;
