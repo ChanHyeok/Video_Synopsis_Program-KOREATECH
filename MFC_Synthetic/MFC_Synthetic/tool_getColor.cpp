@@ -47,11 +47,11 @@ int* getColorData(Mat frame, component *object, Mat binary, Mat bg, int frameCou
 	}
 
 	// 무채색, 유채색의 밸런스를 맞추기 위한 연산, white와 black의 weight 조절
-	colorArray[BLACK] *= 0.73;
-	colorArray[WHITE] *= 0.8;
+	colorArray[BLACK] *= 0.8;
+	colorArray[WHITE] *= 0.89;
 
 	// blue의 밸런스 맞춰주기
-	colorArray[BLUE] *= 0.9;
+	//colorArray[BLUE] *= 0.95;
 
 	// object의 색 영역(hsv, rgb) 평균 요소와 색 최종 카운트에 데이터 삽입,
 	for (int c = 0; c < 3; c++) {
@@ -140,8 +140,8 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 		colorArray[GREEN]++;
 		hsv_flag = true;
 	}
-	// + 10, -20으로 증가  (RGB이용)  // H :: 240 -> 120
-	if (H >= 100 && H <= 130 && B >= 140) {
+	// + 10, -15으로 증가  (RGB이용)  // H :: 240 -> 120
+	if (H >= 105 && H <= 130 && B >= 140) {
 		colorArray[BLUE]++;
 		hsv_flag = true;
 	}
@@ -192,9 +192,9 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 	// black, white가 검출된 경우 gray 검출 x
 	bool isGrayEnable = false;
 
-	// RGB합 < 65
+	// RGB합 < 52
 	// if (R >= 0 && R <= 20 && G >= 0 && G <= 20 && B >= 0 && B <= 20) {
-	if (sumOfRGB <= 55 && diff_RG < 15 && diff_GB < 15 && diff_BR < 15) {
+	if (sumOfRGB <= 52 && diff_RG < 15 && diff_GB < 15 && diff_BR < 15) {
 		isGrayEnable = true;
 		colorArray[BLACK]++;
 		color_point++;

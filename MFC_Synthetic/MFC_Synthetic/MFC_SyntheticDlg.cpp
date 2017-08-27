@@ -788,7 +788,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 		double difference_value = (double)humanDetectedVector[humanCount].color_count 
 			/ (double)(humanDetectedVector[humanCount].height *humanDetectedVector[humanCount].width);
 		
-		if (difference_value > 0.11)
+		if (difference_value > 0.10)
 			save_flag = true;
 
 		else {
@@ -835,8 +835,8 @@ bool isSizeContinue(component *curr_component, component *prev_component) {
 
 // 색 정보의 연속성을 따져서 저장을 할껀지 말껀지를 판별하는 함수
 bool isColorContinue(component *curr_component, component *prev_component) {
-	const int tolerance_of_hsv_value = 23;
-	const int tolerance_of_rgb_value = 23;
+	const int tolerance_of_hsv_value = 21;
+	const int tolerance_of_rgb_value = 21;
 	if (curr_component->label == prev_component->label && prev_component->isSaved == true) {
 		for (int c = 0; c < 3; c++) {
 			// hsv, rgh 영역에서 확인
