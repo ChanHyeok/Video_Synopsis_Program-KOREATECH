@@ -1080,6 +1080,10 @@ void CMFC_SyntheticDlg::OnClickedBtnPlay()
 	else {}
 }
 
+bool compareTimetag(const segment &a, const segment &b) {
+	return a.timeTag < b.timeTag;
+}
+
 int readSegmentTxtFile(segment* segmentArray) {
 	// 텍스트파일 읽을 때 사용할 buffer 정의
 	char *txtBuffer = new char[100];
@@ -1088,7 +1092,11 @@ int readSegmentTxtFile(segment* segmentArray) {
 	string path = "./" + getTextFilePath(fileNameNoExtension);
 	int segmentCount = 0;
 	FILE *fp;
-	if (fp = fopen(path.c_str(), "r")){
+
+	// 세그먼트 벡터 정의(정렬에 이용)
+	vector<segment> segment_vector;
+
+	if (fp = fopen(path.c_str(), "r")) {
 
 		fseek(fp, 0, SEEK_SET);	//포인터 처음으로 이동
 		fgets(txtBuffer, 99, fp);
@@ -1114,33 +1122,85 @@ int readSegmentTxtFile(segment* segmentArray) {
 				.append(to_string(segmentArray[segmentCount].frameCount)).append("_")
 				.append(to_string(segmentArray[segmentCount].index)).append(".jpg");
 
+			if (segmentArray[segmentCount].timeTag == segmentArray[segmentCount].msec)
+				segmentArray[segmentCount].first_timeTagFlag = true;
+			else
+				segmentArray[segmentCount].first_timeTagFlag = false;
+
+			// 세그먼트 벡터에 차곡차곡 푸시
+			segment_vector.push_back(segmentArray[segmentCount]);
+
 			// m_segmentArray의 인덱스 증가
 			segmentCount++;
 		}
 
-		// 버블 정렬 사용하여 m_segmentArray를 TimeTag순으로 정렬
-		segment *tmp_segment = new segment; // 임시 segment 동적생성, 메모리 해제에 용의하게 하기
+		// C++ STL sort 사용하여 m_segmentArray를 TimeTag순으로 정렬
+		sort(segment_vector.begin(), segment_vector.end(), compareTimetag);
+		for (int i = 0; i < segment_vector.size(); i++)
+			segmentArray[i] = segment_vector[i];
+
+		// 확인코드
+		/*
 		for (int i = 0; i < segmentCount; i++) {
-			for (int j = 0; j < segmentCount - 1; j++) {
-				if (segmentArray[j].timeTag > segmentArray[j + 1].timeTag) {
-					// m_segmentArray[segmentCount]와 m_segmentArray[segmentCount + 1]의 교체
-					*tmp_segment = segmentArray[j + 1];
-					segmentArray[j + 1] = segmentArray[j];
-					segmentArray[j] = *tmp_segment;
-				}
-			}
+		printf("%d  %d  %d  %d\n", segmentArray[i].timeTag, segmentArray[i].msec
+		, segmentArray[i].index, segmentArray[i].frameCount);
+		}
+		*/
+
+		
+		// pair<int, int> segmentIndexData_temp[20]; //<segmentCnt, indexCnt>
+		const int array_size = 20;
+		int segmentCnt_array[array_size], indexCnt_array[array_size];
+		for (int i = 0; i < array_size; i++) {
+			segmentCnt_array[i] = 0; indexCnt_array[i] = 0;
 		}
 
+		for (int i = 0; i < segmentCount - 30; i++) {
+			// 한 타임태그 내에 첫 번째 객체일 경우에
+			if (segmentArray[i].first_timeTagFlag) {
+				segmentCnt_array[segmentArray[i].index] = i;
+				indexCnt_array[segmentArray[i].index] = 1;
+			}
+
+			else { // (!segmentArray[i].first_timeTagFlag)
+				for (int j = 1; j <= 20; j++) {
+					// 이전과 같다면 카운트 하나 올리고 바로 패스
+					if (segmentArray[i].timeTag == segmentArray[i + j].timeTag
+						&& segmentArray[i].index == segmentArray[i + j].index) {
+						indexCnt_array[segmentArray[i].index]++;
+						break;
+					}
+					// 마지막 반복까지 같은게 없는 경우에
+					else if ((j == 20) && segmentArray[i].timeTag != segmentArray[i + j].timeTag
+						&& segmentArray[i].index != segmentArray[i + j].index) {
+						
+						// 같은 객체가 다섯개 이하일 경우
+						if (indexCnt_array[segmentArray[i].index] < 10) {
+							// 첫번째 객체에다가 이미 출력되었다고 표시
+							printf("print flag true 객체 %d\n", segmentArray[i].timeTag);
+							segmentArray[segmentCnt_array[segmentArray[i].index]].printFlag = true;
+						}
+
+						// 변수 재사용을 위한 초기화
+						segmentCnt_array[segmentArray[i].index] = 0;
+						indexCnt_array[segmentArray[i].index] = 0;
+					}
+				}
+			} // end else
+
+		} // end for
+		
 		// 임시 버퍼들의 메모리 해제
-		delete tmp_segment;
 		delete[] txtBuffer;
+
+		vector<segment> null_vector;
+		null_vector.swap(segment_vector);
 
 		// 텍스트 파일 닫기
 		fclose(fp);
-	}
-	else{
+	} // end if (fp = fopen...
+	else
 		perror("텍스트 파일 읽기 오류");
-	}
 
 	return segmentCount;
 }
@@ -1154,9 +1214,10 @@ bool CMFC_SyntheticDlg::inputSegmentQueue(int obj1_TimeTag, int obj2_TimeTag, in
 		// start timetag와 end timetag 사이면 enqueue
 		// 아직 찾지 못했고 일치하는 타임태그를 찾았을 경우
 		if (segmentArray[i].timeTag >= obj1_TimeTag && segmentArray[i].timeTag <= obj2_TimeTag) {
-			if (segmentArray[i].timeTag == segmentArray[i].msec && isDirectionAndColorMatch(segmentArray[i])) {
+			if (segmentArray[i].first_timeTagFlag && segmentArray[i].printFlag == false
+				&& isDirectionAndColorMatch(segmentArray[i])) {
 				//출력해야할 객체의 첫 프레임의 타임태그와 위치를 큐에 삽입
-				segmentArray[i].first_timeTagFlag = true;
+				printf("출력되는 객체 %d\n", segmentArray[i].timeTag);
 				Enqueue(&segment_queue, segmentArray[i], i);
 			}
 		}
