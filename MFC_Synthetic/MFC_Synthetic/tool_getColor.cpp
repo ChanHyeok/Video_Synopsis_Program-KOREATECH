@@ -151,10 +151,11 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 		colorArray[GREEN]++;
 		hsv_flag = true;
 	}
-	// + 12, -20으로 증가  (RGB이용)  // H :: 240 -> 120
-	if (H >= 100 && H <= 132 && B >= 130) {
+	// + 12, -15으로 증가  (RGB이용)  // H :: 240 -> 120
+	if (H >= 105 && H <= 132 && B >= 120) {
 		colorArray[BLUE]++;
 		blue_flag = true;
+		hsv_flag = true;
 	}
 
 	// +- 6으로 증가
@@ -183,12 +184,12 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 		// G > 150 && R, B < 110 
 		if (G >= 150 && R <= 110 && B <= 110
 			|| (G >= 80 && diff_RG >= 40 && diff_GB >= 40 && R <= 50 && B <= 50)) {
-			blue_flag == true;
 			colorArray[GREEN]++;
 		}
 
-		if (B >= 150 && R <= 110 && G <= 110
-			|| (B >= 90 && diff_GB >= 40 && diff_BR >= 40 && R <= 50 && G <= 50)) {
+		if (B >= 160 && R <= 110 && G <= 110
+			|| (B >= 100 && diff_GB >= 40 && diff_BR >= 40 && R <= 50 && G <= 50)) {
+			blue_flag == true;
 			colorArray[BLUE]++;
 		}
 		
@@ -231,7 +232,7 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 	}
 
 	// black, white 검출 시 HSV 영역에 blue 삭제
-	if (((isWhite == true) || (isBlack == true)) && (blue_flag == true) && H >= 107 && H <= 127)
+	if (((isWhite == true) || (isBlack == true)) && (blue_flag == true) && H >= 105 && H <= 125)
 		colorArray[BLUE]--;
 
 	return color_point;
