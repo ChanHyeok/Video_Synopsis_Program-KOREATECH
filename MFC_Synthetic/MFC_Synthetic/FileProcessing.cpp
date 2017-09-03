@@ -300,11 +300,6 @@ string getObjDirectoryPath(string video_name) {
 	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name + "/" + "obj";
 }
 
-// 세그먼트(object)들이 저장된 폴더이름을 반환하는 함수 , 폴더 및 경로 :: /data/(비디오 이름)/obj
-string getObj_for_colorDirectoryPath(string video_name) {
-	return SEGMENTATION_DATA_DIRECTORY_NAME + "/" + video_name + "/" + "obj_for_color";
-}
-
 // 프로젝트 내에 해당 디렉토리가 있는 지 체크하는 함수
 bool isDirectory(string dir_name) {
 	// string type을 const char* 로 바꾸는 연산

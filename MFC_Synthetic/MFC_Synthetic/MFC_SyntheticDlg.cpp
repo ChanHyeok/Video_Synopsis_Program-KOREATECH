@@ -268,10 +268,6 @@ int CMFC_SyntheticDlg::loadFile(int mode) {
 		if (!isDirectory(getObjDirectoryPath(fileNameNoExtension.c_str())))
 			int subObjDirectory_check = makeDataSubDirectory(getObjDirectoryPath(fileNameNoExtension));
 
-		// color 검출을 위한 obj 디렉토리 생성
-		if (!isDirectory(getObj_for_colorDirectoryPath(fileNameNoExtension.c_str())))
-			int subObjDirectory_check = makeDataSubDirectory(getObj_for_colorDirectoryPath(fileNameNoExtension));
-
 		capture.open((string)cstrImgPath);
 
 		if (!capture.isOpened()) { //예외처리. 해당이름의 파일이 없는 경우
@@ -285,7 +281,6 @@ int CMFC_SyntheticDlg::loadFile(int mode) {
 		fps = capture.get(CV_CAP_PROP_FPS);
 		totalFrameCount = (int)capture.get(CV_CAP_PROP_FRAME_COUNT);
 		videoLength = (int)((totalFrameCount / (float)fps));	//비디오의 길이를 초단위로 계산
-
 
 		background_binaryVideo_gray = Mat(ROWS, COLS, CV_8UC1);
 		//평균 배경에 사용할 배열 생성 및 초기화
@@ -1952,12 +1947,12 @@ bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]) {
 	}
 	*/
 
-	// 또한 두번쨰로 검정색 또는 하양이 많이 나오는 경우는 인덱스 하나 밀어주기
-	// -> 폐기하기
+	// 또한 두번쨰로 검정색 또는 하양이 많이 나오는 경우는 폐기하기
 	if (sorted_index[1] == BLACK || sorted_index[1] == WHITE || sorted_index[1] == BLUE) {
 		sorted_index[1] = sorted_index[2];
 		sorted_value[1] = sorted_value[2];
 	}
+
 
 	// 전체 나온 색깔의 비율을 따져서 세번째, 두번째로 나온 색상도 검출할 것인지 판별함
 	if (((double)sorted_value[2] / (double)total_color_value) > 0.25) {
