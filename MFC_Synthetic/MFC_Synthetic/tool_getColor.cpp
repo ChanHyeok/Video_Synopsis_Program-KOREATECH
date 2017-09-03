@@ -4,8 +4,8 @@
 #include "afxdialogex.h"
 //#include <opencv2\xphoto\white_balance.hpp>
 
+// 색 항상성
 Mat grayWorld(Mat frame) {
-	// 색 항상성
 	cv::Scalar sumImg = sum(frame);
 	cv::Scalar illum = sumImg / (frame.rows*frame.cols);
 	std::vector<cv::Mat> rgbChannels(3);
@@ -60,19 +60,15 @@ int* getColorData(Mat frame, component *object, Mat binary, Mat bg, int frameCou
 					sum_of_color_array[c + 3] += ptr_color_rgb[j][c];
 				}
 			}
-			else {
-				ptr_temp[j] = Vec3b(0, 0, 0);
-			}
-
 		}
 	}
 
 	// 무채색, 유채색의 밸런스를 맞추기 위한 연산, white와 black의 weight 조절
-	colorArray[BLACK] *= 0.97;
-	colorArray[WHITE] *= 0.87;
+	colorArray[BLACK] *= 0.9;
+	colorArray[WHITE] *= 0.95;
 
 	// blue의 밸런스 맞춰주기
-	//colorArray[BLUE] *= 0.95;
+	colorArray[BLUE] *= 0.95;
 
 	// object의 색 영역(hsv, rgb) 평균 요소와 색 최종 카운트에 데이터 삽입,
 	for (int c = 0; c < 3; c++) {
@@ -84,14 +80,7 @@ int* getColorData(Mat frame, component *object, Mat binary, Mat bg, int frameCou
 		}
 	}
 	object->color_count = temp_color_count;
-
-	// color를 위한 obj를 jpg파일로 저장
-	// 추후 삭제
-	component temp_object = *object;
-	temp_object.fileName = allocatingComponentFilename(temp_object.timeTag, currentMsec, frameCount, temp_object.label);
-	//	saveSegmentation_JPG(temp_object, temp, getObj_for_colorDirectoryPath(fileNameNoExtension));
-
-		// 확인 코드
+	// 확인 코드
 		/*
 		printf("timatag = %d) [", object.timeTag);
 		for (int i = 0; i < 6; i++) {
@@ -135,6 +124,7 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 	int diff_GB = abs(G - B);
 	int diff_BR = abs(B - R);
 	bool hsv_flag = false;
+	bool blue_flag = false;
 
 	// 원색에서 차이 범위 +- 조정
 	// HSV 채널로 충분히 검출이 가능한 색상들
@@ -144,27 +134,27 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 		colorArray[RED]++;
 		hsv_flag = true;
 	}
-	// +8로 증가, - 8증가  (RGB이용)  // H :: 30 -> 15
-	if (H <= 7 && H >= 23 && R >= 130) {
+	// +10로 증가, - 10증가  (RGB이용)  // H :: 30 -> 15
+	if (H <= 5 && H >= 25 /* && R >= 130 */ ) {
 		colorArray[ORANGE]++;
 		hsv_flag = true;
 	}
 
-	// + 8로 증가, -로 10 증가  (RGB이용) // H :: 60 -> 30
-	if (H <= 38 && H >= 20 && B <= 130 && abs(R - G) < 25) {
+	// + 10로 증가, -로 10 증가  (RGB이용) // H :: 60 -> 30
+	if (H <= 40 && H >= 20 && B <= 130 /*&& abs(R - G) < 25*/) {
 		colorArray[YELLOW]++;
 		hsv_flag = true;
 	}
 
 	// +20 - 15로 증가  (RGB이용) // H :: 120 -> 60
-	if (H <= 45 && H >= 80 && G >= 130) {
+	if (H <= 45 && H >= 80/* && G >= 130*/) {
 		colorArray[GREEN]++;
 		hsv_flag = true;
 	}
-	// + 10, -20으로 증가  (RGB이용)  // H :: 240 -> 120
-	if (H >= 100 && H <= 130 && B >= 140) {
+	// + 12, -20으로 증가  (RGB이용)  // H :: 240 -> 120
+	if (H >= 100 && H <= 132 && B >= 130) {
 		colorArray[BLUE]++;
-		hsv_flag = true;
+		blue_flag = true;
 	}
 
 	// +- 6으로 증가
@@ -186,22 +176,22 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 		}
 
 		// < GB차이 < 40  &&  B < 90 노란색 조정
-		if (R >= 150 && G >= 150 && diff_RG <= 40 && B <= 90) {
+		if (R >= 150 && G >= 150 && diff_RG <= 40 && B <= 80) {
 			colorArray[YELLOW]++;
 		}
 
 		// G > 150 && R, B < 110 
 		if (G >= 150 && R <= 110 && B <= 110
 			|| (G >= 80 && diff_RG >= 40 && diff_GB >= 40 && R <= 50 && B <= 50)) {
+			blue_flag == true;
 			colorArray[GREEN]++;
 		}
 
-		// B > 160 && R, G < 100 
-		if ((B >= 150 && R <= 100 && G <= 100)
-			|| (B >= 100 && diff_BR >= 40 && diff_GB >= 40 && R <= 50 && G <= 50)) {
+		if (B >= 150 && R <= 110 && G <= 110
+			|| (B >= 90 && diff_GB >= 40 && diff_BR >= 40 && R <= 50 && G <= 50)) {
 			colorArray[BLUE]++;
 		}
-
+		
 		// R > 150 && B > 150 && G < 110 && BR차이 < 60)
 		if (R >= 150 && B >= 150 && diff_BR <= 60 && G <= 110) { // H :: 300 -> 150
 			colorArray[MAGENTA]++;
@@ -212,19 +202,23 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 	// RGB를 이용하여 검출을 할 색상들(Black, Gray, White)
 	// black, white가 검출된 경우 gray 검출 x
 	bool isGrayEnable = false;
+	bool isWhite = false;
+	bool isBlack = false;
 
-	// RGB합 < 75
+	// RGB합 < 70
 	// if (R >= 0 && R <= 20 && G >= 0 && G <= 20 && B >= 0 && B <= 20) {
-	if (sumOfRGB <= 75 && diff_RG < 15 && diff_GB < 15 && diff_BR < 15) {
+	if (sumOfRGB <= 70 && diff_RG < 15 && diff_GB < 15 && diff_BR < 15) {
 		isGrayEnable = true;
+		isBlack = true;
 		colorArray[BLACK]++;
 		color_point++;
 	}
 
-	// RGB합 > 420
+	// RGB합 > 435
 	// if (R >= 90 && R <= 255 && G >= 90 && G <= 255 && B >= 90 && B <= 255) {
-	if (sumOfRGB >= 420 && diff_RG < 15 && diff_GB < 15 && diff_BR < 15) {
+	if (sumOfRGB >= 435 && diff_RG < 15 && diff_GB < 15 && diff_BR < 15) {
 		isGrayEnable = true;
+		isWhite = true;
 		colorArray[WHITE]++;
 		color_point++;
 	}
@@ -235,6 +229,10 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 		colorArray[GRAY]++;
 		color_point++;
 	}
+
+	// black, white 검출 시 HSV 영역에 blue 삭제
+	if (((isWhite == true) || (isBlack == true)) && (blue_flag == true) && H >= 107 && H <= 127)
+		colorArray[BLUE]--;
 
 	return color_point;
 }
