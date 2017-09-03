@@ -2,7 +2,27 @@
 #include "MFC_Synthetic.h"
 #include "MFC_SyntheticDlg.h"
 #include "afxdialogex.h"
-#include <opencv2\xphoto\white_balance.hpp>
+//#include <opencv2\xphoto\white_balance.hpp>
+
+Mat grayWorld(Mat frame) {
+	// 색 항상성
+	cv::Scalar sumImg = sum(frame);
+	cv::Scalar illum = sumImg / (frame.rows*frame.cols);
+	std::vector<cv::Mat> rgbChannels(3);
+	cv::split(frame, rgbChannels);
+	cv::Mat redImg = rgbChannels[2];
+	cv::Mat graanImg = rgbChannels[1];
+	cv::Mat blueImg = rgbChannels[0];
+	double scale = (illum(0) + illum(1) + illum(2)) / 3;
+	redImg = redImg*scale / illum(2);
+	graanImg = graanImg*scale / illum(1);
+	blueImg = blueImg*scale / illum(0);
+	rgbChannels[0] = blueImg;
+	rgbChannels[1] = graanImg;
+	rgbChannels[2] = redImg;
+	merge(rgbChannels, frame);
+	return frame;
+}
 
 int* getColorData(Mat frame, component *object, Mat binary, Mat bg, int frameCount, int currentMsec) {
 	Mat temp = frame.clone();
@@ -11,7 +31,8 @@ int* getColorData(Mat frame, component *object, Mat binary, Mat bg, int frameCou
 		colorArray[i] = 0;
 
 	// 색 항상성을 고려한 보간 알고리즘 적용
-	cv::xphoto::createGrayworldWB()->balanceWhite(temp, temp);
+	// cv::xphoto::createGrayworldWB()->balanceWhite(temp, temp);
+	temp = grayWorld(temp);
 
 	//원본 프레임 각각 RGB, HSV로 변환하기
 	Mat frame_hsv, frame_rgb;
