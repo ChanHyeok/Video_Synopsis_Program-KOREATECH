@@ -23,17 +23,3 @@ Mat morphologyClosing(Mat img_binary) {
 	erode(img_binary, img_binary, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
 	return img_binary;
 }
-
-Mat BlendingOperation(Mat background, Mat frame) {
-	double alpha = 0.5, beta;
-	beta = 1.0 - alpha;
-	addWeighted(frame, alpha, background, beta, 0.0, background);
-
-	// 겹침의 상태에 따라서 블렌딩의 정도를 조절(alpha와 beta값을 이용하여)
-
-
-	return background;
-
-
-}
-

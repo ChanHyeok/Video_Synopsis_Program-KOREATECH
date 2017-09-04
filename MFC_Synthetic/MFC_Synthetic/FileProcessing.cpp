@@ -2,22 +2,21 @@
 #include "MFC_Synthetic.h"
 #include "MFC_SyntheticDlg.h"
 #include "afxdialogex.h"
-#include <opencv2\opencv.hpp>
-#include <opencv\highgui.h>
-#include <opencv\cv.h>
+//#include <opencv2\opencv.hpp>
+//#include <opencv\highgui.h>
+//#include <opencv\cv.h>
 #include <direct.h>
 #include <io.h>
 
 // 파일 처리와 관련된 모든 함수들을 선언합니다.
 // segment의 fileName할당, JPG 파일 저장, txt파일 저장
-void saveSegmentation_JPG(component object, Mat frame, string video_path);
+// void saveSegmentation_JPG(component object, Mat frame, string video_path);
 void saveSegmentation_TXT(component object, FILE *fp);
 int directionChecker(component object, int ROWS, int COLS);
-string allocatingComponentFilename(int timeTag, int currentMsec, int frameCount, int label_num);
+//string allocatingComponentFilename(int timeTag, int currentMsec, int frameCount, int label_num);
 
 // segment 폴더 안에 Segmentation된 Obj만을 jpg파일로 저장하는 함수
 Mat objectCutting(component object, Mat img, unsigned int ROWS, unsigned int COLS);
-
 
 string readTxt(string path){
 	string result;
@@ -113,13 +112,13 @@ bool saveSegmentationData(string fileNameNoExtension, component object, Mat obje
 			lineMaker_detail(object.timeTag, object.label, directionChecker(object, ROWS, COLS), 10
 				, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 	}
-	else 	//첫 오브젝트가 아닐 경우 해당 객체 위치로 이동하여 last 위치 덮어쓰기
-		saveColorData(fileNameNoExtension, object, colorArray);
+	else 	//첫 오브젝트가 아닐 경우 해당 객체 위치로 이동하여 last 위치 덮어쓰기 및 색상 카운트 증가
+		saveDetailData(fileNameNoExtension, object, colorArray,ROWS,COLS);
 
 	return true;
 }
 
-void saveColorData(string fileNameNoExtension, component object, int *colorArray){
+void saveDetailData(string fileNameNoExtension, component object, int *colorArray, int ROWS, int COLS){
 	//색상 정보 텍스트 파일 저장
 	//해당 객체 위치로 이동하여 Color 카운트 덮어쓰기
 	int stamp;
@@ -159,11 +158,11 @@ void saveColorData(string fileNameNoExtension, component object, int *colorArray
 			}
 
 			txt.erase(posOfTimetag, posOfNL - posOfTimetag + 1);
-			txt.insert(posOfTimetag, lineMaker_detail(stamp, label, tempFirst, tempLast, colors[0] + colorArray[0], colors[1] + colorArray[1], colors[2] + colorArray[2], colors[3] + colorArray[3], colors[4] + colorArray[4],
+			txt.insert(posOfTimetag, lineMaker_detail(stamp, label, tempFirst, directionChecker(object, ROWS, COLS), colors[0] + colorArray[0], colors[1] + colorArray[1], colors[2] + colorArray[2], colors[3] + colorArray[3], colors[4] + colorArray[4],
 				colors[5] + colorArray[5], colors[6] + colorArray[6], colors[7] + colorArray[7], colors[8] + colorArray[8]));
 			rewriteTxt(getDetailTextFilePath(fileNameNoExtension).c_str(), txt.c_str());
 		}
-		ptr = NULL;
+		ptr = NULL; 
 		delete ptr;
 		delete[] line;
 	}
@@ -195,8 +194,18 @@ void saveSegmentation_JPG(component object, Mat frame, string video_path) {
 void saveSegmentation_TXT(component object, FILE *fp) {
 	string info;
 	stringstream ss;
+	unsigned int color_array_for_txt_save[6] = { 0, };
+	for (int c = 0; c < 3; c++) {
+		color_array_for_txt_save[c] = object.hsv_avarage[c];
+		color_array_for_txt_save[c+3] = object.rgb_avarage[c];
+	}
+
+
 	ss << object.fileName << " " << object.left << " " << object.top << " " << object.right << " " << object.bottom
-		<< " " << object.right - object.left << " " << object.bottom - object.top << '\n';
+		<< " " << object.right - object.left << " " << object.bottom - object.top << " "
+		<< color_array_for_txt_save[0] << " " << color_array_for_txt_save[1] << " " << color_array_for_txt_save[2] << " " // hsv 영역 저장
+		<< color_array_for_txt_save[3] << " " << color_array_for_txt_save[4] << " " << color_array_for_txt_save[5] // rgb 영역 저장
+		<< '\n';
 	info = ss.str();
 	fprintf(fp, info.c_str());
 	fflush(stdout);
@@ -245,6 +254,7 @@ Mat loadJPGObjectFile(segment obj, string file_name) {
 }
 
 // ROI영역만 추출하는 함수
+
 Mat objectCutting(component object, Mat img, unsigned int ROWS, unsigned int COLS) {
 	return img(Rect(object.left, object.top, object.width, object.height)).clone();
 	//잘린 이미지 반환

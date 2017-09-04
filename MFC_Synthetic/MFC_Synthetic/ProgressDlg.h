@@ -29,11 +29,11 @@ public:
 	int FRAMES_FOR_MAKE_BACKGROUND, FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND;
 	Mat frame, frame_g; // Mat(height, width, channel)
 	Mat bg;
-	Mat bg_gray;
 	int totalFrame, count;
 	int videoStartMsec;
 	std::string fileNameNoExtension;
 	BOOL isWorkCompleted;
+	unsigned int* bg_array;
 
 	FILE *fp;
 	vector<component> humanDetectedVector, prevHumanDetectedVector;

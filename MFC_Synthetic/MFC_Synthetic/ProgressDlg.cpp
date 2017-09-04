@@ -5,7 +5,9 @@
 #include "MFC_Synthetic.h"
 #include "ProgressDlg.h"
 #include "afxdialogex.h"
-
+#include "MFC_SyntheticDlg.h"
+// MOG2 관련
+Ptr<BackgroundSubtractor> pMOG2;
 const int PROGRESS_TIMER = 0;
 const int PROGRESS_TIMER_SEG = 1;
 const int PROGRESS_TIMER_SAVE = 2;
@@ -53,7 +55,11 @@ BOOL CProgressDlg::OnInitDialog()
 	vc_Source.set(CV_CAP_PROP_POS_MSEC, 0);	// 영상 시작점으로 초기화
 
 	frame = Mat(ROWS, COLS, CV_8UC3);
-	bg_gray = Mat(ROWS, COLS, CV_8UC1);
+	bg_array = new unsigned int[ROWS*COLS];
+	setArrayToZero(bg_array,ROWS,COLS);
+
+	// MOG2 관련
+	pMOG2 = createBackgroundSubtractorMOG2();
 
 	string str;
 	int segmentCount;
@@ -68,7 +74,7 @@ BOOL CProgressDlg::OnInitDialog()
 		if (totalFrame < FRAMES_FOR_MAKE_BACKGROUND){
 			FRAMES_FOR_MAKE_BACKGROUND = totalFrame;
 		}
-		m_ProgressCtrl.SetRange(0, FRAMES_FOR_MAKE_BACKGROUND - 1);
+		m_ProgressCtrl.SetRange(0, FRAMES_FOR_MAKE_BACKGROUND);
 
 		//첫 프레임
 		vc_Source.read(bg);
@@ -78,12 +84,13 @@ BOOL CProgressDlg::OnInitDialog()
 			printf("Color Background Saved Completed\n");
 		}
 
-		cvtColor(bg, bg_gray, CV_RGB2GRAY);
+		//처음으로 다시 초기화
+		vc_Source.set(CV_CAP_PROP_POS_FRAMES,0);
 
 		SetTimer(PROGRESS_TIMER, 0, NULL);
 		break;
 	case PROGRESS_TIMER_SEG:	//segmentation
-		m_ProgressCtrl.SetRange(0, totalFrame-1);
+		m_ProgressCtrl.SetRange(0, totalFrame);
 		frame_g = Mat(ROWS, COLS, CV_8UC1);
 		InitComponentVectorQueue(&prevHumanDetectedVector_queue);
 		count = 0;
@@ -153,15 +160,17 @@ void CProgressDlg::OnTimer(UINT_PTR nIDEvent)
 	case PROGRESS_TIMER:
 		text = "("; text.append(to_string(count)).append("/").append(to_string(FRAMES_FOR_MAKE_BACKGROUND - 1)).append(")...배경 생성 중");
 		m_StaticMessage.SetWindowTextA(text.c_str());
-		if (count < FRAMES_FOR_MAKE_BACKGROUND - 1){
+		if (count < FRAMES_FOR_MAKE_BACKGROUND){
 			vc_Source.read(frame); //get single frame
 			cvtColor(frame, frame, CV_RGB2GRAY);
-			temporalMedianBG(frame, bg_gray);
+			averageBG(frame, bg_array);
 			m_ProgressCtrl.OffsetPos(1);
 			count++;
 		}
 		else{
+			Mat bg_gray(ROWS, COLS, CV_8UC1);
 			KillTimer(PROGRESS_TIMER);
+			accIntArrayToMat(bg_gray, bg_array, FRAMES_FOR_MAKE_BACKGROUND);
 			if (imwrite(getBackgroundFilePath(fileNameNoExtension), bg_gray)){
 				imwrite(getTempBackgroundFilePath(fileNameNoExtension), bg_gray);
 				m_StaticMessage.SetWindowTextA(_T("배경 생성 성공!"));
@@ -174,6 +183,8 @@ void CProgressDlg::OnTimer(UINT_PTR nIDEvent)
 				m_ButtonOK.EnableWindow(true);
 				printf("Background Init Failed!!\n");
 			}
+
+			bg_gray = NULL;  bg_gray.release();
 		}
 		break;
 	case PROGRESS_TIMER_SEG:
@@ -200,16 +211,20 @@ void CProgressDlg::OnTimer(UINT_PTR nIDEvent)
 			if (curFrameCount_nomalized >= (FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND)){
 				if (curFrameCount_nomalized == (FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - FRAMES_FOR_MAKE_BACKGROUND)){	//새로 만드는 첫 배경 Init
 					printf("Background Making Start : %d frame\n", curFrameCount);
-					frame_g.copyTo(bg_gray);
+
+					setArrayToZero(bg_array,ROWS,COLS);
 				}
 				else{	//배경 생성
-					temporalMedianBG(frame_g, bg_gray);
+					averageBG(frame_g, bg_array);
 				}
 			}
 
 			//만든 배경을 저장해야 할 경우
 			if (curFrameCount_nomalized == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1){
+				Mat bg_gray(ROWS, COLS, CV_8UC1);
+				accIntArrayToMat(bg_gray, bg_array, FRAMES_FOR_MAKE_BACKGROUND);
 				imwrite(getTempBackgroundFilePath(fileNameNoExtension), bg_gray);
+				bg_gray = NULL; bg_gray.release();
 			}
 
 			if (curFrameCount >= FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND && curFrameCount_nomalized == 0){
@@ -231,15 +246,20 @@ void CProgressDlg::OnTimer(UINT_PTR nIDEvent)
 			threshold(frame_g, frame_g, 5, 255, CV_THRESH_BINARY);
 
 			//// 노이즈 제거
+			frame_g = morphologyClosing(frame_g);
+			frame_g = morphologyClosing(frame_g);		
 			frame_g = morphologyOpening(frame_g);
-			frame_g = morphologyClosing(frame_g);
-			frame_g = morphologyClosing(frame_g);
+		
 			blur(frame_g, frame_g, Size(11, 11));
 
-			threshold(frame_g, frame_g, 5, 255, CV_THRESH_BINARY);
+			threshold(frame_g, frame_g, 10, 255, CV_THRESH_BINARY);
+
+			Mat fgMaskMOG2;
+			pMOG2->apply(frame_g, fgMaskMOG2); // MOG2 적용 연산
 
 			// MAT형으로 라벨링
-			humanDetectedVector = connectedComponentsLabelling(frame_g, ROWS, COLS, WMIN, WMAX, HMIN, HMAX);
+			humanDetectedVector = connectedComponentsLabelling(fgMaskMOG2, ROWS, COLS, WMIN, WMAX, HMIN, HMAX);
+			//humanDetectedVector = connectedComponentsLabelling(frame_g, ROWS, COLS, WMIN, WMAX, HMIN, HMAX);
 
 			// 영상을 처리하여 파일로 저장하기
 			// humanDetectedVector = humanDetectedProcess(humanDetectedVector, prevHumanDetectedVector,
@@ -274,7 +294,7 @@ void CProgressDlg::OnTimer(UINT_PTR nIDEvent)
 		text = "...합성 영상 저장 중"; 
 		m_StaticMessage.SetWindowTextA(text.c_str());
 		if (true){
-			Mat bg_copy; frame.copyTo(bg_copy);
+			Mat bg_copy = frame.clone();
 	
 			// 불러온 배경을 이용하여 합성을 진행
 			Mat syntheticResult = ((CMFC_SyntheticDlg *)GetParent())->getSyntheticFrame(&segment_queue, bg_copy, segmentArray);
@@ -338,6 +358,7 @@ void CProgressDlg::OnCancel()
 	vector<component>().swap(prevHumanDetectedVector);
 
 	segmentArray = NULL;
+	delete[] bg_array;
 	delete[] segmentArray;
 
 	if (mode == 1 && fp != NULL)

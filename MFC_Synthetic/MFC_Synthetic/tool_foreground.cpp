@@ -6,6 +6,7 @@
 #include <opencv\highgui.h>
 #include <opencv\cv.h>
 // openCV 내장함수 MOG2를 이용하여 background를 분리해내는 함수
+/*
 Mat ExtractForegroundToMOG2(Mat frameimg) {
 	Mat result_frame;
 	Ptr<BackgroundSubtractor> pMOG2;
@@ -16,13 +17,12 @@ Mat ExtractForegroundToMOG2(Mat frameimg) {
 
 	return result_frame;
 }
-
+*/
 Mat ExtractFg(Mat frameimg, Mat bgimg, int rows, int cols) {
-	for (int i = 0; i < rows; i++) {
-		for (int j = 0; j < cols; j++) {
-			if (abs(frameimg.data[i * frameimg.cols + j] - bgimg.data[i * bgimg.cols + j]) < 15)
+	for (int i = 0; i < bgimg.rows; i++) {
+		for (int j = 0; j < bgimg.cols; j++) {
+			if (abs(frameimg.data[i * frameimg.cols + j] - bgimg.data[i * bgimg.cols + j]) < FOREGROUND_THRESHOLD)
 				frameimg.data[i * bgimg.cols + j] = 0;
-
 		}
 	}
 	return frameimg;

@@ -4,6 +4,9 @@
 
 #pragma once
 #include <opencv2/opencv.hpp>
+//#include <opencv\cv.hpp>
+//#include <opencv2\core\core.hpp>
+//#include <opencv2\core.hpp>
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/highgui.hpp"
 #include <iostream>
@@ -16,13 +19,16 @@
 using namespace std;
 using namespace cv;
 
-#define BUFFER 32000 // 객체 프레임 데이터를 저장할 버퍼의 크기 
+#define BUFFER 50000 // 객체 프레임 데이터를 저장할 버퍼의 크기 
 
 // fileName 상수 관련
 #define RESULT_TEXT_FILENAME  "obj_data_"
 #define RESULT_TEXT_DETAIL_FILENAME  "obj_detail_"
 #define RESULT_BACKGROUND_FILENAME "background_"
 const string SEGMENTATION_DATA_DIRECTORY_NAME = "data";
+
+// foreground threshold 관련
+const int FOREGROUND_THRESHOLD = 20;
 
 // component vector Queue 관련
 const int MAXSIZE_OF_COMPONENT_VECTOR_QUEUE = 20;
@@ -82,8 +88,6 @@ typedef struct _component {
 	unsigned int timeTag;
 	unsigned int label;
 	unsigned int size;
-	float centerOfX;
-	float centerOfY;
 	unsigned int left;
 	unsigned int right;
 	unsigned int top;
@@ -91,13 +95,15 @@ typedef struct _component {
 	int width;
 	int height;
 	int area;
+	Vec3b rgb_avarage;
+	Vec3b hsv_avarage;
+	unsigned int color_count; // 유효한 색을 띠는 픽셀 갯수
+	bool isSaved;
 	_component() {
 		fileName = "";
 		timeTag = 0;
 		label = 0;
 		size = 0;
-		centerOfX = 0.0;
-		centerOfY = 0.0;
 		left = 0;
 		right = 0;
 		top = 0;
@@ -105,6 +111,8 @@ typedef struct _component {
 		width = 0;
 		height = 0;
 		area = 0;
+		color_count = 0;
+		isSaved = false;
 	}
 }component;
 
@@ -151,17 +159,21 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 // addition function of MAIN
 bool segmentationTimeInputException(CString str_h, CString str_m);
 bool IsComparePrevComponent(component curr_component, component prev_component);
-bool IsSaveComponent(component curr_component, component prev_component);
+
+bool isSizeContinue(component *curr_component, component *prev_component);
+bool isColorContinue(component *curr_component, component *prev_component);
+
 Mat morphologyOpening(Mat);
 Mat morphologyClosing(Mat);
 stringstream timeConvertor(int t);
 
 bool IsObjectOverlapingDetector(segment, segment);
 
-
 int readSegmentTxtFile(segment*);
 
 bool isColorDataOperation(Mat frame, Mat bg, Mat, int i_height, int j_width);
+int* getColorData(Mat frame, component *object, Mat binary, Mat bg, int frameCount, int currentMsec);
+bool isColorChecker(boolean color_array[], int sorted_index[], int num_of_index);
 
 string currentDateTime();
 
@@ -174,18 +186,20 @@ bool IsEnqueueFiltering(segment *segment_array, int cur_index);
 Mat ExtractForegroundToMOG2(Mat frameimg);
 Mat ExtractFg(Mat, Mat, int, int);
 Mat temporalMedianBG(Mat frameimg, Mat bgimg);
+Mat averageBG(Mat frameimg, unsigned int* bgimg);
+void setArrayToZero(unsigned int* arr, int, int);
+Mat accIntArrayToMat(Mat image, unsigned int* arr, int);
 
 // tool_getColor.cpp
-int getColor_H(int );
-int getColor_S(int );
-int getColor_V(int );
-int colorPicker(Vec3b pixel);
+int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray);
 
 // FileProcessing.cpp
+void saveSegmentation_JPG(component object, Mat frame, string video_path);
+string allocatingComponentFilename(int timeTag, int currentMsec, int frameCount, int label_num);
 String getFileName(CString f_path, char find_char, BOOL);
 Mat loadJPGObjectFile(segment obj, string file_name);
-bool saveSegmentationData(string video_name, component object, Mat object_frame
-	, int currentMsec, int frameCount, FILE *txt_fp, int, int, int[]);
+bool saveSegmentationData(string fileNameNoExtension, component object, Mat object_frame
+	, int currentMsec, int frameCount, FILE *txt_fp, int ROWS, int COLS, int *colorArray);
 string readTxt(string path);
 
 string getTextFilePath(string video_name);
@@ -195,12 +209,13 @@ string getBackgroundFilePath(string video_name);
 string getColorBackgroundFilePath(string video_name);
 string getDirectoryPath(string video_name);
 string getObjDirectoryPath(string video_name);
+string getObj_for_colorDirectoryPath(string video_name);
 bool isGrayBackgroundExists(string);
 
 bool isDirectory(string dir_name);
 int makeDataRootDirectory();
 int makeDataSubDirectory(string video_name);
-void saveColorData(string fileNameNoExtension, component object, int colorArray[]);
+void saveDetailData(string fileNameNoExtension, component object, int colorArray[],int,int);
 
 // tool_synthetic.cpp
 Mat Syn_Background_Foreground(Mat, Mat, Mat, int, int);
