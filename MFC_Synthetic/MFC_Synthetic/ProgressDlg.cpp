@@ -119,7 +119,6 @@ BOOL CProgressDlg::OnInitDialog()
 			if (segmentArray[i].timeTag >= obj1_TimeTag && segmentArray[i].timeTag <= obj2_TimeTag) {
 				if (segmentArray[i].timeTag == segmentArray[i].msec && ((CMFC_SyntheticDlg *)GetParent())->isDirectionAndColorMatch(segmentArray[i])) {
 					//출력해야할 객체의 첫 프레임의 타임태그와 위치를 큐에 삽입
-					segmentArray[i].first_timeTagFlag = true;
 					Enqueue(&segment_queue, segmentArray[i], i);
 				}
 			}

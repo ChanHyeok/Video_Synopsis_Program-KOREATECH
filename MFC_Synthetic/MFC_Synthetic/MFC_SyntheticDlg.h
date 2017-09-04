@@ -64,8 +64,9 @@ typedef struct _segment {
 	int bottom;
 	int width;
 	int height;
-	bool first_timeTagFlag; // 타임태그에 첫번 째 객체임을 판별하는 변수
+	bool endFlag; // 타임태그에 마지막 객체임을 판별하는 변수
 	bool printFlag; // 합성영상 출력에 해당 세그먼트가 출력되었는 지 판별해주는 변수
+	int count;
 	_segment() {
 		fileName = "";
 		timeTag = 0;
@@ -78,8 +79,9 @@ typedef struct _segment {
 		bottom = 0;
 		width = 0;
 		height = 0;
-		first_timeTagFlag = false;
+		endFlag = false;
 		printFlag = false;
+		count = 0;
 	}
 }segment;
 //component model

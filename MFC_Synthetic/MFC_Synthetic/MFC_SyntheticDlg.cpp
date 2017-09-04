@@ -906,6 +906,7 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Queue* segment_queue, Mat bgFrame, segm
 		Enqueue(segment_queue, temp_segment, curr_index);
 	}
 
+	int dequeue_cnt = 0;
 	bool isEnqueueFlag = true;
 	// 큐에 들어있는 객체 갯수 만큼 DeQueue. 
 	for (int i = 0; i < countOfObj; i++) {
@@ -915,7 +916,7 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Queue* segment_queue, Mat bgFrame, segm
 		bool isCross = false;
 
 		//객체가 이전 객체와 겹치는지 비교, 처음이 아니고 현재 출력할 객체가 timetag의 첫 프레임 일 때
-		if ((i != 0 && m_segmentArray[curIndex].first_timeTagFlag)) {
+		if ((i != 0 && m_segmentArray[curIndex].msec == m_segmentArray[curIndex].timeTag)) {
 			for (int j = 0; j < i; j++) {
 				// 겹침을 확인하고 확인된 객체를 다시 enqueue 연산, 
 				if (!IsObjectOverlapingDetector(m_segmentArray[curIndex], m_segmentArray[vectorPreNodeIndex.at(j)])) {
@@ -932,6 +933,9 @@ Mat CMFC_SyntheticDlg::getSyntheticFrame(Queue* segment_queue, Mat bgFrame, segm
 
 			// 배경에 객체를 올리기
 			bgFrame = printObjOnBG(bgFrame, m_segmentArray[curIndex], labelMap, fileNameNoExtension);
+			
+			// 동일한 객체의 한 세그먼트의 마지막일 때에
+			//if (m_segmentArray[curIndex].endFlag) dequeue_cnt--;
 
 			// 타임태그를 string으로 변환
 			int timetagInSec = (m_segmentArray[curIndex].timeTag + videoStartMsec) / 1000;	//영상의 시작시간을 더해준다.
@@ -989,8 +993,7 @@ bool IsEnqueueFiltering(segment *segment_array, int cur_index) {
 	const unsigned int filter_object_width = COLS / 15; //  ( 640/15 = 42)
 
 	// 앞의 객체가 없으면 그냥 출력 가능하게 함
-	if ((cur_index < filter_object_num && cur_index >= 0)
-		|| segment_array[cur_index].first_timeTagFlag == true) {
+	if (cur_index < filter_object_num && cur_index >= 0) {
 		return true;
 	}
 	if ((segment_array[cur_index].timeTag == segment_array[cur_index + 1].timeTag)
@@ -1137,6 +1140,13 @@ int readSegmentTxtFile(segment* segmentArray) {
 		sscanf(txtBuffer, "%d", &videoStartMsec);	//텍스트 파일 첫줄에 명시된 실제 영상 시작 시간 받아옴
 		fflush(stdin);
 
+		// segment array 생성(크기 고정)
+		const int array_size = 20;
+		int segmentCnt_array[array_size], firstSegment_array[array_size], tmpSegmentCount_array[array_size];
+		for (int i = 0; i < array_size; i++) {
+			segmentCnt_array[i] = 0; firstSegment_array[i] = 0; tmpSegmentCount_array[i] = 0;
+		}
+
 		// frameInfo.txt 파일에서 데이터를 추출 하여 segment array 초기화
 		while (!feof(fp)) {
 			fgets(txtBuffer, 99, fp);
@@ -1156,10 +1166,30 @@ int readSegmentTxtFile(segment* segmentArray) {
 				.append(to_string(segmentArray[segmentCount].frameCount)).append("_")
 				.append(to_string(segmentArray[segmentCount].index)).append(".jpg");
 
-			if (segmentArray[segmentCount].timeTag == segmentArray[segmentCount].msec)
-				segmentArray[segmentCount].first_timeTagFlag = true;
-			else
-				segmentArray[segmentCount].first_timeTagFlag = false;
+			if (segmentArray[segmentCount].timeTag == segmentArray[segmentCount].msec) {
+				// 예전 index데이터가 segmentCnt_array에 있을 경우에 
+				if (segmentCnt_array[segmentArray[segmentCount].index] != 0) {
+					// 이전에 있던 세그먼트 카운트 불러오기
+					// 불러온 이전에 데이터를 통해서 endFlag 부여하기(한 객체의 마지막을 명시)
+					segmentArray[tmpSegmentCount_array[segmentArray[segmentCount].index]].endFlag = true;
+					segmentArray[firstSegment_array[segmentArray[segmentCount].index]].count
+						= segmentCnt_array[segmentArray[segmentCount].index];
+
+					segmentCnt_array[segmentArray[segmentCount].index] = 0;
+				}
+
+				// 레이블 = segmentCnt_array의 인덱스
+				segmentCnt_array[segmentArray[segmentCount].index] = 1; // 계속 증가시켜야 할 카운트
+				firstSegment_array[segmentArray[segmentCount].index] = segmentCount;
+				tmpSegmentCount_array[segmentArray[segmentCount].index] = segmentCount;
+				// 해당 세그먼트에 현재 카운트 저장
+			}
+
+			else {
+				segmentCnt_array[segmentArray[segmentCount].index]++;
+				tmpSegmentCount_array[segmentArray[segmentCount].index] = segmentCount;
+			}
+
 
 			// 세그먼트 벡터에 차곡차곡 푸시
 			segment_vector.push_back(segmentArray[segmentCount]);
@@ -1168,7 +1198,7 @@ int readSegmentTxtFile(segment* segmentArray) {
 			segmentCount++;
 		}
 
-		// C++ STL sort 사용하여 m_segmentArray를 TimeTag순으로 정렬
+		// C++ STL sort 사용하여 m_segmentArray를 TimeTag순으로 정렬후 array에 다시 넣기
 		sort(segment_vector.begin(), segment_vector.end(), compareTimetag);
 		for (int i = 0; i < segment_vector.size(); i++)
 			segmentArray[i] = segment_vector[i];
@@ -1183,7 +1213,7 @@ int readSegmentTxtFile(segment* segmentArray) {
 
 		
 		// pair<int, int> segmentIndexData_temp[20]; //<segmentCnt, indexCnt>
-		const int array_size = 20;
+		/*const int array_size = 20;
 		int segmentCnt_array[array_size], indexCnt_array[array_size];
 		for (int i = 0; i < array_size; i++) {
 			segmentCnt_array[i] = 0; indexCnt_array[i] = 0;
@@ -1223,7 +1253,8 @@ int readSegmentTxtFile(segment* segmentArray) {
 			} // end else
 
 		} // end for
-		
+		*/
+
 		// 임시 버퍼들의 메모리 해제
 		delete[] txtBuffer;
 
@@ -1248,11 +1279,13 @@ bool CMFC_SyntheticDlg::inputSegmentQueue(int obj1_TimeTag, int obj2_TimeTag, in
 		// start timetag와 end timetag 사이면 enqueue
 		// 아직 찾지 못했고 일치하는 타임태그를 찾았을 경우
 		if (segmentArray[i].timeTag >= obj1_TimeTag && segmentArray[i].timeTag <= obj2_TimeTag) {
-			if (segmentArray[i].first_timeTagFlag && segmentArray[i].printFlag == false
+			if (segmentArray[i].msec == segmentArray[i].timeTag && segmentArray[i].printFlag == false
 				&& isDirectionAndColorMatch(segmentArray[i])) {
 				//출력해야할 객체의 첫 프레임의 타임태그와 위치를 큐에 삽입
-				printf("출력되는 객체 %d\n", segmentArray[i].timeTag);
-				Enqueue(&segment_queue, segmentArray[i], i);
+				if (segmentArray[i].count < 15)
+					printf("출력이 안되는 객체 %d\n", segmentArray[i].timeTag);
+				else
+					Enqueue(&segment_queue, segmentArray[i], i);
 			}
 		}
 		//탐색 중, obj2_TimeTag을 넘으면 진행 완료
