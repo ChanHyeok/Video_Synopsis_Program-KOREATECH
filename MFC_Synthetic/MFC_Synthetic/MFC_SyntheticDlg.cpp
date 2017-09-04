@@ -1935,27 +1935,23 @@ bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]) {
 	*/
 
 	// 또한 두번쨰로 검정색이 많이 나오는 경우는 폐기하기
-	if (sorted_index[1] == BLACK || sorted_index[2] == BLACK) {
+	if (sorted_index[1] == BLACK) {
 		sorted_index[1] = sorted_index[2];
 		sorted_value[1] = sorted_value[2];
 	}
 
-	// gray가 두번째면 세번쨰와 바꿔주기
-	if (sorted_index[1] == GRAY) {
-		int temp_index = sorted_index[1];
-		sorted_index[1] = sorted_index[2];
-		sorted_index[2] = temp_index;
-
-		// sortec value 값 조정
-		sorted_value[1] *= 0.82;
+	// white, gray가 두번째면 디스 어드밴티지 부여
+	if (sorted_index[1] == GRAY || sorted_index[1] == WHITE) {
+		//sorted_value[2] *= 1.2;
+		sorted_value[1] *= 0.9;
 	}
 
 	// 전체 나온 색깔의 비율을 따져서 세번째, 두번째로 나온 색상도 검출할 것인지 판별함
-	if (((double)sorted_value[2] / (double)total_color_value) > 0.27) 
+	if (((double)sorted_value[2] / (double)total_color_value) > 0.3) 
 		return isColorChecker(colorCheckArray, sorted_index, 3);
 	
 
-	if (((double)sorted_value[1] / (double)total_color_value) > 0.22) 
+	if (((double)sorted_value[1] / (double)total_color_value) > 0.27) 
 		return isColorChecker(colorCheckArray, sorted_index, 2);
 	
 

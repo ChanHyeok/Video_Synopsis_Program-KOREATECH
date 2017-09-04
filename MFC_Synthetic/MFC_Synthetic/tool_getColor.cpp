@@ -64,11 +64,17 @@ int* getColorData(Mat frame, component *object, Mat binary, Mat bg, int frameCou
 	}
 
 	// 무채색, 유채색의 밸런스를 맞추기 위한 연산, gray와 black의 weight 조절
-	colorArray[BLACK] *= 0.85;
-	colorArray[GRAY] *= 0.85;
+	colorArray[BLACK] *= 0.8;
+	colorArray[GRAY] *= 0.73;
+	colorArray[WHITE] *= 0.9;
 
-	// blue의 밸런스 맞춰주기
-	colorArray[BLUE] *= 0.95;
+	// 파랑, 노랑, 주황, 마젠타의 밸런스 맞춰주기
+	colorArray[BLUE] *= 1.25;
+	colorArray[GREEN] *= 2.3;
+	colorArray[MAGENTA] *= 1.1;
+	colorArray[YELLOW] *= 1.3;
+	colorArray[ORANGE] *= 2.9;
+
 
 	// object의 색 영역(hsv, rgb) 평균 요소와 색 최종 카운트에 데이터 삽입,
 	for (int c = 0; c < 3; c++) {
@@ -132,24 +138,26 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 	// 무채색(검정, 회색, 흰색) 판별
 	
 	// black , V < 12
-	if (V <= 30) {
+	if ((V <= 30 )
+		|| (sumOfRGB < 90 && diff_RG <= 20 && diff_GB <= 20 && diff_BR <= 20)
+		|| (sumOfRGB < 170 && sumOfRGB > 90 && diff_RG <= 5 && diff_GB <= 5 && diff_BR <= 5)) {
 		colorArray[BLACK]++;
 		WGB_flag = true;
 	}
 
 
-	// white, SV차가 약 60과 90사이와 S는 약 20이 안넘어 가게끔
+	// white, SV차가 약 60과 94사이와 S는 약 20이 안넘어 가게끔
 	// 또한 RGB합이 580이 넘어가고 각각의 차이가 30이내로 날 때에
-	if ((abs(S-V) >= 150 && abs(S-V) <= 230 && S < 51)
-		|| (sumOfRGB > 580 && diff_RG <= 30 && diff_GB <= 30 && diff_BR <= 30)){
+	if ((abs(S-V) >= 150 && abs(S-V) <= 240 && S < 51 && H > 13)
+		|| (sumOfRGB > 590 && diff_RG <= 30 && diff_GB <= 30 && diff_BR <= 30)){
 		colorArray[WHITE]++;
 		WGB_flag = true;
 	}
 
-	// gray, V가 45-55사이 S는 12 이하
+	// gray, V가 43-57사이 S는 12 이하
 	// 또한 RGB는 각각의 차이가 5 이하, RGB 110 이하
-	if ((WGB_flag == false) && (V >= 115 && V <= 140 && S < 30)
-		|| (R <= 110 && G <= 110 && B <= 110 && diff_RG <= 3 && diff_GB <= 3 && diff_BR <= 3)) {
+	if ((WGB_flag == false) && (V >= 115 && V <= 145 && S < 30)
+		|| (sumOfRGB > 135 && R <= 105 && G <= 105 && B <= 105 && diff_RG <= 3 && diff_GB <= 3 && diff_BR <= 3)) {
 		colorArray[GRAY]++;
 	}
 
@@ -157,8 +165,8 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 	// 원색에서 차이 범위 +- 조정
 	// HSV 채널로 충분히 검출이 가능한 색상들
 	if (WGB_flag == false) {
-		// +- 3로 감소 (RGB이용)  //  H :: 0 -> 0
-		if ((H >= 177 && H >= 180) || (H >= 0 && H <= 3) && R >= 130) {
+		// +- 4로 감소 (RGB이용)  //  H :: 0 -> 0
+		if ((H >= 176 && H >= 180) || (H >= 0 && H <= 4) && R >= 130) {
 			colorArray[RED]++;
 			hsv_flag = true;
 		}
@@ -168,25 +176,25 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 			hsv_flag = true;
 		}
 
-		// + 10로 증가, -로 10 증가  (RGB이용) // H :: 60 -> 30
-		if (H <= 40 && H >= 20 && B <= 130 /*&& abs(R - G) < 25*/) {
+		// + 8로 증가, -로 13 증가  (RGB이용) // H :: 60 -> 30
+		if (H <= 38 && H >= 17 && B <= 130 /*&& abs(R - G) < 25*/) {
 			colorArray[YELLOW]++;
 			hsv_flag = true;
 		}
 
-		// +20 - 15로 증가  (RGB이용) // H :: 120 -> 60
-		if (H <= 45 && H >= 80/* && G >= 130*/) {
+		// +35 - 15로 증가  (RGB이용) // H :: 120 -> 60
+		if (H <= 45 && H >= 95 /* && G >= 130 */) {
 			colorArray[GREEN]++;
 			hsv_flag = true;
 		}
-		// + 12, -20으로 증가  (RGB이용)  // H :: 240 -> 120
-		if (H >= 100 && H <= 132 && B >= 120) {
+		// + 14, -20으로 증가  (RGB이용)  // H :: 240 -> 120
+		if (H >= 100 && H <= 134 && diff_BR >= 60 && R <= 125 ) {
 			colorArray[BLUE]++;
 			hsv_flag = true;
 		}
 
-		// +- 6으로 증가
-		if (H <= 156 && H >= 144) { // H :: 300 -> 150
+		// +-9으로 증가
+		if (H <= 159 && H >= 141) { // H :: 300 -> 150
 			colorArray[MAGENTA]++;
 			hsv_flag = true;
 		}
@@ -194,8 +202,8 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 		// hsv로 쉽지 않아서 RGB를 이용하여 검출한 색상들
 		if (hsv_flag == false) {
 			// R > 150 && G, B < 110
-			if (R >= 150 && G <= 110 && B <= 110
-				|| (R >= 100 && diff_RG >= 40 && diff_BR >= 40 && G <= 50 && B <= 50)) {
+			if ( /*R >= 150 && G <= 110 && B <= 110 ||*/
+				 (R >= 100 && diff_RG >= 90 && diff_BR >= 90 && G <= 50 && B <= 50)) {
 				colorArray[RED]++;
 			}
 			// R > 150 && 60 < GB차이 < 110  &&  B < 110
@@ -210,12 +218,12 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 
 			// G > 150 && R, B < 110 
 			if (G >= 150 && R <= 110 && B <= 110
-				|| (G >= 80 && diff_RG >= 40 && diff_GB >= 40 && R <= 50 && B <= 50)) {
+				|| (G >= 80 && diff_RG >= 40 && R <= 50 )) {
 				colorArray[GREEN]++;
 			}
 
 
-			if (B >= 160 && R <= 110 && G <= 110
+			if (B >= 150 && diff_BR >= 70
 				|| (B >= 100 && diff_GB >= 40 && diff_BR >= 40 && R <= 50 && G <= 50)) {
 				colorArray[BLUE]++;
 			}

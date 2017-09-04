@@ -171,6 +171,8 @@ bool IsObjectOverlapingDetector(segment, segment);
 
 int readSegmentTxtFile(segment*);
 
+// color ฐüทร
+Mat grayWorld(Mat frame);
 bool isColorDataOperation(Mat frame, Mat bg, Mat, int i_height, int j_width);
 int* getColorData(Mat frame, component *object, Mat binary, Mat bg, int frameCount, int currentMsec);
 bool isColorChecker(boolean color_array[], int sorted_index[], int num_of_index);
