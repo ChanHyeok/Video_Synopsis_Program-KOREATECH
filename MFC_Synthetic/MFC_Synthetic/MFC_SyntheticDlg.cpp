@@ -783,7 +783,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 		double difference_value = (double)humanDetectedVector[humanCount].color_count 
 			/ (double)(humanDetectedVector[humanCount].height *humanDetectedVector[humanCount].width);
 		
-		if (difference_value > 0.10)
+		if (difference_value > 0.13)
 			save_flag = true;
 
 		else {
@@ -1938,22 +1938,26 @@ bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]) {
 	if (sorted_index[1] == BLACK) {
 		sorted_index[1] = sorted_index[2];
 		sorted_value[1] = sorted_value[2];
+		printf("블랙 폐기 적용\n");
 	}
 
+	
 	// white, gray가 두번째면 디스 어드밴티지 부여
 	if (sorted_index[1] == GRAY || sorted_index[1] == WHITE) {
 		//sorted_value[2] *= 1.2;
+		printf("어드밴티지 적용\n");
 		sorted_value[1] *= 0.9;
 	}
 
 	// 전체 나온 색깔의 비율을 따져서 세번째, 두번째로 나온 색상도 검출할 것인지 판별함
-	if (((double)sorted_value[2] / (double)total_color_value) > 0.3) 
+	
+	if (((double)sorted_value[2] / (double)total_color_value) > 0.29) 
 		return isColorChecker(colorCheckArray, sorted_index, 3);
 	
 
-	if (((double)sorted_value[1] / (double)total_color_value) > 0.27) 
+	if (((double)sorted_value[1] / (double)total_color_value) > 0.26) {
 		return isColorChecker(colorCheckArray, sorted_index, 2);
-	
+	}
 
 	// 일반적인 경우
 	return isColorChecker(colorCheckArray, sorted_index, 1);

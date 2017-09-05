@@ -64,12 +64,12 @@ int* getColorData(Mat frame, component *object, Mat binary, Mat bg, int frameCou
 	}
 
 	// 무채색, 유채색의 밸런스를 맞추기 위한 연산, gray와 black의 weight 조절
-	colorArray[BLACK] *= 0.8;
-	colorArray[GRAY] *= 0.73;
-	colorArray[WHITE] *= 0.9;
+	colorArray[BLACK] *= 0.78;
+	colorArray[GRAY] *= 0.75;
+	colorArray[WHITE] *= 0.85;
 
 	// 파랑, 노랑, 주황, 마젠타의 밸런스 맞춰주기
-	colorArray[BLUE] *= 1.25;
+	colorArray[BLUE] *= 1.35;
 	colorArray[GREEN] *= 2.3;
 	colorArray[MAGENTA] *= 1.1;
 	colorArray[YELLOW] *= 1.3;
@@ -137,19 +137,20 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 
 	// 무채색(검정, 회색, 흰색) 판별
 	
-	// black , V < 12
-	if ((V <= 30 )
+	// black , V < 13
+	if ((V <= 32 )
 		|| (sumOfRGB < 90 && diff_RG <= 20 && diff_GB <= 20 && diff_BR <= 20)
-		|| (sumOfRGB < 170 && sumOfRGB > 90 && diff_RG <= 5 && diff_GB <= 5 && diff_BR <= 5)) {
+		|| (sumOfRGB < 125 && sumOfRGB > 90 && diff_RG <= 6 && diff_GB <= 6)) {
 		colorArray[BLACK]++;
 		WGB_flag = true;
 	}
 
 
 	// white, SV차가 약 60과 94사이와 S는 약 20이 안넘어 가게끔
-	// 또한 RGB합이 580이 넘어가고 각각의 차이가 30이내로 날 때에
+	// 또한 RGB합이 570이 넘어가고 각각의 차이가 30이내로 날 때에
 	if ((abs(S-V) >= 150 && abs(S-V) <= 240 && S < 51 && H > 13)
-		|| (sumOfRGB > 590 && diff_RG <= 30 && diff_GB <= 30 && diff_BR <= 30)){
+		|| (sumOfRGB > 570 && diff_RG <= 30 && diff_GB <= 30)
+		|| (sumOfRGB > 480 && diff_RG <= 40 && diff_GB <= 40 && diff_BR <= 40&& H >= 100 && H <= 200 && S < 80 && V < 100)){
 		colorArray[WHITE]++;
 		WGB_flag = true;
 	}
@@ -183,7 +184,7 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 		}
 
 		// +35 - 15로 증가  (RGB이용) // H :: 120 -> 60
-		if (H <= 45 && H >= 95 /* && G >= 130 */) {
+		if (H >= 45 && H <= 95 /* && G >= 130 */) {
 			colorArray[GREEN]++;
 			hsv_flag = true;
 		}
@@ -223,8 +224,8 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 			}
 
 
-			if (B >= 150 && diff_BR >= 70
-				|| (B >= 100 && diff_GB >= 40 && diff_BR >= 40 && R <= 50 && G <= 50)) {
+			if (B >= 140 && diff_BR >= 60
+				|| (B >= 100  && diff_BR >= 40 && R <= 60)) {
 				colorArray[BLUE]++;
 			}
 
