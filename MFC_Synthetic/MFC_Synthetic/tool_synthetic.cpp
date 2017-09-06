@@ -61,8 +61,8 @@ Mat printObjOnBG(Mat background, segment obj_info, int* labelMap, string loadedF
 		}
 	}
 
-	free(objPixelPtr);
-	free(bgPixelPtr);
+	//free(objPixelPtr);
+	//free(bgPixelPtr);
 	// 블렌딩 프로세스
 	//for (int i = obj.top; i < obj.bottom; i++) {
 	//	for (int j = obj.left; j < obj.right; j++) {
