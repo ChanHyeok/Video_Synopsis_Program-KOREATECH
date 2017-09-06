@@ -254,19 +254,8 @@ int CMFC_SyntheticDlg::loadFile(int mode) {
 		fileNameNoExtension = getFileName(cstrImgPath, '\\', false);
 		txt_filename = txt_filename.append(fileNameNoExtension).append(".txt");
 
-		// 세그먼테이션 데이터(txt, jpg들)를 저장할 디렉토리 유무확인, 없으면 만들어줌
-
-		// root 디렉토리 생성(폴더명 data)
-		if (!isDirectory(SEGMENTATION_DATA_DIRECTORY_NAME.c_str()))
-			int rootDirectory_check = makeDataRootDirectory();
-
-		// video 이름 별 디렉토리 생성(폴더명 확장자 없는 파일 이름)
-		if (!isDirectory(getDirectoryPath(fileNameNoExtension.c_str())))
-			int subDirectory_check = makeDataSubDirectory(getDirectoryPath(fileNameNoExtension));
-
-		// obj 디렉토리 생성
-		if (!isDirectory(getObjDirectoryPath(fileNameNoExtension.c_str())))
-			int subObjDirectory_check = makeDataSubDirectory(getObjDirectoryPath(fileNameNoExtension));
+		// 세그먼테이션 데이터(txt, jpg들)를 저장할 디렉토리 유무확인 및 생성
+		createDataFiles(fileNameNoExtension.c_str());
 
 		capture.open((string)cstrImgPath);
 
@@ -623,6 +612,7 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 // 시와 분을 입력받아 segmentation을 진행함
 void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 {
+	bool segmentation_flag = true;
 	cout << "세그멘테이션 시작 시간 : " << currentDateTime() << endl;
 	KillTimer(LOGO_TIMER);
 	KillTimer(VIDEO_TIMER);
@@ -633,22 +623,47 @@ void CMFC_SyntheticDlg::OnBnClickedBtnSegmentation()
 	m_pEditBoxStartHour->GetWindowTextA(str_startHour);
 	m_pEditBoxStartMinute->GetWindowTextA(str_startMinute);
 
-	// Edit box에 문자 입력, 또는 범위외 입력 시 예외처리
-	if (segmentationTimeInputException(str_startHour, str_startMinute)) {
-		segmentationOperator(&capture, atoi(str_startHour), atoi(str_startMinute)
-			, m_SliderWMIN.GetPos(), m_SliderWMAX.GetPos(), m_SliderHMIN.GetPos(), m_SliderHMAX.GetPos());	//Object Segmentation
-
-		//라디오버튼 - 합성영상 활성화 / 비활성화
-		if (checkSegmentation()) {
-			GetDlgItem(IDC_RADIO_PLAY2)->EnableWindow(TRUE);
+	// 세그먼테이션 한 폴더가 있는지 확인
+	if (isDirectory(getDirectoryPath(fileNameNoExtension.c_str()))) {
+		// 다이얼로그 생성, 삭제할 것인지 말 것인지
+		if (MessageBox("이미 세그먼테이션 데이터가 있습니다\n새로 하시겠습니까?", "Segmentation Data Already Exist!", MB_YESNO) == IDYES) {
+			// 삭제 후 폴더 다시 생성
+			DeleteAllFiles(getDirectoryPath(fileNameNoExtension.c_str()));
+			createDataFiles(getDirectoryPath(fileNameNoExtension.c_str()));
+			
+			// 배경 새로 입력받기
+			CInitBGCounts InitBGCount(this); 
+			InitBGCount.CenterWindow();
+			if (InitBGCount.DoModal() == 1) {//OK 눌렀을 경우
+				FRAMES_FOR_MAKE_BACKGROUND = InitBGCount.BGMAKINGCOUNTS;
+				FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = InitBGCount.BGUPDATECOUNTS;
+			}
+			else OnCancel();
 		}
 		else {
-			GetDlgItem(IDC_RADIO_PLAY2)->EnableWindow(FALSE);
+			// 취소시 이벤트
+			segmentation_flag = false;
 		}
-
-		cout << "세그멘테이션 종료 시간 : " << currentDateTime() << endl;
 	}
-	else {	// 범위 외 입력시 예외처리
+
+	if (segmentation_flag) {
+		// Edit box에 문자 입력, 또는 범위외 입력 시 예외처리
+		if (segmentationTimeInputException(str_startHour, str_startMinute)) {
+			segmentationOperator(&capture, atoi(str_startHour), atoi(str_startMinute)
+				, m_SliderWMIN.GetPos(), m_SliderWMAX.GetPos(), m_SliderHMIN.GetPos(), m_SliderHMAX.GetPos());	//Object Segmentation
+
+			//라디오버튼 - 합성영상 활성화 / 비활성화
+			if (checkSegmentation()) {
+				GetDlgItem(IDC_RADIO_PLAY2)->EnableWindow(TRUE);
+			}
+			else {
+				GetDlgItem(IDC_RADIO_PLAY2)->EnableWindow(FALSE);
+			}
+
+			cout << "세그멘테이션 종료 시간 : " << currentDateTime() << endl;
+		}
+		else {	// 범위 외 입력시 예외처리
+		}
 	}
 }
 

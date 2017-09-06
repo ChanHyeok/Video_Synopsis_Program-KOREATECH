@@ -311,6 +311,69 @@ bool isDirectory(string dir_name) {
 	return _access(ptr_name, 0) == 0;
 }
 
+// 최초 폴더와 배경 파일을 생성
+bool createDataFiles(string file_name) {
+	// root 디렉토리 생성(폴더명 data)
+	if (!isDirectory(SEGMENTATION_DATA_DIRECTORY_NAME.c_str()))
+		int rootDirectory_check = makeDataRootDirectory();
+
+	// video 이름 별 디렉토리 생성(폴더명 확장자 없는 파일 이름)
+	if (!isDirectory(getDirectoryPath(file_name)))
+		int subDirectory_check = makeDataSubDirectory(getDirectoryPath(file_name));
+
+	// obj 디렉토리 생성
+	if (!isDirectory(getObjDirectoryPath(file_name))) {
+		int subObjDirectory_check = makeDataSubDirectory(getObjDirectoryPath(file_name));
+		return subObjDirectory_check;
+	}
+	else
+		return false;
+}
+
+// 폴더 내부에 모든 파일 삭제 [출처 :: http://blog.naver.com/PostView.nhn?blogId=just720&logNo=40126371086]
+bool DeleteAllFiles(string dir_path){
+	LPCTSTR LPCTSTR_dir_path = dir_path.c_str();
+	if (LPCTSTR_dir_path == NULL)
+		return FALSE;
+
+	BOOL bRval = FALSE;
+	CString szNextDirPath = _T("");
+	CString szRoot = _T("");
+
+	// 해당 디렉토리의 모든 파일을 검사한다.
+	szRoot.Format(_T("%s\\*.*"), dir_path);
+	CFileFind find;
+	bRval = find.FindFile(szRoot);
+	if (bRval == FALSE)
+	{
+		return bRval;
+	}
+	while (bRval)
+	{
+		bRval = find.FindNextFile();
+		// . or .. 인 경우 무시 한다.  
+		if (find.IsDots() == FALSE)
+		{
+			// Directory 일 경우 재귀호출 한다.
+			if (find.IsDirectory())
+			{
+				string tmp_string = find.GetFilePath().GetBuffer(0);
+				DeleteAllFiles(tmp_string);
+			}
+			// file일 경우 삭제 
+			else
+			{
+				bRval = DeleteFile(find.GetFilePath());
+			}
+		}
+	}
+	find.Close();
+	bRval = RemoveDirectory(LPCTSTR_dir_path);
+	return bRval;
+
+}
+
+
 //파일 로드시 만드는 회색 배경이 있는 지 확인하는 함수
 bool isGrayBackgroundExists(string name) {
 	if (FILE *file = fopen(name.c_str(), "r")) {
@@ -333,6 +396,7 @@ int makeDataSubDirectory(string video_path) {
 	// 해당 비디오의 세그먼테이션 결과가 들어갈 폴더경로에 하위 폴더 생성(/data/(video_name))
 	return _mkdir(video_path.c_str());
 }
+
 
 // 파일의 이름부분을 저장
 string allocatingComponentFilename(int timeTag, int currentMsec, int frameCount, int label_num) {

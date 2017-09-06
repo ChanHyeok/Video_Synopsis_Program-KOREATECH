@@ -217,6 +217,9 @@ int makeDataRootDirectory();
 int makeDataSubDirectory(string video_name);
 void saveDetailData(string fileNameNoExtension, component object, int colorArray[],int,int);
 
+bool createDataFiles(string file_name);
+bool DeleteAllFiles(string dir_path);
+
 // tool_synthetic.cpp
 Mat Syn_Background_Foreground(Mat, Mat, Mat, int, int);
 Mat printObjOnBG(Mat background, segment obj, int* labelMap, string);
