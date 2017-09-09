@@ -563,17 +563,8 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 			}
 
 			temp_frame = ExtractFg(temp_frame, loadBackground, ROWS, COLS);// 전경 추출
-			////TODO 손보기
-			// 이진화
-			threshold(temp_frame, temp_frame, 5, 255, CV_THRESH_BINARY);
-
-			//// 노이즈 제거
-			temp_frame = morphologyOpening(temp_frame);
-			temp_frame = morphologyClosing(temp_frame);
-			temp_frame = morphologyClosing(temp_frame);
-			blur(temp_frame, temp_frame, Size(11, 11));
-
-			threshold(temp_frame, temp_frame, 10, 255, CV_THRESH_BINARY);
+			
+			temp_frame = pretreatmentOperator(temp_frame);
 
 			int numOfLables = connectedComponentsWithStats(temp_frame, img_labels, stats, centroids, 8, CV_32S);
 
@@ -783,12 +774,12 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 		double difference_value = (double)humanDetectedVector[humanCount].color_count 
 			/ (double)(humanDetectedVector[humanCount].height *humanDetectedVector[humanCount].width);
 		
-		if (difference_value > 0.10)
+		if (difference_value > 0.11)
 			save_flag = true;
 
 		else {
 			save_flag = false;
-			// printf("save fail,%d rate_of_color_operation = %.2lf\n", humanDetectedVector[humanCount].timeTag, difference_value);
+			printf("save fail,%d rate_of_color_operation = %.2lf\n", humanDetectedVector[humanCount].timeTag, difference_value);
 		}
 
 		// 연속성이 만족할 경우 파일에 저장할 수 있도록 함
@@ -809,37 +800,48 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 
 // 이전과 연속적이어서 저장할 가치가 있는 지를 판별하는 함수
 bool isSizeContinue(component *curr_component, component *prev_component) {
-	const int diff_component_height = prev_component->height* 0.25; //  ( 480/15 = 32)
-	const int diff_component_width = prev_component->width * 0.25; //  ( 640/15 = 42)
+	const int diff_component_height = prev_component->height* 0.22; //  ( 480/15 = 32)
+	const int diff_component_width = prev_component->width * 0.22; //  ( 640/15 = 42)
+
+	const int diff_component_absolute_height = ROWS / 12;
+	const int diff_component_absolute_width = COLS / 12;
 
 	// width와 height 크기를 비교
-	// 추후 색상 데이터를 보는 식으로 하여 강화
-	if (curr_component->label == prev_component->label && prev_component->isSaved == true) {
-		if ((abs(curr_component->width - prev_component->width) > diff_component_width) ||
-			(abs(curr_component->height - prev_component->height) > diff_component_height)) {
-			/*printf("save fail, Size unContinue %d %d %d!!\n", prev_component->timeTag
+	if (curr_component->timeTag == prev_component->timeTag 
+		&& curr_component->label == prev_component->label) {
+		if ((abs(curr_component->width - prev_component->width) > diff_component_absolute_width) ||
+			(abs(curr_component->height - prev_component->height) > diff_component_absolute_height)) {
+			printf("save fail, Size unContinue(absolute) %d %d %d!!\n", prev_component->timeTag
 				, (abs(curr_component->width - prev_component->width))
-				, (abs(curr_component->height - prev_component->height)));*/
+				, (abs(curr_component->height - prev_component->height)));
 			return false;
 		}
-		else
+
+		if ((abs(curr_component->width - prev_component->width) < diff_component_width) &&
+			(abs(curr_component->height - prev_component->height) < diff_component_height)) {
+			printf("save fail, Size unContinue %d %d %d!!\n", prev_component->timeTag
+				, (abs(curr_component->width - prev_component->width))
+				, (abs(curr_component->height - prev_component->height)));
 			return true;
+		}
+		else
+			return false;
 	}
 	return true;
 }
 
 // 색 정보의 연속성을 따져서 저장을 할껀지 말껀지를 판별하는 함수
 bool isColorContinue(component *curr_component, component *prev_component) {
-	const int tolerance_of_hsv_value = 21;
-	const int tolerance_of_rgb_value = 21;
-	if (curr_component->label == prev_component->label && prev_component->isSaved == true) {
+	const int tolerance_of_hsv_value = 15;
+	const int tolerance_of_rgb_value = 15;
+	if (curr_component->label == prev_component->label) {
 		for (int c = 0; c < 3; c++) {
 			// hsv, rgh 영역에서 확인
 			if (abs(curr_component->hsv_avarage[c] - prev_component->hsv_avarage[c]) > tolerance_of_hsv_value
 				|| abs(curr_component->rgb_avarage[c] - prev_component->rgb_avarage[c]) > tolerance_of_rgb_value) {
-				/*printf("save fail, Color unContinue %d %d %d!!\n", prev_component->timeTag
+				printf("save fail, Color unContinue %d %d %d!!\n", prev_component->timeTag
 					, abs(curr_component->hsv_avarage[c] - prev_component->hsv_avarage[c])
-					, abs(curr_component->rgb_avarage[c] - prev_component->rgb_avarage[c]));*/
+					, abs(curr_component->rgb_avarage[c] - prev_component->rgb_avarage[c]));
 				return false;
 			}
 			else
