@@ -98,7 +98,6 @@ typedef struct _component {
 	Vec3b rgb_avarage;
 	Vec3b hsv_avarage;
 	unsigned int color_count; // À¯È¿ÇÑ »öÀ» ¶ì´Â ÇÈ¼¿ °¹¼ö
-	bool isSaved;
 	_component() {
 		fileName = "";
 		timeTag = 0;
@@ -112,7 +111,6 @@ typedef struct _component {
 		height = 0;
 		area = 0;
 		color_count = 0;
-		isSaved = false;
 	}
 }component;
 
@@ -220,6 +218,9 @@ void saveDetailData(string fileNameNoExtension, component object, int colorArray
 // tool_synthetic.cpp
 Mat Syn_Background_Foreground(Mat, Mat, Mat, int, int);
 Mat printObjOnBG(Mat background, segment obj, int* labelMap, string);
+
+// ImageProcessing.cpp
+Mat pretreatmentOperator(Mat img);
 
 // CMFC_SyntheticDlg dialog
 class CMFC_SyntheticDlg : public CDialogEx{

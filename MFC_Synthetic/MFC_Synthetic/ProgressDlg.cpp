@@ -6,8 +6,10 @@
 #include "ProgressDlg.h"
 #include "afxdialogex.h"
 #include "MFC_SyntheticDlg.h"
-// MOG2 관련
+
+// Background Subtractor MOG2 관련
 Ptr<BackgroundSubtractor> pMOG2;
+
 const int PROGRESS_TIMER = 0;
 const int PROGRESS_TIMER_SEG = 1;
 const int PROGRESS_TIMER_SAVE = 2;
@@ -58,7 +60,7 @@ BOOL CProgressDlg::OnInitDialog()
 	bg_array = new unsigned int[ROWS*COLS];
 	setArrayToZero(bg_array,ROWS,COLS);
 
-	// MOG2 관련
+	// MOG2 초기화 관련
 	pMOG2 = createBackgroundSubtractorMOG2();
 
 	string str;
@@ -239,23 +241,10 @@ void CProgressDlg::OnTimer(UINT_PTR nIDEvent)
 				frame_g = ExtractFg(frame_g, imread(getTempBackgroundFilePath(fileNameNoExtension), IMREAD_GRAYSCALE), ROWS, COLS);// 전경 추출
 			}
 
-
-
-			////TODO 손보기
-			// 이진화
-			threshold(frame_g, frame_g, 5, 255, CV_THRESH_BINARY);
-
-			//// 노이즈 제거
-			frame_g = morphologyClosing(frame_g);
-			frame_g = morphologyClosing(frame_g);		
-			frame_g = morphologyOpening(frame_g);
-		
-			blur(frame_g, frame_g, Size(11, 11));
-
-			threshold(frame_g, frame_g, 10, 255, CV_THRESH_BINARY);
-
 			Mat fgMaskMOG2;
 			pMOG2->apply(frame_g, fgMaskMOG2); // MOG2 적용 연산
+
+			frame_g = pretreatmentOperator(frame_g);
 
 			// MAT형으로 라벨링
 			humanDetectedVector = connectedComponentsLabelling(fgMaskMOG2, ROWS, COLS, WMIN, WMAX, HMIN, HMAX);
