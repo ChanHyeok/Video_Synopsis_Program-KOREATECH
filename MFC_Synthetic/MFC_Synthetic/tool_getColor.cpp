@@ -70,7 +70,7 @@ int* getColorData(Mat frame, component *object, Mat binary, Mat bg, int frameCou
 
 	// 파랑, 노랑, 주황, 마젠타의 밸런스 맞춰주기
 	colorArray[BLUE] *= 1.35;
-	colorArray[GREEN] *= 2.3;
+	colorArray[GREEN] *= 1.9;
 	colorArray[MAGENTA] *= 1.1;
 	colorArray[YELLOW] *= 1.3;
 	colorArray[ORANGE] *= 2.9;
@@ -150,16 +150,17 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 	// 또한 RGB합이 570이 넘어가고 각각의 차이가 30이내로 날 때에
 	if ((abs(S-V) >= 150 && abs(S-V) <= 240 && S < 51 && H > 13)
 		|| (sumOfRGB > 570 && diff_RG <= 30 && diff_GB <= 30)
-		|| (sumOfRGB > 480 && diff_RG <= 40 && diff_GB <= 40 && diff_BR <= 40&& H >= 100 && H <= 200 && S < 80 && V < 100)){
+		|| (sumOfRGB > 480 && diff_RG <= 40 && diff_GB <= 40 && diff_BR <= 40 && H >= 100 && H <= 200 && S < 80 && V < 100)){
 		colorArray[WHITE]++;
 		WGB_flag = true;
 	}
 
-	// gray, V가 43-57사이 S는 12 이하
+	// gray, V가 42-60사이 S는 10 이하
 	// 또한 RGB는 각각의 차이가 5 이하, RGB 110 이하
-	if ((WGB_flag == false) && (V >= 115 && V <= 145 && S < 30)
+	if ((WGB_flag == false) && (V >= 110 && V <= 155 && S < 25)
 		|| (sumOfRGB > 135 && R <= 105 && G <= 105 && B <= 105 && diff_RG <= 3 && diff_GB <= 3 && diff_BR <= 3)) {
 		colorArray[GRAY]++;
+		WGB_flag = true;
 	}
 
 
@@ -183,8 +184,8 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 			hsv_flag = true;
 		}
 
-		// +35 - 15로 증가  (RGB이용) // H :: 120 -> 60
-		if (H >= 45 && H <= 95 /* && G >= 130 */) {
+		// +23 - 15로 증가  (RGB이용) // H :: 120 -> 60
+		if (H >= 45 && H <= 83 /* && G >= 130 */) {
 			colorArray[GREEN]++;
 			hsv_flag = true;
 		}
@@ -194,8 +195,8 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 			hsv_flag = true;
 		}
 
-		// +-9으로 증가
-		if (H <= 159 && H >= 141) { // H :: 300 -> 150
+		// +-7으로 증가
+		if (H <= 157 && H >= 143) { // H :: 300 -> 150
 			colorArray[MAGENTA]++;
 			hsv_flag = true;
 		}
@@ -230,8 +231,8 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 			}
 
 
-			// R > 150 && B > 150 && G < 110 && BR차이 < 60)
-			if (R >= 150 && B >= 150 && diff_BR <= 60 && G <= 110) { // H :: 300 -> 150
+			// R > 150 && B > 150 && G < 110 && BR차이 < 50)
+			if (R >= 150 && B >= 150 && diff_BR <= 50 && G <= 110) { // H :: 300 -> 150
 				colorArray[MAGENTA]++;
 			}
 		}
