@@ -187,12 +187,14 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);			// Set big icon
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 
+	// 타이틀 초기화
+	titleInit();
 
 	//레이아웃 컨트롤들 초기화 및 위치 지정
 	layoutInit();
 
 	//실행시 비디오 파일 불러옴
-	loadFile(0);
+	// loadFile(0);
 
 	//Slider Control 범위 지정
 	setSliderRange(videoLength, COLS, ROWS, 100);
@@ -1408,6 +1410,12 @@ void CMFC_SyntheticDlg::backgroundInit(string videoFilePath) {
 	}
 	return;
 }
+
+void CMFC_SyntheticDlg::titleInit() {
+	// 해야할 것 :: 타이틀 넣기
+
+}
+
 
 void CMFC_SyntheticDlg::layoutInit() {
 	//(http://gandus.tistory.com/530)

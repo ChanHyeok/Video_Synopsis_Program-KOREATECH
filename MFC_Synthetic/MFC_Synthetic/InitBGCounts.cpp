@@ -79,6 +79,8 @@ void CInitBGCounts::OnBnClickedOk()
 	CString temp1, temp2;
 	CEditBGMakeCounts.GetWindowTextA(temp1);
 	CEditBGUpdateCounts.GetWindowTextA(temp2);
+
+	// 배경 디폴트 값 설정부분
 	BGMAKINGCOUNTS = atoi(temp1);
 	BGUPDATECOUNTS = atoi(temp2);
 	CDialogEx::OnOK();
