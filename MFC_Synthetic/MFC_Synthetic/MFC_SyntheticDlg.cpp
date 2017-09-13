@@ -187,6 +187,10 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);			// Set big icon
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 
+	//Static Text Font
+	m_font.CreateFont(15, 0, 0, 0, FW_NORMAL, FALSE, FALSE, 0, DEFAULT_CHARSET,
+		OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
+		DEFAULT_PITCH | FF_SWISS, "굴림체");
 
 	//레이아웃 컨트롤들 초기화 및 위치 지정
 	layoutInit();
@@ -374,6 +378,7 @@ void CMFC_SyntheticDlg::OnCancel() {
 	PostQuitMessage(0);
 }
 void CMFC_SyntheticDlg::OnDestroy() {
+	m_font.DeleteObject();
 }
 
 //다이얼로그를 그릴 때 혹은 다시 그릴 때 호출되는 함수
@@ -1420,10 +1425,14 @@ void CMFC_SyntheticDlg::layoutInit() {
 	//group box - MENU
 	CWnd *pGroupMenu = GetDlgItem(IDC_GROUP_MENU);
 	CWnd *pStringFileName = GetDlgItem(IDC_MENU_STRING_FILE_NAME);
+	pStringFileName->SetFont(&m_font);
 	CButton *pButtonLoad = (CButton *)GetDlgItem(IDC_BTN_MENU_LOAD);
 	CWnd *pRadioBtn1 = GetDlgItem(IDC_RADIO_PLAY1);
+	pRadioBtn1->SetFont(&m_font);
 	CWnd *pRadioBtn2 = GetDlgItem(IDC_RADIO_PLAY2);
+	pRadioBtn2->SetFont(&m_font);
 	CWnd *pRadioBtn3 = GetDlgItem(IDC_RADIO_PLAY3);
+	pRadioBtn3->SetFont(&m_font);
 	int box_MenuX = padding;
 	int box_MenuY = padding;
 	int box_MenuWidth = (dialogWidth - 3 * padding)*0.2;
@@ -1451,7 +1460,9 @@ void CMFC_SyntheticDlg::layoutInit() {
 	cImage.Load("res\\rewind.bmp");
 	pButtonRewind->SetBitmap(cImage);
 	CWnd *pStringCurTimeSlider = GetDlgItem(IDC_STRING_CUR_TIME);
+	pStringCurTimeSlider->SetFont(&m_font);
 	CWnd *pStringTotalTimeSlider = GetDlgItem(IDC_STRING_TOTAL_TIME);
+	pStringTotalTimeSlider->SetFont(&m_font);
 	int pictureContorlX = 2 * padding + box_MenuWidth;
 	int pictureContorlY = padding;
 	int pictureContorlWidth = (dialogWidth - 3 * padding) - box_MenuWidth - 15;
@@ -1470,21 +1481,31 @@ void CMFC_SyntheticDlg::layoutInit() {
 	//group box - segmetation
 	CWnd *pGroupSegmentation = GetDlgItem(IDC_GROUP_SEG);
 	CWnd *pStringStartTime = GetDlgItem(IDC_SEG_STRING_VIDEO_START_TIME);
+	pStringStartTime->SetFont(&m_font);
 	CWnd *pStringColon = GetDlgItem(IDC_SEG_STRING_COLON);
+	pStringColon->SetFont(&m_font);
 	m_pEditBoxStartHour = (CEdit *)GetDlgItem(IDC_SEG_EDITBOX_START_HOUR);
 	m_pEditBoxStartMinute = (CEdit *)GetDlgItem(IDC_SEG_EDITBOX_START_MINUTE);
 	CWnd *pGroupSegWidth = GetDlgItem(IDC_GROUP_SEG_WIDTH);
 	CWnd *pStringWMIN = GetDlgItem(IDC_SEG_STRING_MIN_W);
+	pStringWMIN->SetFont(&m_font);
 	CWnd *pStringWMAX = GetDlgItem(IDC_SEG_STRING_MAX_W);
+	pStringWMAX->SetFont(&m_font);
 	CWnd *pStringValWMIN = GetDlgItem(IDC_SEG_STRING_VAL_MIN_W);
+	pStringValWMIN->SetFont(&m_font);
 	CWnd *pStringValWMAX = GetDlgItem(IDC_SEG_STRING_VAL_MAX_W);
+	pStringValWMAX->SetFont(&m_font);
 	CWnd *pSegSliderWMIN = GetDlgItem(IDC_SEG_SLIDER_WMIN);
 	CWnd *pSegSliderWMAX = GetDlgItem(IDC_SEG_SLIDER_WMAX);
 	CWnd *pGroupSegHeight = GetDlgItem(IDC_GROUP_SEG_HEIGHT);
 	CWnd *pStringHMIN = GetDlgItem(IDC_SEG_STRING_MIN_H);
+	pStringHMIN->SetFont(&m_font);
 	CWnd *pStringHMAX = GetDlgItem(IDC_SEG_STRING_MAX_H);
+	pStringHMAX->SetFont(&m_font);
 	CWnd *pStringValHMIN = GetDlgItem(IDC_SEG_STRING_VAL_MIN_H);
+	pStringValHMIN->SetFont(&m_font);
 	CWnd *pStringValHMAX = GetDlgItem(IDC_SEG_STRING_VAL_MAX_H);
+	pStringValHMAX->SetFont(&m_font);
 	CWnd *pSegSliderHMIN = GetDlgItem(IDC_SEG_SLIDER_HMIN);
 	CWnd *pSegSliderHMAX = GetDlgItem(IDC_SEG_SLIDER_HMAX);
 	CButton *pButtonSegmentation = (CButton *)GetDlgItem(IDC_BTN_SEG_SEGMENTATION);
@@ -1494,38 +1515,48 @@ void CMFC_SyntheticDlg::layoutInit() {
 	int box_segmentationHeight = ((dialogHeight - 3 * padding)*0.8 - padding) - box_MenuHeight;
 	pGroupSegmentation->MoveWindow(box_segmentationX, box_segmentationY, box_segmentationWidth, box_segmentationHeight, TRUE);
 	pStringStartTime->MoveWindow(box_segmentationX + padding, box_segmentationY + 2 * padding, 230, 20, TRUE);
-	m_pEditBoxStartHour->MoveWindow(box_segmentationX + padding + box_segmentationWidth*0.5, box_segmentationY + 3 * padding + 20, 20, 20, TRUE);
-	pStringColon->MoveWindow(box_segmentationX + padding + 25 + box_segmentationWidth*0.5, box_segmentationY + 3 * padding + 20, 20, 20, TRUE);
-	m_pEditBoxStartMinute->MoveWindow(box_segmentationX + padding + 35 + box_segmentationWidth*0.5, box_segmentationY + 3 * padding + 20, 20, 20, TRUE);
+	m_pEditBoxStartHour->MoveWindow(box_segmentationX + padding + box_segmentationWidth - 100, box_segmentationY + 3 * padding + 20, 30, 20, TRUE);
+	pStringColon->MoveWindow(box_segmentationX + padding + 35 + box_segmentationWidth - 100, box_segmentationY + 3 * padding + 20, 20, 20, TRUE);
+	m_pEditBoxStartMinute->MoveWindow(box_segmentationX + padding + 45 + box_segmentationWidth - 100, box_segmentationY + 3 * padding + 20, 30, 20, TRUE);
 	pGroupSegWidth->MoveWindow(box_segmentationX + padding, box_segmentationY + 4 * padding + 40, box_segmentationWidth - 2 * padding, 80, TRUE);
 	pStringWMIN->MoveWindow(box_segmentationX + 2 * padding, box_segmentationY + 6 * padding + 40, 40, 20, TRUE);
-	m_SliderWMIN.MoveWindow(box_segmentationX + 3 * padding + 40, box_segmentationY + 6 * padding + 40, box_segmentationWidth - 6 * padding - 60, 20, TRUE);
-	pStringValWMIN->MoveWindow(box_segmentationX + box_segmentationWidth - 2 * padding - 20, box_segmentationY + 6 * padding + 40, 20, 20, TRUE);
+	m_SliderWMIN.MoveWindow(box_segmentationX + 3 * padding + 30, box_segmentationY + 6 * padding + 40, box_segmentationWidth - 6 * padding - 60, 20, TRUE);
+	pStringValWMIN->MoveWindow(box_segmentationX + box_segmentationWidth - 2 * padding - 30, box_segmentationY + 6 * padding + 40, 30, 20, TRUE);
 	pStringWMAX->MoveWindow(box_segmentationX + 2 * padding, box_segmentationY + 7 * padding + 60, 40, 20, TRUE);
-	m_SliderWMAX.MoveWindow(box_segmentationX + 3 * padding + 40, box_segmentationY + 7 * padding + 60, box_segmentationWidth - 6 * padding - 60, 20, TRUE);
-	pStringValWMAX->MoveWindow(box_segmentationX + box_segmentationWidth - 2 * padding - 20, box_segmentationY + 7 * padding + 60, 20, 20, TRUE);
+	m_SliderWMAX.MoveWindow(box_segmentationX + 3 * padding + 30, box_segmentationY + 7 * padding + 60, box_segmentationWidth - 6 * padding - 60, 20, TRUE);
+	pStringValWMAX->MoveWindow(box_segmentationX + box_segmentationWidth - 2 * padding - 30, box_segmentationY + 7 * padding + 60, 30, 20, TRUE);
 	pGroupSegHeight->MoveWindow(box_segmentationX + padding, box_segmentationY + 5 * padding + 120, box_segmentationWidth - 2 * padding, 80, TRUE);
 	pStringHMIN->MoveWindow(box_segmentationX + 2 * padding, box_segmentationY + 7 * padding + 120, 40, 20, TRUE);
-	m_SliderHMIN.MoveWindow(box_segmentationX + 3 * padding + 40, box_segmentationY + 7 * padding + 120, box_segmentationWidth - 6 * padding - 60, 20, TRUE);
-	pStringValHMIN->MoveWindow(box_segmentationX + box_segmentationWidth - 2 * padding - 20, box_segmentationY + 7 * padding + 120, 20, 20, TRUE);
+	m_SliderHMIN.MoveWindow(box_segmentationX + 3 * padding + 30, box_segmentationY + 7 * padding + 120, box_segmentationWidth - 6 * padding - 60, 20, TRUE);
+	pStringValHMIN->MoveWindow(box_segmentationX + box_segmentationWidth - 2 * padding - 30, box_segmentationY + 7 * padding + 120, 30, 20, TRUE);
 	pStringHMAX->MoveWindow(box_segmentationX + 2 * padding, box_segmentationY + 8 * padding + 140, 40, 20, TRUE);
-	m_SliderHMAX.MoveWindow(box_segmentationX + 3 * padding + 40, box_segmentationY + 8 * padding + 140, box_segmentationWidth - 6 * padding - 60, 20, TRUE);
-	pStringValHMAX->MoveWindow(box_segmentationX + box_segmentationWidth - 2 * padding - 20, box_segmentationY + 8 * padding + 140, 20, 20, TRUE);
+	m_SliderHMAX.MoveWindow(box_segmentationX + 3 * padding + 30, box_segmentationY + 8 * padding + 140, box_segmentationWidth - 6 * padding - 60, 20, TRUE);
+	pStringValHMAX->MoveWindow(box_segmentationX + box_segmentationWidth - 2 * padding - 30, box_segmentationY + 8 * padding + 140, 30, 20, TRUE);
 	pButtonSegmentation->MoveWindow(box_segmentationX + box_segmentationWidth - padding - 100, box_segmentationY + box_segmentationHeight - 30, 100, 20, TRUE);
 
 
 	//group box - Play Settings
 	CWnd *pGroupSynthetic = GetDlgItem(IDC_GROUP_PLAY_SETTINGS);
 	CWnd *pStringSearchStartTime = GetDlgItem(IDC_STRING_SEARCH_START_TIME);
+	pStringSearchStartTime->SetFont(&m_font);
 	CWnd *pStringSearchEndTime = GetDlgItem(IDC_STRING_SEARCH_END_TIME);
+	pStringSearchEndTime->SetFont(&m_font);
 	CWnd *pStringFps = GetDlgItem(IDC_STRING_FPS);
+	pStringFps->SetFont(&m_font);
 	CWnd *pStringSearchStartTimeSlider = GetDlgItem(IDC_STRING_SEARCH_START_TIME_SLIDER);
+	pStringSearchStartTimeSlider->SetFont(&m_font);
 	CWnd *pStringSearchEndTimeSlider = GetDlgItem(IDC_STRING_SEARCH_END_TIME_SLIDER);
+	pStringSearchEndTimeSlider->SetFont(&m_font);
 	CWnd *pStringFpsSlider = GetDlgItem(IDC_STRING_FPS_SLIDER);
+	pStringFpsSlider->SetFont(&m_font);
 	CWnd *pStringDirection = GetDlgItem(IDC_STRING_DIRECTION);
+	pStringDirection->SetFont(&m_font);
 	CWnd *pStringDirectionStart = GetDlgItem(IDC_STRING_DIRECTION_START);
+	pStringDirectionStart->SetFont(&m_font);
 	CWnd *pStringDirectionEnd = GetDlgItem(IDC_STRING_DIRECTION_END);
+	pStringDirectionEnd->SetFont(&m_font);
 	CWnd *pStringColor = GetDlgItem(IDC_STRING_COLOR);
+	pStringColor->SetFont(&m_font);
 	CButton *pButtonColorR = (CButton *)GetDlgItem(IDC_COLOR_RED);
 	CButton *pButtonColorG = (CButton *)GetDlgItem(IDC_COLOR_GREEN);
 	CButton *pButtonColorB = (CButton *)GetDlgItem(IDC_COLOR_BLUE);
@@ -1551,27 +1582,29 @@ void CMFC_SyntheticDlg::layoutInit() {
 	int box_syntheticWidth = dialogWidth - 3 * padding;
 	int box_syntheticHeight = (dialogHeight - 3 * padding)*0.2 - 40;
 	pGroupSynthetic->MoveWindow(box_syntheticX, box_syntheticY, box_syntheticWidth, box_syntheticHeight, TRUE);
-	pStringSearchStartTime->MoveWindow(box_syntheticX + padding, box_syntheticY + box_syntheticHeight*0.3, 100, 20, TRUE);
+	pStringSearchStartTime->MoveWindow(box_syntheticX + padding, box_syntheticY + box_syntheticHeight*0.3, 140, 20, TRUE);
 	m_sliderSearchStartTime.MoveWindow(box_syntheticX + padding, box_syntheticY + box_syntheticHeight*0.3 + 20 + padding, 140, 20, TRUE);
-	pStringSearchStartTimeSlider->MoveWindow(box_syntheticX + padding + 40, box_syntheticY + box_syntheticHeight*0.3 + 40 + padding * 2, 140, 20, TRUE);
+	pStringSearchStartTimeSlider->MoveWindow(box_syntheticX + padding + 20, box_syntheticY + box_syntheticHeight*0.3 + 40 + padding * 2, 140, 20, TRUE);
 
-	pStringSearchEndTime->MoveWindow(box_syntheticX + padding + 150, box_syntheticY + box_syntheticHeight*0.3, 100, 20, TRUE);
+	pStringSearchEndTime->MoveWindow(box_syntheticX + padding + 160, box_syntheticY + box_syntheticHeight*0.3, 120, 20, TRUE);
 	m_sliderSearchEndTime.MoveWindow(box_syntheticX + padding + 150, box_syntheticY + box_syntheticHeight*0.3 + 20 + padding, 140, 20, TRUE);
-	pStringSearchEndTimeSlider->MoveWindow(box_syntheticX + padding + 40 + 150, box_syntheticY + box_syntheticHeight*0.3 + 40 + padding * 2, 140, 20, TRUE);
+	pStringSearchEndTimeSlider->MoveWindow(box_syntheticX + padding + 20 + 150, box_syntheticY + box_syntheticHeight*0.3 + 40 + padding * 2, 140, 20, TRUE);
 
-	pStringFps->MoveWindow(box_syntheticX + padding + 300, box_syntheticY + box_syntheticHeight*0.3, 100, 20, TRUE);
+	pStringFps->MoveWindow(box_syntheticX + padding + 300 + 55, box_syntheticY + box_syntheticHeight*0.3, 100, 20, TRUE);
 	m_sliderFps.MoveWindow(box_syntheticX + padding + 300, box_syntheticY + box_syntheticHeight*0.3 + 20 + padding, 140, 20, TRUE);
 	pStringFpsSlider->MoveWindow(box_syntheticX + padding + 60 + 300, box_syntheticY + box_syntheticHeight*0.3 + 40 + padding * 2, 30, 20, TRUE);
 
 
-	pStringDirection->MoveWindow(box_syntheticX + padding + 450, box_syntheticY + box_syntheticHeight*0.2, 100, 20, TRUE);
-	pStringDirectionStart->MoveWindow(box_syntheticX + padding + 470, box_syntheticY + box_syntheticHeight*0.4, 30, 20, TRUE);
-	mComboStart.MoveWindow(box_syntheticX + padding + 520, box_syntheticY + box_syntheticHeight*0.4, 100, 20, TRUE);
-	pStringDirectionEnd->MoveWindow(box_syntheticX + padding + 470, box_syntheticY + box_syntheticHeight*0.6, 30, 20, TRUE);
-	mComboEnd.MoveWindow(box_syntheticX + padding + 520, box_syntheticY + box_syntheticHeight*0.6, 100, 20, TRUE);
+	pStringDirection->MoveWindow(box_syntheticX + padding + 470, box_syntheticY + box_syntheticHeight*0.2, 100, 20, TRUE);
+	pStringDirectionStart->MoveWindow(box_syntheticX + padding + 470, box_syntheticY + box_syntheticHeight*0.4, 50, 20, TRUE);
+	mComboStart.SetFont(&m_font);
+	mComboStart.MoveWindow(box_syntheticX + padding + 530, box_syntheticY + box_syntheticHeight*0.4, 100, 20, TRUE);
+	pStringDirectionEnd->MoveWindow(box_syntheticX + padding + 470, box_syntheticY + box_syntheticHeight*0.6, 50, 20, TRUE);
+	mComboEnd.MoveWindow(box_syntheticX + padding + 530, box_syntheticY + box_syntheticHeight*0.6, 100, 20, TRUE);
+	mComboEnd.SetFont(&m_font);
 
 	pStringColor->MoveWindow(box_syntheticX + padding + 680, box_syntheticY + box_syntheticHeight*0.2, 100, 20, TRUE);
-	pCheckBoxAll->MoveWindow(box_syntheticX + padding + 710, box_syntheticY + box_syntheticHeight*0.2, 30, 20, TRUE);
+	pCheckBoxAll->MoveWindow(box_syntheticX + padding + 730, box_syntheticY + box_syntheticHeight*0.2, 30, 20, TRUE);
 	pButtonColorR->MoveWindow(box_syntheticX + padding + 680, box_syntheticY + box_syntheticHeight*0.35, 30, 20, TRUE);
 	pCheckBoxR->MoveWindow(box_syntheticX + padding + 730, box_syntheticY + box_syntheticHeight*0.35, 30, 20, TRUE);
 	pButtonColorO->MoveWindow(box_syntheticX + padding + 680, box_syntheticY + box_syntheticHeight*0.5, 30, 20, TRUE);

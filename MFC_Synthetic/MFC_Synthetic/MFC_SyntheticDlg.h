@@ -262,6 +262,8 @@ protected:
 public:
 	CImage cImage;
 
+	CFont m_font;	//Static Text font
+
 	afx_msg void OnCancel();
 	afx_msg void OnDestroy();
 
