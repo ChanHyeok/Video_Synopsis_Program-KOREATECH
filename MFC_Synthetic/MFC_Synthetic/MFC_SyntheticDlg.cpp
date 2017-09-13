@@ -1417,13 +1417,14 @@ void CMFC_SyntheticDlg::backgroundInit(string videoFilePath) {
 void CMFC_SyntheticDlg::layoutInit() {
 	//(http://gandus.tistory.com/530)
 	//현재 dialog 크기 얻어옴
-	int dialogWidth = m_rectCurHist.right;
-	int dialogHeight = m_rectCurHist.bottom - 50;	//작업표시줄 크기 빼줌
+	int dialogWidth = m_rectCurHist.right-300;
+	int dialogHeight = m_rectCurHist.bottom;	//작업표시줄 크기 빼줌
 	int padding = 10;
 	SetWindowPos(&wndTop, 0, 0, dialogWidth, dialogHeight, SWP_NOREDRAW);	//다이얼로그 크기 조정
 
 	//group box - MENU
 	CWnd *pGroupMenu = GetDlgItem(IDC_GROUP_MENU);
+	pGroupMenu->SetFont(&m_font);
 	CWnd *pStringFileName = GetDlgItem(IDC_MENU_STRING_FILE_NAME);
 	pStringFileName->SetFont(&m_font);
 	CButton *pButtonLoad = (CButton *)GetDlgItem(IDC_BTN_MENU_LOAD);
@@ -1440,10 +1441,10 @@ void CMFC_SyntheticDlg::layoutInit() {
 
 	pGroupMenu->MoveWindow(box_MenuX, box_MenuY, box_MenuWidth, box_MenuHeight, TRUE);
 	pStringFileName->MoveWindow(box_MenuX + padding, box_MenuY + 2 * padding, 230, 50, TRUE);
-	pButtonLoad->MoveWindow(box_MenuX + box_MenuWidth - padding - 100, box_MenuY + 3 * padding + 20, 100, 20, TRUE);
-	pRadioBtn1->MoveWindow(box_MenuX + padding, box_MenuY + 4 * padding + 40, 100, 20, TRUE);
-	pRadioBtn3->MoveWindow(box_MenuX + padding + 150, box_MenuY + 4 * padding + 40, 100, 20, TRUE);
-	pRadioBtn2->MoveWindow(box_MenuX + padding, box_MenuY + 5 * padding + 60, 100, 20, TRUE);
+	pButtonLoad->MoveWindow(box_MenuX + box_MenuWidth - padding - 120, box_MenuY + 3 * padding + 50, 120, 20, TRUE);
+	pRadioBtn1->MoveWindow(box_MenuX + padding, box_MenuY + 4 * padding + 90, 100, 20, TRUE);
+	pRadioBtn3->MoveWindow(box_MenuX + padding + 150, box_MenuY + 4 * padding + 90, 100, 20, TRUE);
+	pRadioBtn2->MoveWindow(box_MenuX + padding, box_MenuY + 5 * padding + 110, 100, 20, TRUE);
 
 	//Picture Control
 	CWnd *pResultImage = GetDlgItem(IDC_RESULT_IMAGE);
@@ -1480,6 +1481,7 @@ void CMFC_SyntheticDlg::layoutInit() {
 
 	//group box - segmetation
 	CWnd *pGroupSegmentation = GetDlgItem(IDC_GROUP_SEG);
+	pGroupSegmentation->SetFont(&m_font);
 	CWnd *pStringStartTime = GetDlgItem(IDC_SEG_STRING_VIDEO_START_TIME);
 	pStringStartTime->SetFont(&m_font);
 	CWnd *pStringColon = GetDlgItem(IDC_SEG_STRING_COLON);
@@ -1487,6 +1489,7 @@ void CMFC_SyntheticDlg::layoutInit() {
 	m_pEditBoxStartHour = (CEdit *)GetDlgItem(IDC_SEG_EDITBOX_START_HOUR);
 	m_pEditBoxStartMinute = (CEdit *)GetDlgItem(IDC_SEG_EDITBOX_START_MINUTE);
 	CWnd *pGroupSegWidth = GetDlgItem(IDC_GROUP_SEG_WIDTH);
+	pGroupSegWidth->SetFont(&m_font);
 	CWnd *pStringWMIN = GetDlgItem(IDC_SEG_STRING_MIN_W);
 	pStringWMIN->SetFont(&m_font);
 	CWnd *pStringWMAX = GetDlgItem(IDC_SEG_STRING_MAX_W);
@@ -1498,6 +1501,7 @@ void CMFC_SyntheticDlg::layoutInit() {
 	CWnd *pSegSliderWMIN = GetDlgItem(IDC_SEG_SLIDER_WMIN);
 	CWnd *pSegSliderWMAX = GetDlgItem(IDC_SEG_SLIDER_WMAX);
 	CWnd *pGroupSegHeight = GetDlgItem(IDC_GROUP_SEG_HEIGHT);
+	pGroupSegHeight->SetFont(&m_font);
 	CWnd *pStringHMIN = GetDlgItem(IDC_SEG_STRING_MIN_H);
 	pStringHMIN->SetFont(&m_font);
 	CWnd *pStringHMAX = GetDlgItem(IDC_SEG_STRING_MAX_H);
@@ -1537,6 +1541,7 @@ void CMFC_SyntheticDlg::layoutInit() {
 
 	//group box - Play Settings
 	CWnd *pGroupSynthetic = GetDlgItem(IDC_GROUP_PLAY_SETTINGS);
+	pGroupSynthetic->SetFont(&m_font);
 	CWnd *pStringSearchStartTime = GetDlgItem(IDC_STRING_SEARCH_START_TIME);
 	pStringSearchStartTime->SetFont(&m_font);
 	CWnd *pStringSearchEndTime = GetDlgItem(IDC_STRING_SEARCH_END_TIME);
