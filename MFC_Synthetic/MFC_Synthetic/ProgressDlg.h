@@ -34,6 +34,7 @@ public:
 	std::string fileNameNoExtension;
 	BOOL isWorkCompleted;
 	unsigned int* bg_array;
+	unsigned int* color_bg_array;
 
 	FILE *fp;
 	vector<component> humanDetectedVector, prevHumanDetectedVector;

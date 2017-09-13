@@ -28,6 +28,20 @@ Mat averageBG(Mat frameimg, unsigned int* bgimg) {
 	}
 	return frameimg;
 }
+Mat averageBG_for_color(Mat frameimg, unsigned int* bgimg) {
+	for (int i = 0; i < frameimg.rows*frameimg.cols*3; i++) {
+		bgimg[i] += frameimg.data[i];
+	}
+	return frameimg;
+	
+	/*for (int i = 0; i < frameimg.rows; i++) {
+		for (int j = 0; j < frameimg.cols; j++) {
+			bgimg[i] += frameimg.data[i * frameimg.cols + j];
+		}
+	}
+	return frameimg;
+	*/
+}
 
 void setArrayToZero(unsigned int* arr,int ROWS, int COLS){
 	for (int i = 0; i < ROWS*COLS; i++){
@@ -37,6 +51,12 @@ void setArrayToZero(unsigned int* arr,int ROWS, int COLS){
 
 Mat accIntArrayToMat(Mat image, unsigned int* arr, int bgFrameCount){
 	for (int i = 0; i < image.rows*image.cols; i++){
+		image.data[i] = (int)(arr[i] / (double)bgFrameCount);
+	}
+	return image;
+}
+Mat accIntArrayToMat_color(Mat image, unsigned int* arr, int bgFrameCount) {
+	for (int i = 0; i < image.rows*image.cols*3; i++) {
 		image.data[i] = (int)(arr[i] / (double)bgFrameCount);
 	}
 	return image;

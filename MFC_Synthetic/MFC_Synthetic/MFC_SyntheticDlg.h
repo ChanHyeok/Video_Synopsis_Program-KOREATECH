@@ -187,8 +187,10 @@ Mat ExtractForegroundToMOG2(Mat frameimg);
 Mat ExtractFg(Mat, Mat, int, int);
 Mat temporalMedianBG(Mat frameimg, Mat bgimg);
 Mat averageBG(Mat frameimg, unsigned int* bgimg);
+Mat averageBG_for_color(Mat frameimg, unsigned int* bgimg);
 void setArrayToZero(unsigned int* arr, int, int);
 Mat accIntArrayToMat(Mat image, unsigned int* arr, int);
+Mat accIntArrayToMat_color(Mat image, unsigned int* arr, int bgFrameCount);
 
 // tool_getColor.cpp
 int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray);

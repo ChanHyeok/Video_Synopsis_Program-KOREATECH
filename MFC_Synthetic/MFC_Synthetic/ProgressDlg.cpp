@@ -56,7 +56,9 @@ BOOL CProgressDlg::OnInitDialog()
 
 	frame = Mat(ROWS, COLS, CV_8UC3);
 	bg_array = new unsigned int[ROWS*COLS];
+	color_bg_array = new unsigned int[ROWS*COLS * 3];
 	setArrayToZero(bg_array,ROWS,COLS);
+	setArrayToZero(color_bg_array, ROWS*3, COLS);
 
 	// MOG2 包访
 	pMOG2 = createBackgroundSubtractorMOG2();
@@ -162,17 +164,22 @@ void CProgressDlg::OnTimer(UINT_PTR nIDEvent)
 		m_StaticMessage.SetWindowTextA(text.c_str());
 		if (count < FRAMES_FOR_MAKE_BACKGROUND){
 			vc_Source.read(frame); //get single frame
+			averageBG_for_color(frame, color_bg_array);
 			cvtColor(frame, frame, CV_RGB2GRAY);
 			averageBG(frame, bg_array);
 			m_ProgressCtrl.OffsetPos(1);
 			count++;
 		}
 		else{
+			Mat bg_color(ROWS, COLS, CV_8UC3);
 			Mat bg_gray(ROWS, COLS, CV_8UC1);
 			KillTimer(PROGRESS_TIMER);
+			accIntArrayToMat_color(bg_color, color_bg_array, FRAMES_FOR_MAKE_BACKGROUND);
 			accIntArrayToMat(bg_gray, bg_array, FRAMES_FOR_MAKE_BACKGROUND);
+
 			if (imwrite(getBackgroundFilePath(fileNameNoExtension), bg_gray)){
 				imwrite(getTempBackgroundFilePath(fileNameNoExtension), bg_gray);
+				imwrite(getColorBackgroundFilePath(fileNameNoExtension), bg_color);
 				m_StaticMessage.SetWindowTextA(_T("硅版 积己 己傍!"));
 				m_ButtonOK.EnableWindow(true);
 				printf("Background Init Completed\n");
@@ -213,9 +220,11 @@ void CProgressDlg::OnTimer(UINT_PTR nIDEvent)
 					printf("Background Making Start : %d frame\n", curFrameCount);
 
 					setArrayToZero(bg_array,ROWS,COLS);
+					setArrayToZero(color_bg_array, ROWS*3, COLS);
 				}
 				else{	//硅版 积己
 					averageBG(frame_g, bg_array);
+					averageBG_for_color(frame, color_bg_array);
 				}
 			}
 
@@ -223,6 +232,7 @@ void CProgressDlg::OnTimer(UINT_PTR nIDEvent)
 			if (curFrameCount_nomalized == FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND - 1){
 				Mat bg_gray(ROWS, COLS, CV_8UC1);
 				accIntArrayToMat(bg_gray, bg_array, FRAMES_FOR_MAKE_BACKGROUND);
+
 				imwrite(getTempBackgroundFilePath(fileNameNoExtension), bg_gray);
 				bg_gray = NULL; bg_gray.release();
 			}
@@ -359,6 +369,7 @@ void CProgressDlg::OnCancel()
 
 	segmentArray = NULL;
 	delete[] bg_array;
+	delete[] color_bg_array;
 	delete[] segmentArray;
 
 	if (mode == 1 && fp != NULL)
