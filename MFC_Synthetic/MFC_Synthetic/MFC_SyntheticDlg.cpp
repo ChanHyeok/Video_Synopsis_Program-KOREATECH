@@ -188,7 +188,8 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 
 	// 타이틀 초기화
-	titleInit();
+	SetWindowText("Video Synosis");
+	//titleInit();
 
 	//레이아웃 컨트롤들 초기화 및 위치 지정
 	layoutInit();
@@ -229,6 +230,7 @@ int CMFC_SyntheticDlg::loadFile(int mode) {
 		//FRAMES_FOR_MAKE_BACKGROUND, FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND 입력 받기
 		CInitBGCounts InitBGCount(this);                // this 를 사용하여 부모를 지정.
 		InitBGCount.CenterWindow();
+
 		if (InitBGCount.DoModal() == 1){//OK 눌렀을 경우
 			FRAMES_FOR_MAKE_BACKGROUND = InitBGCount.BGMAKINGCOUNTS;
 			FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = InitBGCount.BGUPDATECOUNTS;

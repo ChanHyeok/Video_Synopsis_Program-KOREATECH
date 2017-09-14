@@ -26,6 +26,9 @@ void CInitBGCounts::DoDataExchange(CDataExchange* pDX)
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_EDIT1, CEditBGMakeCounts);
 	DDX_Control(pDX, IDC_EDIT2, CEditBGUpdateCounts);
+
+	CEditBGMakeCounts.SetWindowText("800");
+	CEditBGUpdateCounts.SetWindowText("1000");
 }
 
 
