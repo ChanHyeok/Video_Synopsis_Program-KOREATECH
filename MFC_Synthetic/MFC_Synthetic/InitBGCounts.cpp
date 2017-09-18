@@ -26,6 +26,9 @@ void CInitBGCounts::DoDataExchange(CDataExchange* pDX)
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_EDIT1, CEditBGMakeCounts);
 	DDX_Control(pDX, IDC_EDIT2, CEditBGUpdateCounts);
+
+	CEditBGMakeCounts.SetWindowText("800");
+	CEditBGUpdateCounts.SetWindowText("1000");
 }
 
 
@@ -79,6 +82,8 @@ void CInitBGCounts::OnBnClickedOk()
 	CString temp1, temp2;
 	CEditBGMakeCounts.GetWindowTextA(temp1);
 	CEditBGUpdateCounts.GetWindowTextA(temp2);
+
+	// 배경 디폴트 값 설정부분
 	BGMAKINGCOUNTS = atoi(temp1);
 	BGUPDATECOUNTS = atoi(temp2);
 	CDialogEx::OnOK();

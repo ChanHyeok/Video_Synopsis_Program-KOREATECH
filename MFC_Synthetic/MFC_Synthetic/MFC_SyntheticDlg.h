@@ -291,6 +291,7 @@ public:
 	CSliderCtrl m_SliderHMIN;
 	CSliderCtrl m_SliderHMAX;
 	afx_msg void OnBnClickedBtnStop();
+	afx_msg void titleInit();
 	afx_msg void layoutInit();
 	afx_msg void setSliderRange(int, int, int, int);
 	afx_msg void updateUI(int, int, int, int);

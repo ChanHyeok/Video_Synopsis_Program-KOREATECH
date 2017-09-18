@@ -187,12 +187,15 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);			// Set big icon
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 
+	// 타이틀 초기화
+	SetWindowText("Video Synosis");
+	//titleInit();
 
 	//레이아웃 컨트롤들 초기화 및 위치 지정
 	layoutInit();
 
 	//실행시 비디오 파일 불러옴
-	loadFile(0);
+	// loadFile(0);
 
 	//Slider Control 범위 지정
 	setSliderRange(videoLength, COLS, ROWS, 100);
@@ -227,6 +230,7 @@ int CMFC_SyntheticDlg::loadFile(int mode) {
 		//FRAMES_FOR_MAKE_BACKGROUND, FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND 입력 받기
 		CInitBGCounts InitBGCount(this);                // this 를 사용하여 부모를 지정.
 		InitBGCount.CenterWindow();
+
 		if (InitBGCount.DoModal() == 1){//OK 눌렀을 경우
 			FRAMES_FOR_MAKE_BACKGROUND = InitBGCount.BGMAKINGCOUNTS;
 			FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = InitBGCount.BGUPDATECOUNTS;
@@ -1408,6 +1412,12 @@ void CMFC_SyntheticDlg::backgroundInit(string videoFilePath) {
 	}
 	return;
 }
+
+void CMFC_SyntheticDlg::titleInit() {
+	// 해야할 것 :: 타이틀 넣기
+
+}
+
 
 void CMFC_SyntheticDlg::layoutInit() {
 	//(http://gandus.tistory.com/530)
