@@ -54,6 +54,7 @@ unsigned int* bg_array;
 
 bool synthesisEndFlag; // 합성이 끝남을 알려주는 플래그
 bool isAlreadyBGMade; //이미 만든 배경이 있는지. 이진 영상 드래그 시에 변경
+bool loadFlag; // 영상이 로드되었는지를 판별하는 플래그
 
 // File 관련
 FILE *fp_detail; // frameInfo를 작성할 File Pointer
@@ -197,6 +198,8 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	//실행시 비디오 파일 불러옴
 	// loadFile(0);
 
+	loadFlag = false;
+
 	//Slider Control 범위 지정
 	setSliderRange(videoLength, COLS, ROWS, 100);
 
@@ -295,6 +298,9 @@ int CMFC_SyntheticDlg::loadFile(int mode) {
 
 		// 배경생성 및 파일로 저장(초반 n프레임)
 		backgroundInit(videoFilePath);
+
+		// 로드 플래그 변경
+		loadFlag = true;
 
 		SetTimer(LOGO_TIMER, 1, NULL);
 
@@ -494,7 +500,8 @@ void CMFC_SyntheticDlg::OnTimer(UINT_PTR nIDEvent)
 	Mat temp_frame;
 	int curFrameCount = (int)capture.get(CV_CAP_PROP_POS_FRAMES);//현재 프레임 카운트
 	m_SliderPlayer.SetPos(curFrameCount);	//슬라이더 위치를 조정
-	SetDlgItemText(IDC_STRING_CUR_TIME, timeConvertor((int)(videoLength * curFrameCount / (float)totalFrameCount)).str().c_str());	//현재 씬의 시간 출력
+	if (loadFlag)
+		SetDlgItemText(IDC_STRING_CUR_TIME, timeConvertor((int)(videoLength * curFrameCount / (float)totalFrameCount)).str().c_str());	//현재 씬의 시간 출력
 
 	switch (nIDEvent) {
 	case LOGO_TIMER:	//로고 출력
@@ -1635,15 +1642,15 @@ void CMFC_SyntheticDlg::updateUI(int video_length, int video_cols, int video_row
 	m_pEditBoxStartMinute->SetWindowTextA("0");
 
 	// time slider default
-	SetDlgItemText(IDC_STRING_SEARCH_START_TIME_SLIDER, _T("00 : 00 : 00"));
-	SetDlgItemText(IDC_STRING_SEARCH_END_TIME_SLIDER, _T("00 : 00 : 00"));
+	SetDlgItemText(IDC_STRING_SEARCH_START_TIME_SLIDER, _T("00:00:00"));
+	SetDlgItemText(IDC_STRING_SEARCH_END_TIME_SLIDER, _T("00:00:00"));
 	SetDlgItemText(IDC_STRING_FPS_SLIDER, to_string(MAX_Fps).c_str());
 	m_sliderSearchStartTime.SetPos(0);
 	m_sliderSearchEndTime.SetPos(0);
 	m_sliderFps.SetPos(MAX_Fps);
 
-	//player slider default
-	SetDlgItemText(IDC_STRING_CUR_TIME, _T("00 : 00 : 00"));
+	// player slider default
+	SetDlgItemText(IDC_STRING_CUR_TIME, _T("00:00:00"));
 	SetDlgItemText(IDC_STRING_TOTAL_TIME, _T(timeConvertor(video_length).str().c_str()));
 
 	// detection slider text
