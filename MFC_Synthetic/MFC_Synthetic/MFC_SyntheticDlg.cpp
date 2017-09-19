@@ -787,7 +787,7 @@ vector<component> humanDetectedProcess2(vector<component> humanDetectedVector, v
 		double difference_value = (double)humanDetectedVector[humanCount].color_count 
 			/ (double)(humanDetectedVector[humanCount].height *humanDetectedVector[humanCount].width);
 		
-		if (difference_value > 0.10)
+		if (difference_value > 0.13)
 			save_flag = true;
 
 		else {
@@ -1944,57 +1944,31 @@ bool isColorAvailable(boolean colorCheckArray[], unsigned int colorArray[]) {
 		, sorted_value[0], sorted_value[1], sorted_value[2]);
 	*/
 
-	// 희소색에 가중치 부여 (현재 red, orange, yellow에 대해서)
-	// 또한 두번쨰로 검정색 또는 하양이 많이 나오는 경우는 인덱스 하나 밀어주기
-	/*
-	if (sorted_index[2] == RED || sorted_index[2] == ORANGE || sorted_index[2] == YELLOW) {
-		sorted_value[2] *= 1.4;
-		if (sorted_value[2] > sorted_value[1]) {
-			int temp_value = sorted_value[2];
-			sorted_value[2] = sorted_value[1];
-			sorted_value[1] = temp_value;
-		}
-	}
-	*/
-
 	// 또한 두번쨰로 검정색이 많이 나오는 경우는 폐기하기
-	if (sorted_index[1] == BLACK || sorted_index[2] == BLACK) {
+	if (sorted_index[1] == BLACK) {
 		sorted_index[1] = sorted_index[2];
 		sorted_value[1] = sorted_value[2];
+		printf("블랙 폐기 적용\n");
+	}
+
+	
+	// white, gray가 두번째면 디스 어드밴티지 부여
+	if (sorted_index[1] == GRAY || sorted_index[1] == WHITE) {
+		//sorted_value[2] *= 1.2;
+		printf("어드밴티지 적용\n");
+		sorted_value[1] *= 0.9;
 	}
 
 	// 전체 나온 색깔의 비율을 따져서 세번째, 두번째로 나온 색상도 검출할 것인지 판별함
-	if (((double)sorted_value[2] / (double)total_color_value) > 0.25) {
+	
+	if (((double)sorted_value[2] / (double)total_color_value) > 0.29) 
 		return isColorChecker(colorCheckArray, sorted_index, 3);
-	}
+	
 
-	if (((double)sorted_value[1] / (double)total_color_value) > 0.2) {
+	if (((double)sorted_value[1] / (double)total_color_value) > 0.26) {
 		return isColorChecker(colorCheckArray, sorted_index, 2);
 	}
-	/*
-	if (sorted_index[1] == BLUE && ((double)sorted_value[1] / (double)total_color_value) > 0.17) {
-		return isColorChecker(colorCheckArray, sorted_index, 2);
-	}
-	*/
 
-	/*
-	// 두번째로 많이 나온 색깔과 첫 번쨰 나온 색과 차이가 클 경우에 (일반 색상에서)
-	if ((double)sorted_value[1] < (double)sorted_value[0] * 0.4) {
-		if (colorCheckArray[sorted_index[0]])
-			return true;
-		else
-			return false;
-	}
-
-	// 두번째로 많이 나온 색깔과 첫 번쨰 나온 색과 차이가 클 경우에 (블랙/화이트일 경우에는 값의 폭을 좁게)
-	if (((double)sorted_value[1] < (double)sorted_value[0] * 0.7)
-		&& (sorted_index[1] == WHITE) && (sorted_index[1] == BLACK)) {
-		if (colorCheckArray[sorted_index[0]])
-			return true;
-		else
-			return false;
-	}
-	*/
 	// 일반적인 경우
 	return isColorChecker(colorCheckArray, sorted_index, 1);
 }
