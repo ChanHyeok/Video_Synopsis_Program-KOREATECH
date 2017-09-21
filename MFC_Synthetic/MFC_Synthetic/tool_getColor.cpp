@@ -64,7 +64,7 @@ int* getColorData(Mat frame, component *object, Mat binary, Mat bg, int frameCou
 	}
 
 	// 무채색, 유채색의 밸런스를 맞추기 위한 연산, gray와 black의 weight 조절
-	colorArray[BLACK] *= 0.78;
+	colorArray[BLACK] *= 0.73;
 	colorArray[GRAY] *= 0.75;
 	colorArray[WHITE] *= 0.85;
 
@@ -111,6 +111,7 @@ int* getColorData(Mat frame, component *object, Mat binary, Mat bg, int frameCou
 H : 180 S : 255 V : 255
 */
 
+
 int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 	// 검출된 색깔의 갯수 (0일 경우 에러)
 	int color_point = 1;
@@ -137,18 +138,20 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 
 	// 무채색(검정, 회색, 흰색) 판별
 	
-	// black , V < 13
+	// black , V < 13 || S < 25 V < 20
 	if ((V <= 32 )
+		|| (S <= 65 && V <= 55)
 		|| (sumOfRGB < 90 && diff_RG <= 20 && diff_GB <= 20 && diff_BR <= 20)
-		|| (sumOfRGB < 125 && sumOfRGB > 90 && diff_RG <= 6 && diff_GB <= 6)) {
+		|| (sumOfRGB < 125 && sumOfRGB >= 90 && diff_RG <= 6 && diff_GB <= 6)) {
 		colorArray[BLACK]++;
 		WGB_flag = true;
 	}
 
 
-	// white, SV차가 약 60과 94사이와 S는 약 20이 안넘어 가게끔
+	// white,Vrk 95 이상 SV차가 약 60과 94사이와 S는 약 20이 안넘어 가게끔
 	// 또한 RGB합이 570이 넘어가고 각각의 차이가 30이내로 날 때에
-	if ((abs(S-V) >= 150 && abs(S-V) <= 240 && S < 51 && H > 13)
+	if ((V >= 235)
+		|| (abs(S-V) >= 150 && abs(S-V) <= 240 && S < 51 && H > 13)
 		|| (sumOfRGB > 570 && diff_RG <= 30 && diff_GB <= 30)
 		|| (sumOfRGB > 480 && diff_RG <= 40 && diff_GB <= 40 && diff_BR <= 40 && H >= 100 && H <= 200 && S < 80 && V < 100)){
 		colorArray[WHITE]++;
@@ -158,7 +161,7 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 	// gray, V가 42-60사이 S는 10 이하
 	// 또한 RGB는 각각의 차이가 5 이하, RGB 110 이하
 	if ((WGB_flag == false) && (V >= 110 && V <= 155 && S < 25)
-		|| (sumOfRGB > 135 && R <= 105 && G <= 105 && B <= 105 && diff_RG <= 3 && diff_GB <= 3 && diff_BR <= 3)) {
+		|| (sumOfRGB > 135 && R <= 105 && G <= 105 && B <= 105 && diff_RG <= 5 && diff_GB <= 5 && diff_BR <= 5)) {
 		colorArray[GRAY]++;
 		WGB_flag = true;
 	}
@@ -173,13 +176,13 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 			hsv_flag = true;
 		}
 		// +10로 증가, - 10증가  (RGB이용)  // H :: 30 -> 15
-		if (H <= 5 && H >= 25 /* && R >= 130 */) {
+		if (H <= 25 && H >= 5 /* && R >= 130 */) {
 			colorArray[ORANGE]++;
 			hsv_flag = true;
 		}
 
 		// + 8로 증가, -로 13 증가  (RGB이용) // H :: 60 -> 30
-		if (H <= 38 && H >= 17 && B <= 130 /*&& abs(R - G) < 25*/) {
+		if (H <= 38 && H >= 17 && B <= 140 /*&&	 abs(R - G) < 25*/) {
 			colorArray[YELLOW]++;
 			hsv_flag = true;
 		}
@@ -205,7 +208,8 @@ int colorPicker(Vec3b pixel_hsv, Vec3b pixel_rgb, int *colorArray) {
 		if (hsv_flag == false) {
 			// R > 150 && G, B < 110
 			if ( /*R >= 150 && G <= 110 && B <= 110 ||*/
-				 (R >= 100 && diff_RG >= 90 && diff_BR >= 90 && G <= 50 && B <= 50)) {
+				 (R >= 100 && diff_RG >= 90 && diff_BR >= 90 && G <= 50 && B <= 50)
+				|| (diff_RG >= 60 && diff_BR >= 60 && G <= 40 && B <= 40)) {
 				colorArray[RED]++;
 			}
 			// R > 150 && 60 < GB차이 < 110  &&  B < 110
