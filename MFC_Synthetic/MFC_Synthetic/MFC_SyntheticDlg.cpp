@@ -188,12 +188,11 @@ BOOL CMFC_SyntheticDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);			// Set big icon
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 
-	// 타이틀 초기화
-	SetWindowText("Video Synosis");
-	//titleInit();
-
 	//레이아웃 컨트롤들 초기화 및 위치 지정
 	layoutInit();
+
+	// 타이틀 초기화
+	initTitle();
 
 	//실행시 비디오 파일 불러옴
 	// loadFile(0);
@@ -1420,12 +1419,6 @@ void CMFC_SyntheticDlg::backgroundInit(string videoFilePath) {
 	return;
 }
 
-void CMFC_SyntheticDlg::titleInit() {
-	// 해야할 것 :: 타이틀 넣기
-
-}
-
-
 void CMFC_SyntheticDlg::layoutInit() {
 	//(http://gandus.tistory.com/530)
 	//현재 dialog 크기 얻어옴
@@ -2263,4 +2256,10 @@ void CMFC_SyntheticDlg::OnBnClickedCheckAll()
 		CheckDlgButton(IDC_CHECK_GRAY, FALSE);
 		CheckDlgButton(IDC_CHECK_WHITE, FALSE);
 	}
+}
+
+void CMFC_SyntheticDlg::initTitle() {
+	ShowWindow(SW_SHOW);
+	UpdateWindow();
+	SetWindowText("video synopsis");
 }
