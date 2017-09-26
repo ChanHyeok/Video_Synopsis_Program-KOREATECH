@@ -34,8 +34,8 @@
 
 #include <afxcontrolbars.h>     // MFC support for ribbons and control bars
 
-//디버깅 콘솔
-#pragma comment(linker, "/entry:WinMainCRTStartup /subsystem:console")
+//디버깅 콘솔 (삭제)
+// #pragma comment(linker, "/entry:WinMainCRTStartup /subsystem:console")
 
 
 
