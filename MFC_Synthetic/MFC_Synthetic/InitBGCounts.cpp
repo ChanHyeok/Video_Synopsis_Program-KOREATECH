@@ -5,6 +5,7 @@
 #include "MFC_Synthetic.h"
 #include "InitBGCounts.h"
 #include "afxdialogex.h"
+#include "MFC_SyntheticDlg.h"
 
 
 // CInitBGCounts dialog
@@ -44,6 +45,14 @@ BOOL CInitBGCounts::OnInitDialog()
 
 	// TODO:  Add extra initialization here
 
+	//Static Text Font
+	m_font.CreateFont(13, 0, 0, 0, FW_NORMAL, FALSE, FALSE, 0, DEFAULT_CHARSET,
+		OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
+		DEFAULT_PITCH | FF_SWISS, "±¼¸²Ã¼");
+
+	GetDlgItem(IDC_STATIC0)->SetFont(&m_font);
+	GetDlgItem(IDC_STATIC1)->SetFont(&m_font);
+
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// EXCEPTION: OCX Property Pages should return FALSE
 }
@@ -69,8 +78,9 @@ void CInitBGCounts::OnOK()
 void CInitBGCounts::OnCancel()
 {
 	// TODO: Add your specialized code here and/or call the base class
+	
 
-
+	m_font.DeleteObject();
 	CDialogEx::OnCancel();
 }
 

@@ -26,6 +26,9 @@ public:
 	virtual BOOL OnInitDialog();
 	afx_msg void OnBnClickedOk();
 
+
+	CFont m_font;	//Static Text font
+
 	int BGMAKINGCOUNTS;
 	int BGUPDATECOUNTS;
 	CEdit CEditBGMakeCounts;
