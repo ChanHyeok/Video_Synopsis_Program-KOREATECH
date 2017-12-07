@@ -1,3 +1,14 @@
+/*
+	전체적인 프로그램 창을 띄우는 파일입니다.
+	프로그램의 전반적인 기능들을 담당합니다.
+	각종 데이터 타입들과 함수, 상수들이 정의되어 있습니다. 
+	UI를 생성하고 유지합니다.
+	connectedComponents_labelling.cpp, FileProcessing.cpp, ImageProcessing.cpp,
+	queue.cpp, tool_background.cpp, tool_foreground.cpp, tool_getColor.cpp, tool_synthetic.cpp 
+	파일들에서 사용하는 함수들을 정의하는 헤더파일이기도 합니다.
+*/
+
+
 
 // MFC_SyntheticDlg.h : header file
 //
@@ -235,7 +246,7 @@ public:
 	enum { IDD = IDD_MFC_SYNTHETIC_DIALOG };
 
 	Mat mat_frame;
-	CImage *cimage_mfc;
+//	CImage *cimage_mfc;
 	CStatic m_picture;
 
 	VideoCapture capture;
@@ -265,7 +276,7 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	CImage cImage;
-
+	CImage play_img, pause_img, stop_img, resind_img;
 	CFont m_font;	//Static Text font
 
 	afx_msg void OnCancel();

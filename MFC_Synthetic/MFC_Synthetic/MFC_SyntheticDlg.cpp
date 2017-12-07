@@ -1,4 +1,9 @@
-﻿// MFC_SyntheticDlg.cpp : implementation file
+﻿/*
+	프로그램의 전반적인 기능을 담당합니다.
+	자세한 설명은 헤더파일에 기록해 두었습니다.
+*/
+
+// MFC_SyntheticDlg.cpp : implementation file
 #include <crtdbg.h>
 #include "stdafx.h"
 #include "MFC_Synthetic.h"
@@ -1457,19 +1462,27 @@ void CMFC_SyntheticDlg::layoutInit() {
 	pRadioBtn2->MoveWindow(box_MenuX + padding, box_MenuY + 5 * padding + 110, 100, 20, TRUE);
 
 	//Picture Control
+	// CImage cImage;
 	CWnd *pResultImage = GetDlgItem(IDC_RESULT_IMAGE);
+	
 	CButton *pButtonPlay = (CButton  *)GetDlgItem(IDC_BTN_PLAY);
-	cImage.Load("res\\play.bmp");
-	pButtonPlay->SetBitmap(cImage);
+	play_img.Load("res\\play.bmp");
+	pButtonPlay->SetBitmap(play_img);
+
 	CButton  *pButtonPause = (CButton  *)GetDlgItem(IDC_BTN_PAUSE);
-	cImage.Load("res\\pause.bmp");
-	pButtonPause->SetBitmap(cImage);
+	pause_img.Load("res\\pause.bmp");
+	pButtonPause->SetBitmap(pause_img);
+	
 	CButton  *pButtonStop = (CButton  *)GetDlgItem(IDC_BTN_STOP);
-	cImage.Load("res\\stop.bmp");
-	pButtonStop->SetBitmap(cImage);
+	stop_img.Load("res\\stop.bmp");
+	pButtonStop->SetBitmap(stop_img);
+	
 	CButton  *pButtonRewind = (CButton  *)GetDlgItem(IDC_BTN_REWIND);
-	cImage.Load("res\\rewind.bmp");
-	pButtonRewind->SetBitmap(cImage);
+	resind_img.Load("res\\rewind.bmp");
+	pButtonRewind->SetBitmap(resind_img);
+
+	// cImage.Destroy();
+
 	CWnd *pStringCurTimeSlider = GetDlgItem(IDC_STRING_CUR_TIME);
 	pStringCurTimeSlider->SetFont(&m_font);
 	CWnd *pStringTotalTimeSlider = GetDlgItem(IDC_STRING_TOTAL_TIME);
@@ -1640,6 +1653,8 @@ void CMFC_SyntheticDlg::layoutInit() {
 	pCheckBoxBLACK->MoveWindow(box_syntheticX + padding + 920, box_syntheticY + box_syntheticHeight*0.65, 30, 20, TRUE);
 
 	mButtonSynSave.MoveWindow(box_syntheticX + box_syntheticWidth - 110, box_syntheticY + box_syntheticHeight*0.8, 100, 20, TRUE);
+
+	
 }
 
 //Slider Control의 범위 지정
