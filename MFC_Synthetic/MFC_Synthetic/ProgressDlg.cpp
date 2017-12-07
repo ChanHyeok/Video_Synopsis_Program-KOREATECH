@@ -1,3 +1,8 @@
+/*
+	Progress Dialog를 띄우는 데 필요한 기능들과 클래스가 정의되어 있습니다.
+	자세한 설명은 헤더파일에 기록해 두었습니다.
+*/
+
 // ProgressDlg.cpp : implementation file
 //
 
@@ -177,7 +182,8 @@ void CProgressDlg::OnTimer(UINT_PTR nIDEvent)
 			accIntArrayToMat_color(bg_color, color_bg_array, FRAMES_FOR_MAKE_BACKGROUND);
 			accIntArrayToMat(bg_gray, bg_array, FRAMES_FOR_MAKE_BACKGROUND);
 
-			if (imwrite(getBackgroundFilePath(fileNameNoExtension), bg_gray)){
+			if (count == FRAMES_FOR_MAKE_BACKGROUND){
+				imwrite(getBackgroundFilePath(fileNameNoExtension), bg_gray);
 				imwrite(getTempBackgroundFilePath(fileNameNoExtension), bg_gray);
 				imwrite(getColorBackgroundFilePath(fileNameNoExtension), bg_color);
 				m_StaticMessage.SetWindowTextA(_T("배경 생성 성공!"));
@@ -185,7 +191,7 @@ void CProgressDlg::OnTimer(UINT_PTR nIDEvent)
 				printf("Background Init Completed\n");
 				isWorkCompleted = true;
 			}
-			else{
+			else if (count > FRAMES_FOR_MAKE_BACKGROUND) {
 				m_StaticMessage.SetWindowTextA(_T("배경 생성 실패"));
 				m_ButtonOK.EnableWindow(true);
 				printf("Background Init Failed!!\n");

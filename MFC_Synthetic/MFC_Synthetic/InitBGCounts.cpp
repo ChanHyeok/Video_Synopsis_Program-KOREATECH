@@ -1,3 +1,8 @@
+/*
+	영상을 로드해서 배경을 만들 프레임 갯수, 배경을 유지시킬 프레임 갯수를 입력받는 대화상자를 구현한 파일입니다.
+	자세한 설명은 헤더파일에 기록해 두었습니다.
+*/
+
 // InitBGCounts.cpp : implementation file
 //
 
@@ -84,7 +89,16 @@ void CInitBGCounts::OnBnClickedOk()
 	CEditBGUpdateCounts.GetWindowTextA(temp2);
 
 	// 배경 디폴트 값 설정부분
-	BGMAKINGCOUNTS = atoi(temp1);
-	BGUPDATECOUNTS = atoi(temp2);
+	if (atoi(temp1) > 0 && atoi(temp2) > 0) {
+		BGMAKINGCOUNTS = atoi(temp1);
+		BGUPDATECOUNTS = atoi(temp2);
+	}
 	CDialogEx::OnOK();
+}
+
+int CInitBGCounts::getBGMAKINGCOUNTS() {
+	return BGMAKINGCOUNTS;
+}
+int CInitBGCounts::getBGUPDATECOUNTS() {
+	return BGUPDATECOUNTS;
 }

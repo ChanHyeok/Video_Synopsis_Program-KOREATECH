@@ -244,8 +244,8 @@ int CMFC_SyntheticDlg::loadFile(int mode) {
 		InitBGCount.CenterWindow();
 
 		if (InitBGCount.DoModal() == 1){//OK 눌렀을 경우
-			FRAMES_FOR_MAKE_BACKGROUND = InitBGCount.BGMAKINGCOUNTS;
-			FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = InitBGCount.BGUPDATECOUNTS;
+			FRAMES_FOR_MAKE_BACKGROUND = InitBGCount.getBGMAKINGCOUNTS();
+			FRAMECOUNT_FOR_MAKE_DYNAMIC_BACKGROUND = InitBGCount.getBGUPDATECOUNTS();
 		}
 		else OnCancel();
 
